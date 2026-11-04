@@ -9,3 +9,5 @@ CI should run backend tests with PostgreSQL/Redis, formatting/static analysis, f
 Build an immutable application image. Staging deployment follows dev when configured; production requires an approved main release/environment. Use TLS, off-host backups with restore tests, health checks, private storage and explicit migration/rollback instructions. Prefer additive compatible migrations; image rollback does not reverse database writes. Restart queue workers and run only one effective scheduler or use distributed overlap locks. Do not expose database/Redis ports publicly.
 
 Definition of done: issue criteria, appropriate checks, tenant/security review, documented operations/migrations, no sensitive artifacts and a reviewed diff. CI protection setup and an actual successful CI run remain separate from authoring workflow YAML.
+
+Branch protection was applied on 2026-11-04 to main/dev with Application checks and Secret scan required, admin enforcement, resolved conversations and no force-push/deletion. Approval count is zero for the current single-maintainer setup; use independent reviews when available.
