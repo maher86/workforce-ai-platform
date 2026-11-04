@@ -1,0 +1,107 @@
+name: CI
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    name: Application checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/platform
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: workforce_testing
+          POSTGRES_USER: workforce
+          POSTGRES_PASSWORD: local-development-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U workforce -d workforce_testing"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 15
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: workforce_testing
+      DB_USERNAME: workforce
+      DB_PASSWORD: local-development-only
+      REDIS_HOST: 127.0.0.1
+      REDIS_CLIENT: predis
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea # v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_pgsql, pdo_sqlite, bcmath, pcntl, zip
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/platform/package-lock.json
+      - name: Prepare environment
+        run: cp .env.example .env
+      - name: Install locked PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Generate local application key
+        run: php artisan key:generate
+      - name: Validate Composer metadata
+        run: composer validate --strict
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Build frontend and generated routes
+        run: npm run build
+      - name: Frontend format and lint
+        run: npm run check
+      - name: Frontend types
+        run: npm run types:check
+      - name: Backend formatting, analysis and PostgreSQL tests
+        run: composer test
+      - name: Dependency audits
+        run: |
+          composer audit --locked
+          npm audit --omit=dev --audit-level=high
+      - name: Validate Compose
+        working-directory: .
+        run: docker compose config --quiet
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Scan Git history
+        run: >-
+          docker run --rm --network none
+          -e GIT_CONFIG_COUNT=1
+          -e GIT_CONFIG_KEY_0=safe.directory
+          -e GIT_CONFIG_VALUE_0=/repo
+          -v "$PWD:/repo:ro"
+          zricethezav/gitleaks:v8.24.3 git /repo --redact --no-banner

@@ -25,4 +25,3 @@ Issue acceptance criteria satisfied; relevant tests and CI pass; authorization a
 - Validate: ./scripts/dev.ps1 Check
 - Status/stop: ./scripts/dev.ps1 Status or Stop
 - Backend tests use PostgreSQL workforce_testing and require Redis; never point them at a customer database.
-

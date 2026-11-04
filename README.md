@@ -2,7 +2,7 @@
 
 Multi-tenant workforce reporting SaaS/PWA built with Laravel, React/TypeScript, PostgreSQL, Redis and Docker Compose. Employees submit text, audio and images without requiring a predefined task. Reporting services will support a future WhatsApp adapter.
 
-Development is starting. Architecture documentation is a plan, not evidence that features are implemented.
+The development foundation is being built. Architecture documentation is a plan, not evidence that reporting or tenancy features are implemented. See the development runbook for container setup and checks.
 
 - [Architecture and MVP](docs/architecture/overview.md)
 - [Delivery backlog](docs/backlog.md)

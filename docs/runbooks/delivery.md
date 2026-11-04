@@ -1,6 +1,6 @@
 # Delivery and public-repository safety
 
-Use dev for integration and staging, main for production releases. Branch from dev into codex/<issue>-<slug>, open a PR to dev and link the issue. The initial project-foundation branch was created before issue numbering. Do not auto-merge. Release through a dev-to-main PR; hotfixes must be reconciled with dev.
+Use dev for integration and staging, main for production releases. Branch from dev into codex/<issue>-<slug>, open a PR to dev and link the issue. The initial project-foundation branch was created before issue numbering. Do not auto-merge. Since main is the default branch, GitHub closing keywords do not close issues on a dev-targeted merge; close a validated task after its dev merge and link the merged PR. Squash feature PRs into dev. Preserve shared branch ancestry with a merge commit for a dev-to-main release PR; hotfixes must be reconciled with dev.
 
 Protect both branches against direct/force pushes and require CI and resolved discussions. Require independent review when a second reviewer is available. Apply settings only after the required check names exist. Issues and PRs must contain synthetic examples, never employee data.
 
