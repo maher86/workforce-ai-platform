@@ -3,3 +3,12 @@
 !.env.example
 node_modules/
 vendor/
+*.pem
+*.key
+*.p12
+*.pfx
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db
