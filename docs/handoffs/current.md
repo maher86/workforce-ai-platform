@@ -33,3 +33,11 @@ Branch: codex/7-reporting-mvp. Stacked on f1cbb9f of codex/5-employee-device-onb
 4. Stable domain/HTTPS, production runtime, real mail/private storage, restricted DB roles, encrypted offsite database+media backups with restoration, monitoring/load verification, provider retention/cost policy and explicit release/deployment approval. Current development server/tunnel is not production.
 5. WhatsApp remains deferred; billing automation, advanced analytics and full offline synchronization remain outside MVP. T07/T08/T10/T11 code is ready for review; T09 live evaluation, T12 physical acceptance and T13 production/pilot acceptance remain open.
 
+
+## Follow-up: activation conflict (#17)
+
+Date: 2026-11-06. Branch codex/17-activation-session-conflict is stacked on reporting PR #16 at 667a949; neither upstream PR is merged. User supplied an Android screenshot of a generic 409 without the route/action. Asked which action triggered it; no reply yet. Reproduced a concrete activation failure in code/tests: any authenticated session posting an employee activation token aborted 409.
+
+Fix: activation GET exposes only current account kind (guest/employee/manager), with Arabic speech-assisted continuation to the current account. Authenticated POST redirects back with a clear account error, never consumes the target invitation, changes identity or flashes its token. Dedicated-phone identity boundaries stay intact. Invalid/expired guest invitations retain the existing one-use validation. No claim that every possible 409 is this route; if the screenshot came from report review/submission, obtain the action and reproduce that path separately.
+
+Verification: EmployeeOnboardingTest passed 16 tests / 170 assertions; Pint and PHPStan passed. Frontend and actual HTTPS verification results and final CI are recorded by the follow-up PR. No physical phone interaction or customer data changes. Update PR reference after creation; inspect exact HEAD checks before any authorized merge.

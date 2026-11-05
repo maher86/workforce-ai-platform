@@ -103,7 +103,8 @@ class EmployeeOnboardingTest extends TestCase
         $token = app(EmployeeActivation::class)->issue($owner, $tenant->id, $employee->id);
         $invitation = EmployeeInvitation::query()->sole();
         $this->assertSame(hash('sha256', $token), $invitation->token_hash);
-        $this->get('/employee/activate')->assertOk()->assertHeader('Referrer-Policy', 'no-referrer');
+        $this->get('/employee/activate')->assertOk()->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertInertia(fn (Assert $page) => $page->component('employee/activate')->where('existingAccount', null)->missing('token'));
         $this->assertNull($invitation->fresh()->used_at);
         $this->post('/employee/activate', ['token' => $token])->assertRedirect('/employee')->assertCookie('workforce_device');
         $this->assertAuthenticatedAs(User::query()->findOrFail($employee->user_id));
@@ -147,9 +148,29 @@ class EmployeeOnboardingTest extends TestCase
     {
         [$owner, $tenant, $employee] = $this->workforce();
         $token = app(EmployeeActivation::class)->issue($owner, $tenant->id, $employee->id);
-        $this->actingAs($owner)->post('/employee/activate', ['token' => $token])->assertStatus(409);
+        $this->actingAs($owner)->get('/employee/activate')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('employee/activate')->where('existingAccount', 'manager')->missing('token'));
+        $this->from('/employee/activate')->post('/employee/activate', ['token' => $token])
+            ->assertRedirect('/employee/activate')->assertSessionHasErrors('account')->assertSessionMissing('_old_input.token');
         $this->assertAuthenticatedAs($owner);
         $this->assertNull(EmployeeInvitation::query()->sole()->used_at);
+    }
+
+    public function test_linked_employee_gets_safe_continuation_without_consuming_a_foreign_invitation(): void
+    {
+        [$owner, $tenant, $employee] = $this->workforce();
+        [$foreignOwner, $foreignTenant, $foreignEmployee] = $this->workforce();
+        $service = app(EmployeeActivation::class);
+        $grant = $service->consume($service->issue($owner, $tenant->id, $employee->id));
+        $foreignToken = $service->issue($foreignOwner, $foreignTenant->id, $foreignEmployee->id);
+        $this->withCookie('workforce_device', $grant['token'])->get('/employee/activate')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('employee/activate')->where('existingAccount', 'employee')->missing('token'));
+        $this->from('/employee/activate')->post('/employee/activate', ['token' => $foreignToken])
+            ->assertRedirect('/employee/activate')->assertSessionHasErrors('account')->assertSessionMissing('_old_input.token');
+        $this->assertAuthenticatedAs($grant['user']);
+        $this->assertNull(EmployeeInvitation::query()->where('token_hash', hash('sha256', $foreignToken))->sole()->used_at);
+        $this->assertDatabaseCount('employee_devices', 1);
+        $this->get('/employee')->assertOk();
     }
 
     public function test_cookie_restores_employee_without_password_but_revocation_blocks_live_session(): void
