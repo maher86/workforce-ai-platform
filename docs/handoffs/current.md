@@ -1,31 +1,34 @@
 # Current handoff
 
-Date: 2026-11-04 (Asia/Dubai).
-Branch: codex/2-project-foundation, based on dev at 187d59f.
-Application checkpoint: 239a818; inspect Git HEAD for later documentation-only updates.
-PR: https://github.com/maher86/workforce-ai-platform/pull/14 (base dev).
-Issues #1-#13 correspond to T01-T13 in docs/backlog.md.
+Date: 2026-11-05 (Asia/Dubai).
+Branch: codex/5-employee-device-onboarding, from dev at 88fd31a.
+Foundation PR #14 was authorized and squash-merged into dev; #1-#4 closed. main unchanged. No production deployment.
+PR: https://github.com/maher86/workforce-ai-platform/pull/15 (base dev, not merged). Issues #5/#6 track tenant isolation and employee onboarding. Inspect Git HEAD/PR for latest CI.
 
-## Delivered foundation (T01-T04)
-- Docker Desktop Linux engine started and verified with hello-world; container image includes PHP 8.4.27, Composer, Node 22 and npm/npx. No host PHP or Composer upgrade was required.
-- Laravel 13 + React/TypeScript/Inertia scaffold; auth, email verification, password recovery and optional two-factor controls from the official starter. No reporting/tenancy features are implemented yet.
-- Compose web/worker/scheduler/PostgreSQL/Redis/Mailpit; workforce and workforce_testing databases; source-controlled example configuration; ignored local .env and generated dependencies/assets.
-- AGENTS, ADRs, two validated project skills, backlog, issue/PR templates, runbooks and CI. CI job names are Application checks and Secret scan.
-- main/dev protection configured: PR required, both checks required, strict status checks, resolved conversations, no force-push/deletion, admin enforcement. Independent approvals currently zero for the single-maintainer setup; increase when a second reviewer is available.
+## Implemented
+- Approved clarification: employees may not read/write; no employee self-registration, email or password. Manager creates named profile and supplies one-use QR/link. ADR 0004 records lifecycle, threat boundaries and device limitations.
+- Tenants and unique role memberships; explicit actor/tenant access services; PostgreSQL composite tenant/membership constraints for invitations/devices. Roles belong to memberships, not a global user role.
+- Manager dashboard creates/selects workspaces, adds employee profiles, renders QR locally, copies/reissues links, revokes devices and disables employees. Manager invitation/role-grant UI and re-enabling disabled membership are not included.
+- Activation requires CSRF POST after one large button. Random hashed 30-minute single-use token uses URL fragment removed on load. Manager sessions cannot be replaced. Encrypted HttpOnly SameSite device cookie expires absolutely after 90 days; each request validates membership/device before route auth. Revocation blocks live sessions. No global mutable tenant context/background jobs added.
+- Employee surface has profile/workspace, large icons, optional Arabic device speech, install guidance/button and manifest starting /employee with local PNG icons. No service worker/offline cache/persistent login URL. Personal HTTP responses use no-store/no-referrer. Guests opening the app icon go to manager-assisted activation instructions, not the manager login.
+- Reports/audio/images/AI remain T07+. Profile uses a generic icon; recognizable photos, multilingual guidance and literacy/accessibility testing require later work before pilot use.
 
-## Actual verification
-- Composer validate --strict and platform requirements passed; PHP minimum/platform is 8.4.1 so patched Symfony 8.1 components can resolve on runtime 8.4.27.
-- Frontend build, formatting/lint and TypeScript passed; Pint 55 PHP files; Larastan level 7 passed using 512 MB and two processes.
-- PHPUnit: 43 passed, 137 assertions after security dependency updates. Includes PostgreSQL target, Redis cache and a serialized Redis worker job.
-- Negative guard probe rejected application database settings before migrations. PHPUnit now forces both env and server values; tests/TestCase.php fails before RefreshDatabase unless testing/local PostgreSQL workforce_testing is selected. An initial misconfiguration used the newly created local app database; it was corrected before any employee/customer data was introduced.
-- Composer audit and npm audit reported no vulnerabilities after remediation. Public-push Git history secret scan passed; GitHub Secret scan independently passed on the prior checkpoint.
-- GET /login returned 200 with auth/login; built JavaScript returned 200. Web, PostgreSQL, Redis and Mailpit passed health checks; worker/scheduler running.
-- Latest GitHub Actions result is authoritative on PR #14. CI runs again after each PR update; never assume an older run covers current HEAD.
+## Verified
+- Full composer test passed: Pint 67 PHP files, PHPStan level 7, 55 tests / 248 assertions. Frontend build, format/lint (73 formatted files / 65 linted files) and TypeScript passed. Employee tests passed: 12 / 111 assertions, followed by a separate real-CSRF rejection test (1 / 3 assertions). CI reruns all 56 tests on the final branch.
+- Tests cover two-tenant denial for read/mutations, roles differing across memberships, PostgreSQL association/uniqueness constraints, token hashing/expiry/replay/reissue, manager-session protection, restoration, live revocation, disabled membership, missing cookie and employee disconnect.
+- Initial test/build overlap caused missing new Vite manifest entries, resolved by completed build. Initial restore tests caught auth middleware running first: explicit priority after StartSession and before Authenticate fixed this. Never weaken the isolated workforce_testing guard.
+- Additive local migration applied; no reset of application data. Browser verified actual team dashboard and synthetic workspace creation. User is actively testing in the same tab; avoid replacing their forms/session or committing local data. Physical-device/PWA installation is not tested.
+- qrcode.react installed locally; npm install audit reported zero vulnerabilities. Composer audit and npm production audit passed with zero advisories; Compose configuration passed. Secret scan and branch CI are recorded by PR; never assume old CI covers new HEAD.
 
-## Operational notes and limits
-Local URLs: http://localhost:18000/login and mail http://localhost:18025 . The existing unrelated application used 8025; its containers were not changed. Four development PHP workers and project-only Node/concurrency limits mitigate low host memory (569 MB free was observed). SSR is off because no SSR service is deployed. No global WSL configuration was changed. The initial vendor volume may show a non-fatal Compose ownership-label warning; do not delete volumes to suppress it.
+## Runtime / release limits
 
-Native browser automation could not initialize its sandbox; browser E2E remains unverified. First-channel PWA/reporting/AI/tenancy and pilot operations remain T05-T13. Do not use this scaffold with real employee data. Production host/domain/email/storage and deployment approval remain future decisions.
+### Authorized temporary phone preview (2026-11-05)
+The user explicitly approved temporary public HTTPS access after a phone QR failed on localhost. Added opt-in preview/tunnel services and scripts/preview.ps1 Start/Status/Stop. The separate preview server has debug off and Secure named session cookies; no published host port. Cloudflare's exact container IP is trusted for forwarded scheme/port. Infrastructure/mail ports stay private/loopback. Main web app preserves localhost sessions while generating new QR links with the configured public origin. Runtime URL is only in ignored .preview/runtime.json, never committed. Existing QRs must be reissued after URL changes. No production deployment/merge authorized.
 
-## Next action
-Review the current PR and its latest checks. Do not merge or deploy production without authorization for those actions. After foundation review/merge, start #5 (T05) on a short branch from updated dev: tenant memberships/roles, policies, relational constraints and cross-tenant denial tests. Reporting actions must remain channel-independent, and task/project associations optional. No WhatsApp implementation now.
+Actual public HTTPS smoke passed: CSRF activation POST, employee profile/reload, Secure HttpOnly cookies and live revocation; synthetic probe profiles/workspaces cleaned up. This does not prove physical Android/iPhone installation. Found/fixed Laravel serve reload discarding container env: compose and image default now explicitly use --no-reload. An initial build was interrupted by service recreation; rebuilt successfully. Full composer checks subsequently passed with 58 tests / 260 assertions, Pint 68 PHP files and Larastan level 7. Frontend lint/format/build passed; TypeScript checked again. Personal responses include noindex. Starting a new tunnel changes hostname; do not use this temporary host for durable customer PWA installs. Stop with ./scripts/preview.ps1 Stop. Refer to docs/runbooks/phone-preview.md.
+Local app: http://localhost:18000/dashboard; mail: http://localhost:18025. Docker uses desktop-linux. Do not touch unrelated sortlot containers. Local .env/keys/data/builds/dependencies ignored. Source is public; synthetic fixtures only.
+
+Computer localhost is unreachable from a phone. Do not expose dev ports or deploy production without authorization. Physical Android/iPhone install, browser/PWA cookie sharing and Arabic speech require a reachable approved HTTPS staging URL and actual devices. Separate cookie stores may need fresh activation. Dedicated phones assumed; shared-phone identity switching deferred. See docs/runbooks/employee-onboarding.md.
+
+## Next
+PR #15 is open to dev and attached to the chat; no merge authorization for it. Branch is pushed and working tree clean at the implementation checkpoint. Full-history gitleaks passed before push; inspect latest PR checks before merging. Then T07 private multimodal intake with optional task/project, fake pipeline, actual AI fidelity and manager review. Full T12 and pilot operations remain. No WhatsApp or real employee data until pilot gates pass.

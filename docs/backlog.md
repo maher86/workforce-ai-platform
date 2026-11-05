@@ -9,7 +9,7 @@ The identifiers below are planning IDs, not GitHub issue numbers. GitHub issues 
 | T03 | Laravel React/TypeScript scaffold | T01,T02 | App and login page load; frontend build and initial backend tests pass. |
 | T04 | Compose and CI | T03 | PostgreSQL/Redis app, worker and scheduler start; fresh-checkout setup documented; CI passes with synthetic inputs only. |
 | T05 | Tenants, memberships and roles | T04 | Owner/manager/employee policies and relational boundaries work; two-tenant access/association tests pass. |
-| T06 | Invitations and recovery | T05 | Expiring invitations, acceptance, password recovery and disabled-user access tested. |
+| T06 | Employee activation and recovery | T05 | Manager-created employee profiles; expiring one-use QR/link; no employee email/password; revocable persistent device access; manager recovery and disabled-membership denial tested. |
 | T07 | Report intake and private media | T05 | Text/audio/images/combinations accepted without task; file limits and private cross-tenant denial tested. |
 | T08 | Async pipeline with fake AI | T07 | State transitions, bounded retries, idempotency, failed state and manual retry verified. |
 | T09 | OpenAI integration and fidelity | T08 | Opt-in synthetic multilingual evaluation verifies source transcript, faithful translation, grounded schema and uncertain quantities. |
