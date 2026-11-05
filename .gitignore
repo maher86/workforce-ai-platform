@@ -10,5 +10,6 @@ vendor/
 coverage/
 playwright-report/
 test-results/
+.preview/
 .DS_Store
 Thumbs.db

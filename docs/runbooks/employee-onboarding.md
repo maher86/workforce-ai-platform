@@ -2,6 +2,8 @@
 
 Use synthetic names only. Start with `./scripts/dev.ps1 Start` if needed.
 
+For a phone test authorized by the project owner, see [temporary HTTPS preview](phone-preview.md). Start the preview, refresh the manager page and issue a new QR. Localhost QRs only work on the computer. Preview Start/Stop does not grant permission for a production deployment.
+
 1. Log in as a verified manager at http://localhost:18000/dashboard. Create a test workspace, then add a test employee by name. No employee email/password is requested.
 2. Copy the activation link from the QR panel. Never post it in GitHub/logs/messages. It expires after 30 minutes and works once. A new QR invalidates older pending links.
 3. Open a private browser window (different cookies from the manager), paste the link and press the large green entry button. GET alone does not activate the device. The employee sees their profile/workspace without the manager sidebar.

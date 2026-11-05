@@ -26,6 +26,7 @@ export default function Team({
     const [copied, setCopied] = useState(false);
     const [copyError, setCopyError] = useState(false);
     const visible = activation && activation.url !== hiddenUrl;
+    const phoneReady = activation?.url.startsWith('https://') ?? false;
 
     return (
         <main
@@ -124,6 +125,16 @@ export default function Team({
                                     <X />
                                 </Button>
                             </div>
+                            {!phoneReady && (
+                                <p
+                                    role="alert"
+                                    className="rounded-xl bg-amber-100 p-4 text-amber-950"
+                                >
+                                    هذا الرابط محلي ويعمل على الكمبيوتر فقط.
+                                    لتجربة الهاتف شغّل معاينة HTTPS ثم أصدر رمزًا
+                                    جديدًا.
+                                </p>
+                            )}
                             <QRCodeSVG
                                 value={activation.url}
                                 size={256}

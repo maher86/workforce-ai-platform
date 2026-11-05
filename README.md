@@ -8,6 +8,7 @@ The development app provides manager authentication, tenant memberships, manager
 - [Delivery backlog](docs/backlog.md)
 - [Development setup](docs/runbooks/development.md)
 - [Try employee QR activation](docs/runbooks/employee-onboarding.md)
+- [Temporary phone HTTPS preview](docs/runbooks/phone-preview.md)
 - [Delivery and security](docs/runbooks/delivery.md)
 - [Current handoff](docs/handoffs/current.md)
 

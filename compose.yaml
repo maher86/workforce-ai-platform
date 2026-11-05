@@ -7,14 +7,17 @@ x-app: &app
     target: development
   image: workforce-platform:development
   working_dir: /var/www/html
+  # Preserve container env overrides; Laravel's reload mode discards them.
+  command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
   volumes:
     - ./apps/platform:/var/www/html
     - node_modules:/var/www/html/node_modules
     - vendor:/var/www/html/vendor
   env_file:
     - ./apps/platform/.env
-  environment:
+  environment: &app-environment
     APP_URL: http://localhost:${WORKFORCE_HTTP_PORT:-18000}
+    WORKFORCE_PUBLIC_URL: ${WORKFORCE_PUBLIC_URL:-}
     DB_CONNECTION: pgsql
     DB_HOST: postgres
     DB_PORT: 5432
@@ -37,6 +40,22 @@ x-app: &app
   init: true
 
 services:
+  preview:
+    <<: *app
+    profiles: ["preview"]
+    environment:
+      <<: *app-environment
+      APP_URL: ${WORKFORCE_PUBLIC_URL:-http://localhost:18000}
+      APP_DEBUG: "false"
+      SESSION_COOKIE: workforce_preview_session
+      SESSION_SECURE_COOKIE: "true"
+      WORKFORCE_TRUSTED_PROXIES: ${WORKFORCE_TRUSTED_PROXIES:-}
+    # Only cloudflared reaches this server; no host port is published.
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.7
+    profiles: ["preview"]
+    command: ["tunnel", "--no-autoupdate", "--protocol", "http2", "--url", "http://preview:8000"]
+    init: true
   app:
     <<: *app
     ports:

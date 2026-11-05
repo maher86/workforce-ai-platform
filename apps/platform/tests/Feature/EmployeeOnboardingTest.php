@@ -61,6 +61,29 @@ class EmployeeOnboardingTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->has('employees', 1)->where('employees.0.id', $employee->id));
     }
 
+    public function test_local_manager_qr_uses_configured_public_origin_for_phones(): void
+    {
+        [$owner, $tenant, $employee] = $this->workforce();
+        config(['workforce.public_url' => 'https://phone-preview.example.test/']);
+        $this->actingAs($owner)->post('/tenants/'.$tenant->id.'/employees/'.$employee->id.'/invite')
+            ->assertRedirect('/tenants/'.$tenant->id.'/team')
+            ->assertSessionHas('activation.url', fn (string $url) => str_starts_with($url, 'https://phone-preview.example.test/employee/activate#') && strlen(explode('#', $url)[1]) === 64);
+    }
+
+    public function test_https_employee_activation_sets_a_secure_http_only_device_cookie(): void
+    {
+        [$owner, $tenant, $employee] = $this->workforce();
+        $token = app(EmployeeActivation::class)->issue($owner, $tenant->id, $employee->id);
+        $response = $this->post('https://localhost/employee/activate', ['token' => $token]);
+        $response->assertRedirect('/employee');
+        $deviceCookies = array_filter($response->headers->getCookies(), fn ($cookie) => $cookie->getName() === 'workforce_device');
+        $this->assertCount(1, $deviceCookies);
+        $cookie = array_values($deviceCookies)[0];
+        $this->assertTrue($cookie->isSecure());
+        $this->assertTrue($cookie->isHttpOnly());
+        $this->assertSame('lax', $cookie->getSameSite());
+    }
+
     public function test_roles_are_membership_specific_and_inactive_memberships_are_denied(): void
     {
         [$owner, $tenant] = $this->workforce();

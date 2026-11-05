@@ -75,9 +75,14 @@ class WorkforceController extends Controller
 
     private function showActivation(int $tenant, string $name, string $token): RedirectResponse
     {
+        $publicUrl = config('workforce.public_url');
+        $activationUrl = is_string($publicUrl) && $publicUrl !== ''
+            ? rtrim($publicUrl, '/').'/employee/activate'
+            : url('/employee/activate');
+
         // Fragment stays on the device: HTTP access logs and referrers never receive it.
         return redirect('/tenants/'.$tenant.'/team')->with('activation', [
-            'name' => $name, 'url' => url('/employee/activate').'#'.$token,
+            'name' => $name, 'url' => $activationUrl.'#'.$token,
         ]);
     }
 }
