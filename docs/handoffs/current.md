@@ -3,7 +3,7 @@
 Date: 2026-11-05 (Asia/Dubai).
 Branch: codex/5-employee-device-onboarding, from dev at 88fd31a.
 Foundation PR #14 was authorized and squash-merged into dev; #1-#4 closed. main unchanged. No production deployment.
-Issues #5/#6 track tenant isolation and employee onboarding. Inspect Git HEAD/branch PR for latest CI.
+PR: https://github.com/maher86/workforce-ai-platform/pull/15 (base dev, not merged). Issues #5/#6 track tenant isolation and employee onboarding. Inspect Git HEAD/PR for latest CI.
 
 ## Implemented
 - Approved clarification: employees may not read/write; no employee self-registration, email or password. Manager creates named profile and supplies one-use QR/link. ADR 0004 records lifecycle, threat boundaries and device limitations.
@@ -26,4 +26,4 @@ Local app: http://localhost:18000/dashboard; mail: http://localhost:18025. Docke
 Computer localhost is unreachable from a phone. Do not expose dev ports or deploy production without authorization. Physical Android/iPhone install, browser/PWA cookie sharing and Arabic speech require a reachable approved HTTPS staging URL and actual devices. Separate cookie stores may need fresh activation. Dedicated phones assumed; shared-phone identity switching deferred. See docs/runbooks/employee-onboarding.md.
 
 ## Next
-Finish current branch PR to dev; no merge authorization for this PR. Then T07 private multimodal intake with optional task/project, fake pipeline, actual AI fidelity and manager review. Full T12 and pilot operations remain. No WhatsApp or real employee data until pilot gates pass.
+PR #15 is open to dev and attached to the chat; no merge authorization for it. Branch is pushed and working tree clean at the implementation checkpoint. Full-history gitleaks passed before push; inspect latest PR checks before merging. Then T07 private multimodal intake with optional task/project, fake pipeline, actual AI fidelity and manager review. Full T12 and pilot operations remain. No WhatsApp or real employee data until pilot gates pass.
