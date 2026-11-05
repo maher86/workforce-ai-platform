@@ -1,0 +1,50 @@
+# Development
+
+## Baseline inspection (2026-11-04)
+Repository initially contained only README and .gitignore. dev/main pointed to 187d59f. GitHub authentication and ADMIN access were verified. Docker client 25.0.2 and Compose 2.24.3 were installed, but Linux engine endpoints were unavailable. Local PHP 8.0.30 has an Xdebug warning; Composer is absent from PATH. Use containerized tooling rather than the XAMPP PHP installation.
+
+Git may report ownership mismatch under the sandbox account. Use command-scoped `git -c safe.directory=C:/Projects/workforce-ai-platform ...` after verifying this exact workspace; do not disable the safety check globally.
+
+GitHub CLI exists at `C:/Program Files/GitHub CLI/gh.exe`; invoke its full path when PATH does not resolve `gh`. Do not print authentication tokens.
+
+## Runtime readiness
+Start Docker Desktop on this computer, then run `docker --context desktop-linux version` and `docker --context desktop-linux info`. Client version output alone is not a successful engine test. Verify a disposable Linux container before application setup. Do not silently change the user's global Docker context.
+
+Application setup/check commands will be documented alongside the runnable scaffold. No application runtime has been verified merely by adding this runbook.
+
+## Application setup (PowerShell)
+
+Prerequisite: running Docker Desktop Linux engine and network access for the initial image/dependency downloads. No host PHP/Composer/Node installation is required.
+
+```powershell
+./scripts/dev.ps1 Setup
+./scripts/dev.ps1 Status
+./scripts/dev.ps1 Check
+./scripts/dev.ps1 Stop
+```
+
+Setup preserves an existing .env and generates APP_KEY only when empty. It installs locked dependencies, builds frontend assets, migrates the local application database and starts app/worker/scheduler. Open http://localhost:18000 and the local mail viewer http://localhost:18025 . These ports bind only to loopback. The PHP development server and example credentials are for local development only.
+
+PostgreSQL initializes workforce and workforce_testing in the project volume. Tests force workforce_testing; they must never run on employee/customer databases. The initialization SQL runs only when PostgreSQL's data volume is empty. If upgrading an existing local volume without workforce_testing, explicitly create that database with the workforce owner; do not delete volumes to fix it. Stop retains all volumes.
+
+To use Vite HMR after setup:
+
+```powershell
+docker --context desktop-linux compose --profile vite up -d node
+```
+
+Check covers Composer metadata, frontend build/check/types, Pint, Larastan, PostgreSQL/Redis tests and dependency audits. CI separately scans Git history for secrets. Browser E2E and real AI evaluations arrive with their corresponding feature tasks. The foundation is not a tenant-safe pilot until T05-T13 acceptance criteria pass.
+
+Queue worker timeout is 120 seconds, below Redis retry_after 180 seconds; update them together when introducing longer AI jobs. Stop grace exceeds job timeout. Persistent Redis uses noeviction; monitor memory before pilot release.
+
+Ports can be overridden with PowerShell environment variables WORKFORCE_HTTP_PORT and WORKFORCE_MAIL_PORT before setup/start. Defaults 18000 and 18025 avoid the existing application's mail port. Composer vendor and node_modules use named volumes for Windows filesystem performance.
+## Local resource settings
+
+The development server uses four PHP CLI workers to avoid serializing concurrent browser assets and health probes. SSR defaults off because no SSR process is deployed in this foundation. Compose limits the Node heap to 1536 MB and Rust/Go checker concurrency to two; these settings apply to this project's containers only. Windows bind mounts and low host free memory can still slow first builds. Do not change global WSL settings or stop unrelated containers to improve checks without user authorization.
+
+The initial dependency bootstrap used Docker CLI to create the vendor volume. Compose may emit an ownership-label warning for that existing local volume; it does not indicate a failed install. A fresh Setup creates its own managed volume normally. Do not delete dependency or database volumes just to suppress this warning.
+## Dependency baseline
+
+Composer resolves for PHP >=8.4.1 (the development runtime is PHP 8.4.27). Symfony 8.1 security patches require at least 8.4.1 in package metadata; a synthetic platform of 8.4.0 would incorrectly select older component lines even on the newer runtime. Keep the Composer platform minimum aligned with the declared PHP requirement. The 2026-11-04 audit findings in http-kernel, routing and serializer were resolved by updating the compatible Symfony components; do not add audit ignores to bypass these findings.
+
+PHPUnit forces testing values in both env and server variables because Docker env_file populates $_SERVER. Tests/TestCase.php validates the local PostgreSQL workforce_testing target before RefreshDatabase can run. A negative guard probe and the positive PostgreSQL/Redis tests were verified. This guard is an additional check, not permission to point tests at customer infrastructure.

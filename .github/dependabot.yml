@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /apps/platform
+    target-branch: dev
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /apps/platform
+    target-branch: dev
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /infra/docker
+    target-branch: dev
+    schedule:
+      interval: weekly

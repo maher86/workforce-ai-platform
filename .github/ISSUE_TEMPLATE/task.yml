@@ -1,0 +1,23 @@
+name: Engineering task
+description: A small deliverable with observable acceptance criteria
+title: "[Task] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and intended behavior
+      description: Use synthetic examples only. Never include employee data or secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and dependencies
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and validation
+    validations:
+      required: true
