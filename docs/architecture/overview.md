@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Employee access follows ADR 0004: managers create profiles and issue one-use QR/link activation. Employees do not sign up, type email/password or navigate manager screens. A revocable device credential restores their profile on subsequent app launches. Managers retain verified-email authentication and recovery. Initial icon/audio guidance and manifest do not replace real-device accessibility and installation validation.
+
 ## Deployment and boundaries
 One modular Laravel application at `apps/platform`, with React/TypeScript through Inertia. PostgreSQL holds application data; Redis supports queues, cache and distributed locks. Web, queue and scheduler processes share an application image. Compose is the local runtime and initial single-host deployment mechanism.
 
