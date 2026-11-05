@@ -1,7 +1,7 @@
 # Current handoff
 
 Date: 2026-11-06 (Asia/Dubai).
-Branch: codex/7-reporting-mvp. Stacked on f1cbb9f of codex/5-employee-device-onboarding, whose PR #15 remains open to dev. PR #14 was explicitly authorized and merged to dev; main is unchanged. No authorization to merge the new PRs or deploy production. Inspect GitHub for the final reporting PR and exact HEAD checks.
+Branch: codex/7-reporting-mvp. Stacked on f1cbb9f of codex/5-employee-device-onboarding, whose PR #15 remains open to dev. PR #14 was explicitly authorized and merged to dev; main is unchanged. No authorization to merge the new PRs or deploy production. Reporting PR #16: https://github.com/maher86/workforce-ai-platform/pull/16 (base codex/5-employee-device-onboarding). Inspect exact HEAD checks on GitHub.
 
 ## Delivered for review
 - Existing QR/device onboarding remains: manager-created profiles, no employee signup/email/password, one-use expiring links, revocable bounded device cookies, separate employee surface. User confirmed Android icon installation, not all hardware acceptance cases.
@@ -16,9 +16,9 @@ Branch: codex/7-reporting-mvp. Stacked on f1cbb9f of codex/5-employee-device-onb
 - Final sequential local run passed: 97 tests / 399 assertions, Pint 100 files, PHPStan level 7 (79 files), frontend format/lint (69 linted files), TypeScript and production asset build.
 - Tests include cross-tenant and coworker denial, forged job/work IDs, quotas/idempotency, real FFmpeg browser WebM decoding, private media, cached pipeline stages/recovery/retry, immutable review/version conflict, retention/orphans, owner roles, CSV formulas and deterministic fidelity/API-contract cases. Test environment forces demo and blank API key; guarded PostgreSQL workforce_testing only.
 - An earlier concurrent database-test invocation raced migrations and failed. Corrected a multipart mock assertion separately, added the one-runner rule to AGENTS, then ran the entire suite sequentially to the passing result above. Do not run another DB test or backup probe concurrently against workforce_testing.
-- Full HTTPS synthetic probe passed activation, actual WebM+image multipart intake, idempotent repeat, real Redis worker four persisted stages, authorized media/range playback and human review; probe data removed. Repeated final probe status is recorded in the session/PR. No actual microphone/camera permission or ambient recording was performed.
+- Full HTTPS synthetic probe passed activation, actual WebM+image multipart intake, idempotent repeat, real Redis worker four persisted stages, authorized media/range playback and human review; probe data removed. Repeated after the final changes and passed again; all synthetic probe data was cleaned up. No actual microphone/camera permission or ambient recording was performed.
 - scripts/verify-backup.ps1 passed synthetic PostgreSQL dump/restore and media archive roundtrip. Only fixed workforce_testing and generated restore DB/temp files; not a production backup policy.
-- Composer audit and npm production audit: zero advisories. Docker image rebuilt with FFmpeg; additive migrations applied, no reset of application database. Public secret scan/CI must be inspected for the final committed HEAD, not inferred from prior PR #15.
+- Composer audit and npm production audit: zero advisories. Docker image rebuilt with FFmpeg; additive migrations applied, no reset of application database. Local full-history gitleaks scanned 11 commits with no leaks before publishing. PR #16 Secret scan passed for the initial reporting commit; inspect both checks on the final committed HEAD, not prior PR #15.
 
 ## Runtime and safety
 - Local app http://localhost:18000/dashboard and mail http://localhost:18025. Docker context desktop-linux. Do not touch unrelated sortlot containers or user-created data/forms.
@@ -32,3 +32,4 @@ Branch: codex/7-reporting-mvp. Stacked on f1cbb9f of codex/5-employee-device-onb
 3. Actual Android/iPhone and low-literacy usability checks, including recording, camera, permissions, connectivity and revocation. Dedicated employee phone assumed; shared-phone identity switching deferred.
 4. Stable domain/HTTPS, production runtime, real mail/private storage, restricted DB roles, encrypted offsite database+media backups with restoration, monitoring/load verification, provider retention/cost policy and explicit release/deployment approval. Current development server/tunnel is not production.
 5. WhatsApp remains deferred; billing automation, advanced analytics and full offline synchronization remain outside MVP. T07/T08/T10/T11 code is ready for review; T09 live evaluation, T12 physical acceptance and T13 production/pilot acceptance remain open.
+
