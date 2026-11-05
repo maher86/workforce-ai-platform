@@ -17,10 +17,19 @@ use Inertia\Response;
 
 class EmployeeAccessController extends Controller
 {
+    public function activationPage(Request $request): Response
+    {
+        return Inertia::render('employee/activate', [
+            'existingAccount' => $request->user() === null ? null : ($request->user()->employee_only ? 'employee' : 'manager'),
+        ]);
+    }
+
     public function activate(Request $request, EmployeeActivation $activation): RedirectResponse
     {
         // Never silently replace the manager's identity or another employee's device.
-        abort_if($request->user() !== null, 409, 'Open this link on the employee phone or in a private browser window.');
+        if ($request->user() !== null) {
+            return redirect('/employee/activate')->withErrors(['account' => 'يوجد حساب مفتوح في هذا المتصفح. افتح الحساب الحالي، أو اطلب مساعدة المدير لتفعيل موظف آخر.']);
+        }
         $data = $request->validate(['token' => ['required', 'string', 'size:64', 'alpha_num:ascii']]);
         $grant = $activation->consume($data['token']);
         Auth::login($grant['user']);

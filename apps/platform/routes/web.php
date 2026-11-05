@@ -30,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::inertia('employee/connect', 'employee/connect')->name('employee.connect');
-Route::inertia('employee/activate', 'employee/activate')->middleware('throttle:30,1');
+Route::get('employee/activate', [EmployeeAccessController::class, 'activationPage'])->middleware('throttle:30,1');
 Route::post('employee/activate', [EmployeeAccessController::class, 'activate'])->middleware('throttle:10,1');
 Route::get('employee', [EmployeeAccessController::class, 'home'])->middleware('auth')->name('employee.home');
 Route::post('employee/disconnect', [EmployeeAccessController::class, 'disconnect'])->middleware('auth');
