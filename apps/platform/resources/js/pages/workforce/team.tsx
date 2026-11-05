@@ -12,6 +12,9 @@ type Props = {
     selectedTenant: number | null;
     employees: { id: number; name: string; active: boolean; devices: number }[];
     activation: { name: string; url: string } | null;
+    canManageManagers: boolean;
+    managers: { id: number; name: string; active: boolean }[];
+    managerAdded: boolean;
 };
 
 export default function Team({
@@ -19,9 +22,14 @@ export default function Team({
     selectedTenant,
     employees,
     activation,
+    canManageManagers,
+    managers,
+    managerAdded,
 }: Props) {
     const workspace = useForm({ name: '' });
     const employee = useForm({ name: '' });
+    const manager = useForm({ email: '', password: '' });
+    const managerRemoval = useForm({ membership: '', password: '' });
     const [hiddenUrl, setHiddenUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [copyError, setCopyError] = useState(false);
@@ -43,6 +51,14 @@ export default function Team({
                 </p>
             </header>
             <nav aria-label="المؤسسات" className="flex flex-wrap gap-3">
+                {selectedTenant && (
+                    <Link
+                        href={`/tenants/${selectedTenant}/reports`}
+                        className="rounded-xl bg-teal-700 px-4 py-2 text-white"
+                    >
+                        التقارير والمشاريع
+                    </Link>
+                )}
                 {workspaces.map((tenant) => (
                     <Link
                         key={tenant.id}
@@ -237,9 +253,182 @@ export default function Team({
                                         </Button>
                                     </div>
                                 )}
+                                {!member.active && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            router.post(
+                                                `/tenants/${selectedTenant}/employees/${member.id}/enable`,
+                                            )
+                                        }
+                                    >
+                                        إعادة التفعيل وإصدار QR
+                                    </Button>
+                                )}
                             </article>
                         ))}
                     </section>
+                    {canManageManagers && (
+                        <details className="space-y-4 rounded-xl border p-5">
+                            <summary className="cursor-pointer font-bold">
+                                إدارة المديرين · للمالك فقط
+                            </summary>
+                            <p className="mt-3 text-muted-foreground">
+                                يسجّل المدير حسابه بالبريد ويؤكده أولًا، ثم أضفه
+                                هنا. لا يمكن تحويل حساب موظف QR إلى مدير.
+                            </p>
+                            <form
+                                className="mt-4 space-y-3"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    manager.post(
+                                        `/tenants/${selectedTenant}/managers`,
+                                        {
+                                            onFinish: () =>
+                                                manager.reset('password'),
+                                            onSuccess: () => manager.reset(),
+                                        },
+                                    );
+                                }}
+                            >
+                                <label className="block">
+                                    بريد المدير المؤكّد
+                                    <Input
+                                        type="email"
+                                        required
+                                        value={manager.data.email}
+                                        onChange={(event) =>
+                                            manager.setData(
+                                                'email',
+                                                event.target.value,
+                                            )
+                                        }
+                                        autoComplete="off"
+                                    />
+                                </label>
+                                <label className="block">
+                                    كلمة مرور حسابك للتأكيد
+                                    <Input
+                                        type="password"
+                                        required
+                                        value={manager.data.password}
+                                        onChange={(event) =>
+                                            manager.setData(
+                                                'password',
+                                                event.target.value,
+                                            )
+                                        }
+                                        autoComplete="current-password"
+                                    />
+                                </label>
+                                {Object.values(manager.errors).length > 0 && (
+                                    <p role="alert" className="text-red-700">
+                                        {Object.values(manager.errors).join(
+                                            ' ',
+                                        )}
+                                    </p>
+                                )}
+                                <Button disabled={manager.processing}>
+                                    إضافة مدير
+                                </Button>
+                                {managerAdded && (
+                                    <p role="status" className="text-teal-700">
+                                        تمت إضافة المدير.
+                                    </p>
+                                )}
+                            </form>
+                            <ul className="mt-4 space-y-2">
+                                {managers.map((item) => (
+                                    <li
+                                        key={item.id}
+                                        className="rounded-lg border p-3"
+                                    >
+                                        {item.name} ·{' '}
+                                        {item.active ? 'نشط' : 'موقوف'}
+                                    </li>
+                                ))}
+                            </ul>
+                            <form
+                                className="mt-4 space-y-3"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    if (
+                                        window.confirm(
+                                            'إيقاف صلاحية هذا المدير في هذه المؤسسة؟',
+                                        )
+                                    )
+                                        managerRemoval.post(
+                                            `/tenants/${selectedTenant}/managers/${managerRemoval.data.membership}/disable`,
+                                            {
+                                                onFinish: () =>
+                                                    managerRemoval.reset(
+                                                        'password',
+                                                    ),
+                                            },
+                                        );
+                                }}
+                            >
+                                <label className="block">
+                                    إيقاف مدير
+                                    <select
+                                        required
+                                        value={managerRemoval.data.membership}
+                                        onChange={(event) =>
+                                            managerRemoval.setData(
+                                                'membership',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border bg-background p-2"
+                                    >
+                                        <option value="">اختر المدير</option>
+                                        {managers
+                                            .filter((item) => item.active)
+                                            .map((item) => (
+                                                <option
+                                                    key={item.id}
+                                                    value={item.id}
+                                                >
+                                                    {item.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </label>
+                                <label className="block">
+                                    كلمة مرور حسابك
+                                    <Input
+                                        type="password"
+                                        required
+                                        value={managerRemoval.data.password}
+                                        onChange={(event) =>
+                                            managerRemoval.setData(
+                                                'password',
+                                                event.target.value,
+                                            )
+                                        }
+                                        autoComplete="current-password"
+                                    />
+                                </label>
+                                {Object.values(managerRemoval.errors).length >
+                                    0 && (
+                                    <p role="alert" className="text-red-700">
+                                        {Object.values(
+                                            managerRemoval.errors,
+                                        ).join(' ')}
+                                    </p>
+                                )}
+                                <Button
+                                    variant="destructive"
+                                    disabled={
+                                        managerRemoval.processing ||
+                                        !managerRemoval.data.membership
+                                    }
+                                >
+                                    إيقاف صلاحية المدير
+                                </Button>
+                            </form>
+                        </details>
+                    )}
                 </>
             )}
         </main>

@@ -19,3 +19,7 @@ The identifiers below are planning IDs, not GitHub issue numbers. GitHub issues 
 | T13 | Pilot operations | T06,T10,T11,T12 | E2E flow, quotas, retention/deletion, backup restore, health checks and staging deployment verified. |
 
 Critical path: environment -> scaffold/runtime/CI -> tenancy -> intake -> fake pipeline -> real AI -> review -> pilot checks. Add supporting tasks only when needed; retain small reviewable PRs.
+
+## Implementation checkpoint (2026-11-06)
+
+T01-T04 are merged to dev through PR #14. T05-T06 are implemented in pending PR #15. The stacked codex/7-reporting-mvp branch implements T07/T08/T10/T11 and supporting T09/T12/T13 code. Local verification: 97 tests / 399 assertions, PHPStan, frontend types/build and synthetic HTTPS end-to-end passed. T09 remains open for real multilingual speech/image evaluation; T12 for physical devices/usability; T13 for stable production runtime, backup policy and pilot acceptance. T10 can be tested with deterministic AI before T09 live acceptance; production release still depends on it. See docs/product/mvp-coverage.ar.md for every requirement and remaining gate.

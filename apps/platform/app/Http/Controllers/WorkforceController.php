@@ -24,8 +24,9 @@ class WorkforceController extends Controller
         $workspaces = Tenant::query()->whereIn('id', $memberships->pluck('tenant_id'))->get(['id', 'name']);
         $selected = $tenant ?? $memberships->first()?->tenant_id;
         $employees = [];
+        $canManageManagers = false;
         if ($selected !== null) {
-            $access->manageTeam($actor, $selected);
+            $canManageManagers = $access->manageTeam($actor, $selected)->role === 'owner';
             $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->get()
                 ->map(fn (Membership $member) => [
                     'id' => $member->id, 'name' => User::query()->findOrFail($member->user_id)->name,
@@ -35,9 +36,16 @@ class WorkforceController extends Controller
                 ])->all();
         }
 
+        $managers = $canManageManagers ? Membership::query()->where('tenant_id', $selected)->where('role', 'manager')->get()->map(fn (Membership $member) => [
+            'id' => $member->id, 'name' => User::query()->findOrFail($member->user_id)->name, 'active' => $member->active,
+        ])->all() : [];
+
         return Inertia::render('workforce/team', [
             'workspaces' => $workspaces, 'selectedTenant' => $selected, 'employees' => $employees,
             'activation' => $request->session()->pull('activation'),
+            'canManageManagers' => $canManageManagers,
+            'managers' => $managers,
+            'managerAdded' => $request->session()->pull('manager_added', false),
         ]);
     }
 
@@ -71,6 +79,30 @@ class WorkforceController extends Controller
         $workforce->revokeAccess($request->user(), $tenant, $membership, $request->boolean('disable'));
 
         return redirect('/tenants/'.$tenant.'/team');
+    }
+
+    public function enable(Request $request, int $tenant, int $membership, ManageWorkforce $workforce, EmployeeActivation $activation): RedirectResponse
+    {
+        $employee = $workforce->restoreAccess($request->user(), $tenant, $membership);
+        $token = $activation->issue($request->user(), $tenant, $membership);
+
+        return $this->showActivation($tenant, User::query()->findOrFail($employee->user_id)->name, $token);
+    }
+
+    public function addManager(Request $request, int $tenant, ManageWorkforce $workforce): RedirectResponse
+    {
+        $data = $request->validate(['email' => 'required|email|max:254', 'password' => 'required|current_password']);
+        $workforce->addManager($request->user(), $tenant, $data['email']);
+
+        return back()->with('manager_added', true);
+    }
+
+    public function removeManager(Request $request, int $tenant, int $membership, ManageWorkforce $workforce): RedirectResponse
+    {
+        $request->validate(['password' => 'required|current_password']);
+        $workforce->removeManager($request->user(), $tenant, $membership);
+
+        return back();
     }
 
     private function showActivation(int $tenant, string $name, string $token): RedirectResponse
