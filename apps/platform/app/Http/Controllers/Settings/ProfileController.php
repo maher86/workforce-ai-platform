@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Modules\Identity\Membership;
+use App\Modules\Reporting\ReportRevision;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,6 +52,9 @@ class ProfileController extends Controller
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
         $user = $request->user();
+        if (Membership::query()->where('user_id', $user->id)->exists() || ReportRevision::query()->where('actor_id', $user->id)->exists()) {
+            throw ValidationException::withMessages(['password' => 'لا يمكن حذف حساب مرتبط بمؤسسة أو سجل مراجعات. أوقف صلاحياته ونسّق إغلاق المؤسسة أولًا.']);
+        }
 
         Auth::logout();
 

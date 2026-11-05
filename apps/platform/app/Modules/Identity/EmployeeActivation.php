@@ -3,6 +3,7 @@
 namespace App\Modules\Identity;
 
 use App\Models\User;
+use App\Modules\Audit\Audit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +16,7 @@ class EmployeeActivation
     {
         $employee = $this->access->employee($actor, $tenantId, $membershipId);
 
-        return DB::transaction(function () use ($employee) {
+        return DB::transaction(function () use ($actor, $employee) {
             $employee = Membership::query()->lockForUpdate()->findOrFail($employee->id);
             abort_unless($employee->active, 409);
             EmployeeInvitation::query()->where('membership_id', $employee->id)->delete();
@@ -24,6 +25,7 @@ class EmployeeActivation
                 'tenant_id' => $employee->tenant_id, 'membership_id' => $employee->id,
                 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addMinutes(30),
             ]);
+            Audit::record($employee->tenant_id, $actor->id, 'activation.issued', 'membership', $employee->id);
 
             return $token;
         });
@@ -49,6 +51,7 @@ class EmployeeActivation
                 'tenant_id' => $membership->tenant_id, 'membership_id' => $membership->id,
                 'token_hash' => hash('sha256', $deviceToken), 'expires_at' => now()->addDays(90),
             ]);
+            Audit::record($membership->tenant_id, $user->id, 'device.activated', 'device', $device->id);
 
             return ['user' => $user, 'device' => $device, 'token' => $deviceToken];
         });

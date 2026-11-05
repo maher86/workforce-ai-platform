@@ -33,8 +33,7 @@
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/icons/workforce-192.png" type="image/png">
         <link rel="apple-touch-icon" href="/icons/workforce-192.png">
 
         @fonts

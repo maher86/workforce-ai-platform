@@ -18,6 +18,10 @@
         </include>
     </source>
     <php>
+        <env name="WORKFORCE_AI_PROVIDER" value="demo" force="true"/>
+        <server name="WORKFORCE_AI_PROVIDER" value="demo" force="true"/>
+        <env name="OPENAI_API_KEY" value="" force="true"/>
+        <server name="OPENAI_API_KEY" value="" force="true"/>
         <env name="APP_ENV" value="testing" force="true"/>
         <server name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
