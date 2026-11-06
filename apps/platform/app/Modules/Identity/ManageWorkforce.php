@@ -38,7 +38,7 @@ class ManageWorkforce
                 'employee_only' => true,
             ])->save();
 
-            $member = Membership::query()->create(['tenant_id' => $tenantId, 'user_id' => $user->id, 'role' => 'employee']);
+            $member = Membership::query()->create(['tenant_id' => $tenantId, 'user_id' => $user->id, 'role' => 'employee', 'display_name' => $name]);
             Audit::record($tenantId, $actor->id, 'employee.created', 'membership', $member->id);
 
             return $member;

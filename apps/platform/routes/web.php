@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EmployeeAccessController;
+use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\ManagerReportController;
 use App\Http\Controllers\WorkforceController;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('tenants/{tenant}/employees/{membership}/profile', [EmployeeProfileController::class, 'managerUpdate'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
+    Route::get('tenants/{tenant}/employees/{membership}/photo', [EmployeeProfileController::class, 'managerPhoto'])->whereNumber(['tenant', 'membership']);
     Route::get('tenants/{tenant}/reports', [ManagerReportController::class, 'index'])->whereNumber('tenant');
     Route::get('tenants/{tenant}/reports/export', [ManagerReportController::class, 'export'])->whereNumber('tenant');
     Route::get('tenants/{tenant}/reports/{report}', [ManagerReportController::class, 'show'])->whereNumber(['tenant', 'report']);
@@ -34,6 +37,8 @@ Route::get('employee/activate', [EmployeeAccessController::class, 'activationPag
 Route::post('employee/activate', [EmployeeAccessController::class, 'activate'])->middleware('throttle:10,1');
 Route::get('employee', [EmployeeAccessController::class, 'home'])->middleware('auth')->name('employee.home');
 Route::post('employee/disconnect', [EmployeeAccessController::class, 'disconnect'])->middleware('auth');
+Route::post('employee/profile', [EmployeeProfileController::class, 'update'])->middleware(['auth', 'throttle:10,1']);
+Route::get('employee/profile/photo', [EmployeeProfileController::class, 'photo'])->middleware('auth');
 Route::post('employee/reports', [EmployeeReportController::class, 'store'])->middleware(['auth', 'throttle:10,1']);
 Route::get('employee/reports/{report}', [EmployeeReportController::class, 'show'])->whereNumber('report')->middleware('auth');
 Route::get('employee/reports/{report}/media/{media}', [EmployeeReportController::class, 'media'])->whereNumber(['report', 'media'])->middleware('auth');

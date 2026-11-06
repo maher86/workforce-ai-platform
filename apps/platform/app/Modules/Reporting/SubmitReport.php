@@ -27,6 +27,9 @@ class SubmitReport
         $text = trim($text ?? '');
         $this->valid(Str::isUuid($submissionKey) && mb_strlen($text) <= 10000 && ($text !== '' || count($inputs) > 0), 'أضف صوتًا أو صورة أو نصًا.');
         $this->valid(count($inputs) <= 4 && count(array_filter($inputs, fn (MediaInput $input) => $input->kind === 'audio')) <= 1 && count(array_filter($inputs, fn (MediaInput $input) => $input->kind === 'image')) <= 3, 'يمكن إرسال تسجيل واحد وثلاث صور.');
+        $hasAudio = count(array_filter($inputs, fn (MediaInput $input) => $input->kind === 'audio')) > 0;
+        $hasImages = count(array_filter($inputs, fn (MediaInput $input) => $input->kind === 'image')) > 0;
+        $this->valid(! $hasImages || $hasAudio, 'أضف تسجيلًا صوتيًا مع الصور. الصور مرفقات اختيارية ولا تُرسل وحدها.');
         $sourceHashes = array_map(fn (MediaInput $input) => [$input->kind, hash_file('sha256', $input->sourcePath)], $inputs);
         $hash = hash('sha256', json_encode([$text, $sourceHashes, $projectId, $taskId], JSON_THROW_ON_ERROR));
         $existing = Report::query()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();

@@ -10,7 +10,7 @@ use Throwable;
 
 class PrepareMedia
 {
-    public function prepare(MediaInput $input): PreparedMedia
+    public function prepare(MediaInput $input, int $maxDimension = 2560): PreparedMedia
     {
         $disk = Storage::disk('reports');
         $target = '.incoming/'.Str::uuid().($input->kind === 'image' ? '.jpg' : '.m4a');
@@ -27,7 +27,7 @@ class PrepareMedia
                     throw ValidationException::withMessages(['media' => 'الصورة غير قابلة للقراءة.']);
                 }
                 $this->require($dimensions[0] > 0 && $dimensions[1] > 0 && $dimensions[0] * $dimensions[1] <= 20_000_000);
-                $ratio = min(1, 2560 / $dimensions[0], 2560 / $dimensions[1]);
+                $ratio = min(1, $maxDimension / $dimensions[0], $maxDimension / $dimensions[1]);
                 $width = max(1, (int) floor($dimensions[0] * $ratio));
                 $height = max(1, (int) floor($dimensions[1] * $ratio));
                 $arguments = ['-frames:v', '1', '-vf', 'scale='.$width.':'.$height, '-q:v', '3', '-threads', '1'];

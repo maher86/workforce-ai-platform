@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Modules\Identity\EmployeeDevice;
+use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\Membership;
 use App\Modules\Media\MediaInput;
 use App\Modules\Reporting\ReportAccess;
 use App\Modules\Reporting\ReportMedia;
+use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\SubmitReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,12 +21,7 @@ class EmployeeReportController extends Controller
 {
     public function membership(Request $request): Membership
     {
-        abort_unless($request->user()?->employee_only, 403);
-        $device = EmployeeDevice::query()->whereNull('revoked_at')->where('expires_at', '>', now())
-            ->findOrFail((int) $request->session()->get('employee_device_id'));
-
-        return Membership::query()->where('tenant_id', $device->tenant_id)->where('user_id', $request->user()->id)
-            ->where('active', true)->findOrFail($device->membership_id);
+        return app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
     }
 
     public function store(Request $request, SubmitReport $submit): JsonResponse
@@ -58,6 +54,9 @@ class EmployeeReportController extends Controller
         return Inertia::render('employee/report', [
             'report' => $item->only(['id', 'source_text', 'status', 'created_at']),
             'media' => ReportMedia::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)->get(['id', 'kind', 'mime']),
+            'outputs' => ReportOutput::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)
+                ->where(fn ($query) => $query->where('stage', 'like', 'transcript:%')->orWhereIn('stage', ['translation', 'structured']))->orderBy('id')->get(['id', 'stage', 'provider', 'payload']),
+            'aiMode' => config('workforce.ai_provider'),
         ]);
     }
 

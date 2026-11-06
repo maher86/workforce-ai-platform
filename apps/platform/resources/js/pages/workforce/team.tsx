@@ -6,11 +6,26 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import EmployeeProfileEditor from '@/components/employee-profile-editor';
 
 type Props = {
     workspaces: { id: number; name: string }[];
     selectedTenant: number | null;
-    employees: { id: number; name: string; active: boolean; devices: number }[];
+    employees: {
+        id: number;
+        name: string;
+        phone: string | null;
+        photoUrl: string | null;
+        active: boolean;
+        devices: number;
+    }[];
+    managerName: string;
+    summary: {
+        employees: number;
+        reports: number;
+        processing: number;
+        awaitingReview: number;
+    } | null;
     activation: { name: string; url: string } | null;
     canManageManagers: boolean;
     managers: { id: number; name: string; active: boolean }[];
@@ -25,9 +40,11 @@ export default function Team({
     canManageManagers,
     managers,
     managerAdded,
+    managerName,
+    summary,
 }: Props) {
     const workspace = useForm({ name: '' });
-    const employee = useForm({ name: '' });
+    const employee = useForm({ name: '', phone: '' });
     const manager = useForm({ email: '', password: '' });
     const managerRemoval = useForm({ membership: '', password: '' });
     const [hiddenUrl, setHiddenUrl] = useState<string | null>(null);
@@ -42,14 +59,45 @@ export default function Team({
             lang="ar"
             className="mx-auto w-full max-w-4xl space-y-8 p-6"
         >
-            <Head title="الفريق ودخول الموظفين" />
+            <Head title="لوحة المدير" />
             <header className="space-y-2">
-                <h1 className="text-2xl font-bold">الفريق ودخول الموظفين</h1>
+                <h1 className="text-2xl font-bold">
+                    لوحة المدير · {managerName}
+                </h1>
+                <Button
+                    variant="outline"
+                    onClick={() => router.post('/logout')}
+                >
+                    تسجيل خروج المدير
+                </Button>
                 <p className="text-muted-foreground">
                     أضف الموظف وأعطه رمز QR أو رابطًا. لا يحتاج إلى بريد أو كلمة
                     مرور.
                 </p>
             </header>
+            {summary && (
+                <section
+                    aria-label="ملخص المؤسسة"
+                    className="grid grid-cols-2 gap-3 md:grid-cols-4"
+                >
+                    {(
+                        [
+                            ['الموظفون النشطون', summary.employees],
+                            ['التقارير', summary.reports],
+                            ['قيد المعالجة', summary.processing],
+                            ['بانتظار المراجعة', summary.awaitingReview],
+                        ] as const
+                    ).map(([label, value]) => (
+                        <div
+                            key={label}
+                            className="rounded-2xl border bg-slate-50 p-4 text-slate-900"
+                        >
+                            <p className="text-3xl font-bold">{value}</p>
+                            <p>{label}</p>
+                        </div>
+                    ))}
+                </section>
+            )}
             <nav aria-label="المؤسسات" className="flex flex-wrap gap-3">
                 {selectedTenant && (
                     <Link
@@ -118,6 +166,26 @@ export default function Team({
                                 required
                             />
                             <InputError message={employee.errors.name} />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <Label htmlFor="employee-phone">
+                                هاتف الموظف (اختياري، مع رمز الدولة)
+                            </Label>
+                            <Input
+                                id="employee-phone"
+                                type="tel"
+                                dir="ltr"
+                                placeholder="+971501234567"
+                                maxLength={16}
+                                value={employee.data.phone}
+                                onChange={(event) =>
+                                    employee.setData(
+                                        'phone',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError message={employee.errors.phone} />
                         </div>
                         <Button disabled={employee.processing}>
                             <UserPlus />
@@ -198,7 +266,17 @@ export default function Team({
                                 className="flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4"
                             >
                                 <div>
+                                    {member.photoUrl && (
+                                        <img
+                                            src={member.photoUrl}
+                                            alt={`صورة ${member.name}`}
+                                            className="mb-2 h-16 w-16 rounded-full object-cover"
+                                        />
+                                    )}
                                     <h3 className="font-bold">{member.name}</h3>
+                                    {member.phone && (
+                                        <p dir="ltr">{member.phone}</p>
+                                    )}
                                     <p className="text-sm text-muted-foreground">
                                         {member.active
                                             ? `أجهزة مفعّلة: ${member.devices}`
@@ -265,6 +343,10 @@ export default function Team({
                                         إعادة التفعيل وإصدار QR
                                     </Button>
                                 )}
+                                <EmployeeProfileEditor
+                                    tenant={selectedTenant}
+                                    employee={member}
+                                />
                             </article>
                         ))}
                     </section>

@@ -44,6 +44,8 @@ type Revision = {
 type Props = {
     report: Report;
     employeeName: string;
+    employeePhone: string | null;
+    employeePhotoUrl: string | null;
     media: { id: number; kind: string }[];
     outputs: Output[];
     revisions: Revision[];
@@ -130,6 +132,8 @@ function ReviewForm({ report, initial }: { report: Report; initial: string }) {
 export default function ShowReport({
     report,
     employeeName,
+    employeePhone,
+    employeePhotoUrl,
     media,
     outputs,
     revisions,
@@ -160,9 +164,21 @@ export default function ShowReport({
                 العودة للتقارير
             </Link>
             <header>
+                {employeePhotoUrl && (
+                    <img
+                        src={employeePhotoUrl}
+                        alt={`صورة ${employeeName}`}
+                        className="mb-3 h-20 w-20 rounded-full object-cover"
+                    />
+                )}
                 <h1 className="text-2xl font-bold">
                     تقرير #{report.id} · {employeeName}
                 </h1>
+                {employeePhone && (
+                    <p dir="ltr" className="mt-2 text-start">
+                        {employeePhone}
+                    </p>
+                )}
                 <p className="mt-2">
                     الإصدار {report.version} ·{' '}
                     {

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Identity\EmployeeActivation;
+use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\EmployeeDevice;
-use App\Modules\Identity\Membership;
 use App\Modules\Identity\Tenant;
 use App\Modules\Reporting\Report;
 use App\Modules\WorkManagement\WorkItem;
@@ -44,12 +44,13 @@ class EmployeeAccessController extends Controller
     public function home(Request $request): Response
     {
         abort_unless($request->user()?->employee_only, 403);
-        $device = EmployeeDevice::query()->findOrFail((int) $request->session()->get('employee_device_id'));
-        $member = Membership::query()->where('tenant_id', $device->tenant_id)->where('user_id', $request->user()->id)
-            ->where('active', true)->findOrFail($device->membership_id);
+        $member = app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
 
         return Inertia::render('employee/home', [
-            'employeeName' => $request->user()->name,
+            'employeeName' => $member->display_name ?? $request->user()->name,
+            'employeePhone' => $member->phone,
+            'profilePhotoUrl' => $member->profile_photo_path ? '/employee/profile/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
+            'profileSaved' => $request->session()->pull('profile_saved', false),
             'tenantName' => Tenant::query()->findOrFail($member->tenant_id)->name,
             'reports' => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at']),
             'workItems' => WorkItem::query()->where('tenant_id', $member->tenant_id)->where('active', true)->get(['id', 'kind', 'name', 'project_id']),

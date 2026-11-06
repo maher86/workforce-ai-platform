@@ -144,7 +144,7 @@ class ReportingTest extends TestCase
         $this->temporary[] = $path;
         file_put_contents($path, '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
         try {
-            app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($path, 'image')]);
+            app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('audio'), 'audio'), new MediaInput($path, 'image')]);
             $this->fail('SVG accepted');
         } catch (ValidationException) {
             $this->assertDatabaseCount('reports', 0);
@@ -168,7 +168,7 @@ class ReportingTest extends TestCase
         }
         $tenant->update(['daily_report_limit' => 10, 'storage_limit_mb' => 0]);
         $this->expectException(ValidationException::class);
-        app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('image'), 'image')]);
+        app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('audio'), 'audio')]);
     }
 
     public function test_browser_streaming_webm_without_duration_header_is_supported(): void
@@ -187,7 +187,7 @@ class ReportingTest extends TestCase
     public function test_old_orphan_cleanup_preserves_referenced_and_recent_media(): void
     {
         [, $tenant, , $employee] = $this->workforce();
-        $report = app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('image'), 'image')]);
+        $report = app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('audio'), 'audio')]);
         $media = ReportMedia::query()->where('report_id', $report->id)->sole();
         $orphan = '.incoming/'.Str::uuid().'.jpg';
         $recent = '.incoming/'.Str::uuid().'.jpg';
@@ -236,11 +236,11 @@ class ReportingTest extends TestCase
         $grant = $service->consume($service->issue($owner, $tenant->id, $member->id));
         $this->withCookie('workforce_device', $grant['token'])->get('/employee')->assertOk();
         $image = new UploadedFile($this->mediaFile('image'), 'untrusted-name.png', 'image/png', null, true);
-        $response = $this->post('/employee/reports', ['submission_key' => (string) Str::uuid(), 'tenant_id' => $foreign->id, 'images' => [$image]], ['Accept' => 'application/json']);
+        $response = $this->post('/employee/reports', ['submission_key' => (string) Str::uuid(), 'tenant_id' => $foreign->id, 'audio' => new UploadedFile($this->mediaFile('audio'), 'voice.wav', 'audio/wav', null, true), 'images' => [$image]], ['Accept' => 'application/json']);
         $response->assertCreated();
         $report = Report::query()->sole();
         $this->assertSame($tenant->id, $report->tenant_id);
-        $attachment = ReportMedia::query()->sole();
+        $attachment = ReportMedia::query()->where('kind', 'image')->sole();
         $this->get('/employee/reports/'.$report->id.'/media/'.$attachment->id)->assertOk();
         $this->get('/employee/reports/'.($report->id + 100).'/media/'.$attachment->id)->assertNotFound();
     }
@@ -381,7 +381,7 @@ class ReportingTest extends TestCase
     public function test_retention_dry_run_and_apply_delete_private_media_and_outputs(): void
     {
         [, $tenant, , $employee] = $this->workforce();
-        $report = app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('image'), 'image')]);
+        $report = app(SubmitReport::class)->execute($employee, $tenant->id, (string) Str::uuid(), null, [new MediaInput($this->mediaFile('audio'), 'audio')]);
         $media = ReportMedia::query()->sole();
         $report->update(['created_at' => now()->subDays(91)]);
         $this->artisan('reports:purge')->assertSuccessful();

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Modules\Identity\Membership;
 use App\Modules\Reporting\ReportMedia;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +18,14 @@ class PruneOrphanMedia extends Command
         $disk = Storage::disk('reports');
         $count = 0;
         foreach ($disk->allFiles() as $path) {
-            if (! preg_match('~^(?:\.incoming|[0-9]+/[0-9]+)/[0-9a-f-]{36}\.(?:jpg|m4a)$~', $path) || $disk->lastModified($path) >= now()->subDay()->getTimestamp()) {
+            if (! preg_match('~^(?:\.incoming|[0-9]+/[0-9]+|profiles/[0-9]+/[0-9]+)/[0-9a-f-]{36}\.(?:jpg|m4a)$~', $path) || $disk->lastModified($path) >= now()->subDay()->getTimestamp()) {
                 continue;
+            }
+            if (str_starts_with($path, 'profiles/')) {
+                $profileTenant = (int) explode('/', $path)[1];
+                if (Membership::query()->where('tenant_id', $profileTenant)->where('profile_photo_path', $path)->exists()) {
+                    continue;
+                }
             }
             $tenantId = (int) explode('/', $path)[0];
             if (! str_starts_with($path, '.incoming/') && ReportMedia::query()->where('tenant_id', $tenantId)->where('path', $path)->exists()) {

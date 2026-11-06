@@ -67,7 +67,7 @@ class ManagerReportController extends Controller
         $reports = $query->latest('id')->paginate(25)->withQueryString();
         $members = Membership::query()->where('tenant_id', $tenant)->get();
         $names = User::query()->whereIn('id', $members->pluck('user_id'))->pluck('name', 'id');
-        $employeeNames = $members->mapWithKeys(fn (Membership $member) => [$member->id => $names[$member->user_id] ?? 'Employee'])->all();
+        $employeeNames = $members->mapWithKeys(fn (Membership $member) => [$member->id => $member->display_name ?? $names[$member->user_id] ?? 'Employee'])->all();
 
         return Inertia::render('reports/index', [
             'tenant' => Tenant::query()->findOrFail($tenant), 'reports' => $reports,
@@ -84,7 +84,9 @@ class ManagerReportController extends Controller
         $member = Membership::query()->where('tenant_id', $tenant)->findOrFail($item->membership_id);
 
         return Inertia::render('reports/show', [
-            'report' => $item, 'employeeName' => User::query()->findOrFail($member->user_id)->name,
+            'report' => $item, 'employeeName' => $member->display_name ?? User::query()->findOrFail($member->user_id)->name,
+            'employeePhone' => $member->phone,
+            'employeePhotoUrl' => $member->profile_photo_path ? '/tenants/'.$tenant.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
             'media' => ReportMedia::query()->where('tenant_id', $tenant)->where('report_id', $report)->get(['id', 'kind', 'mime', 'bytes', 'duration']),
             'outputs' => ReportOutput::query()->where('tenant_id', $tenant)->where('report_id', $report)->orderBy('id')->get(),
             'revisions' => ReportRevision::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
@@ -166,7 +168,7 @@ class ManagerReportController extends Controller
     {
         $query = $this->query($request, $tenant);
         $query->select('reports.*')
-            ->selectSub(DB::table('memberships')->join('users', 'users.id', '=', 'memberships.user_id')->select('users.name')->whereColumn('memberships.id', 'reports.membership_id')->whereColumn('memberships.tenant_id', 'reports.tenant_id')->limit(1), 'export_employee')
+            ->selectSub(DB::table('memberships')->join('users', 'users.id', '=', 'memberships.user_id')->selectRaw('COALESCE(memberships.display_name, users.name)')->whereColumn('memberships.id', 'reports.membership_id')->whereColumn('memberships.tenant_id', 'reports.tenant_id')->limit(1), 'export_employee')
             ->selectSub(ReportRevision::query()->select('english_report')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->latest('version')->limit(1), 'export_review')
             ->selectSub(ReportOutput::query()->selectRaw("payload->>'summary'")->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_summary')
             ->selectSub(ReportOutput::query()->select('provider')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_provider');
