@@ -1,6 +1,6 @@
 # Reporting verification and operations
 
-Use synthetic content until pilot gates in docs/product/mvp-coverage.ar.md pass.
+Use synthetic content until pilot gates in docs/product/mvp-coverage.ar.md pass. Product update 2026-11-07: images require audio, even with text; audio-only/text-only remain supported. Employee profile photos are separate. Current acceptance script: docs/product/employee-workflow.ar.md.
 
 ## Try the workflow
 

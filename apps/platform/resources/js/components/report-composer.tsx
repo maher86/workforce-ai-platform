@@ -204,6 +204,11 @@ export default function ReportComposer({
 
     const send = async () => {
         if (sending || recording || openingMic || !online) return;
+        if (images.length && !audio) {
+            setError('أضف تسجيلًا صوتيًا مع الصور. الصورة وحدها لا تُرسل.');
+            speak('سجّل صوتك أولًا. الصورة مرفق اختياري مع التسجيل.');
+            return;
+        }
         setError('');
         setSent(false);
         setSending(true);
@@ -273,7 +278,7 @@ export default function ReportComposer({
                 className="mx-auto block rounded-full border p-3"
                 onClick={() =>
                     speak(
-                        'اضغط الميكروفون وتحدث، ثم اضغط إيقاف. يمكنك إضافة صور بالكاميرا. اضغط السهم الأخضر لإرسال التقرير. لا تحتاج إلى مهمة أو كتابة.',
+                        'اضغط الميكروفون وتحدث، ثم اضغط إيقاف. الصورة اختيارية مع التسجيل ولا ترسل وحدها. اضغط السهم الأخضر لإرسال التقرير. لا تحتاج إلى مهمة أو كتابة.',
                     )
                 }
             >
@@ -488,7 +493,7 @@ export default function ReportComposer({
                     openingMic ||
                     recording ||
                     !online ||
-                    (!audio && !images.length && !text.trim())
+                    (!audio && (!text.trim() || images.length > 0))
                 }
                 onClick={() => {
                     void send();
@@ -500,8 +505,17 @@ export default function ReportComposer({
                 {sending ? 'جارٍ الإرسال…' : 'إرسال'}
             </button>
             <p className="text-sm text-slate-500">
-                حتى 3 دقائق صوت وثلاث صور. لا تُغلق الصفحة قبل تأكيد الإرسال.
+                تسجيل واحد حتى 3 دقائق، ومعه حتى ثلاث صور اختيارية. الصور تحتاج
+                تسجيلًا صوتيًا. لا تُغلق الصفحة قبل تأكيد الإرسال.
             </p>
+            {images.length > 0 && !audio && (
+                <p
+                    role="alert"
+                    className="rounded-xl bg-amber-100 p-3 text-amber-950"
+                >
+                    🎤 أضف تسجيلًا صوتيًا لإرسال هذه الصور.
+                </p>
+            )}
         </section>
     );
 }

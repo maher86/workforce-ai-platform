@@ -74,6 +74,7 @@ services:
       start_period: 45s
   worker:
     <<: *app
+    restart: unless-stopped
     command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--timeout=120"]
     depends_on:
       app:
@@ -81,6 +82,7 @@ services:
     stop_grace_period: 135s
   scheduler:
     <<: *app
+    restart: unless-stopped
     command: ["php", "artisan", "schedule:work"]
     depends_on:
       app:

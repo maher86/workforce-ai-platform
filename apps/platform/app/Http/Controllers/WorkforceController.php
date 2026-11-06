@@ -9,6 +9,8 @@ use App\Modules\Identity\ManageWorkforce;
 use App\Modules\Identity\Membership;
 use App\Modules\Identity\Tenant;
 use App\Modules\Identity\TenantAccess;
+use App\Modules\Identity\UpdateEmployeeProfile;
+use App\Modules\Reporting\Report;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +31,9 @@ class WorkforceController extends Controller
             $canManageManagers = $access->manageTeam($actor, $selected)->role === 'owner';
             $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->get()
                 ->map(fn (Membership $member) => [
-                    'id' => $member->id, 'name' => User::query()->findOrFail($member->user_id)->name,
+                    'id' => $member->id, 'name' => $member->display_name ?? User::query()->findOrFail($member->user_id)->name,
+                    'phone' => $member->phone,
+                    'photoUrl' => $member->profile_photo_path ? '/tenants/'.$selected.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
                     'active' => $member->active,
                     'devices' => EmployeeDevice::query()->where('tenant_id', $selected)->where('membership_id', $member->id)
                         ->whereNull('revoked_at')->where('expires_at', '>', now())->count(),
@@ -46,6 +50,13 @@ class WorkforceController extends Controller
             'canManageManagers' => $canManageManagers,
             'managers' => $managers,
             'managerAdded' => $request->session()->pull('manager_added', false),
+            'managerName' => $actor->name,
+            'summary' => $selected === null ? null : [
+                'employees' => count(array_filter($employees, fn ($member) => $member['active'])),
+                'reports' => Report::query()->where('tenant_id', $selected)->count(),
+                'processing' => Report::query()->where('tenant_id', $selected)->whereIn('status', ['submitted', 'processing'])->count(),
+                'awaitingReview' => Report::query()->where('tenant_id', $selected)->where('review_status', 'pending')->whereIn('status', ['ready', 'failed'])->count(),
+            ],
         ]);
     }
 
@@ -57,10 +68,11 @@ class WorkforceController extends Controller
         return redirect('/tenants/'.$tenant->id.'/team');
     }
 
-    public function addEmployee(Request $request, int $tenant, ManageWorkforce $workforce, EmployeeActivation $activation): RedirectResponse
+    public function addEmployee(Request $request, int $tenant, ManageWorkforce $workforce, EmployeeActivation $activation, UpdateEmployeeProfile $profile): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:120']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'phone' => ['nullable', 'regex:/^\+[1-9][0-9]{6,14}$/']]);
         $employee = $workforce->addEmployee($request->user(), $tenant, $data['name']);
+        $profile->execute($request->user(), $tenant, $employee->id, ['phone' => $data['phone'] ?? null]);
         $token = $activation->issue($request->user(), $tenant, $employee->id);
 
         return $this->showActivation($tenant, $data['name'], $token);
@@ -71,7 +83,7 @@ class WorkforceController extends Controller
         $employee = $access->employee($request->user(), $tenant, $membership);
         $token = $activation->issue($request->user(), $tenant, $membership);
 
-        return $this->showActivation($tenant, User::query()->findOrFail($employee->user_id)->name, $token);
+        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token);
     }
 
     public function revoke(Request $request, int $tenant, int $membership, ManageWorkforce $workforce): RedirectResponse
@@ -86,7 +98,7 @@ class WorkforceController extends Controller
         $employee = $workforce->restoreAccess($request->user(), $tenant, $membership);
         $token = $activation->issue($request->user(), $tenant, $membership);
 
-        return $this->showActivation($tenant, User::query()->findOrFail($employee->user_id)->name, $token);
+        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token);
     }
 
     public function addManager(Request $request, int $tenant, ManageWorkforce $workforce): RedirectResponse

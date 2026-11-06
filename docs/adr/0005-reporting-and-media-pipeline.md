@@ -17,3 +17,6 @@ Processing and review states are separate. Ready or failed reports can receive e
 Future WhatsApp adapters will resolve verified identity/tenant and supply MediaInput to the same action. They must not bypass MIME validation, quotas, idempotency, active membership or evidence rules.
 
 API references: [file transcription](https://developers.openai.com/api/docs/guides/speech-to-text), [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses), [vision inputs](https://developers.openai.com/api/docs/guides/images-vision).
+
+## Accepted product update — 2026-11-07
+New images require an audio recording in SubmitReport, including image+text. Audio without images and text without images remain valid. Existing image-only records are preserved with the conservative legacy processing policy; it is not an available new submission path. Each submitted recording creates its own report and keeps original transcript, English translation and structured work text separate; no automatic manager assignment or verified completion is created. Membership profile photos are private, tenant-scoped, normalized separately and never part of AI report inputs. See docs/product/employee-workflow.ar.md.
