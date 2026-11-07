@@ -13,6 +13,7 @@ use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\ReportRevision;
+use App\Modules\Reporting\ReportServiceFact;
 use App\Modules\Reporting\ReportSubmitted;
 use App\Modules\Reporting\ReviewReport;
 use App\Modules\WorkManagement\Vehicle;
@@ -100,6 +101,8 @@ class ManagerReportController extends Controller
             'media' => ReportMedia::query()->where('tenant_id', $tenant)->where('report_id', $report)->get(['id', 'kind', 'mime', 'bytes', 'duration']),
             'outputs' => ReportOutput::query()->where('tenant_id', $tenant)->where('report_id', $report)->orderBy('id')->get(),
             'revisions' => ReportRevision::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
+            'currentServiceFact' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->first(),
+            'serviceFacts' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->paginate(10, ['*'], 'facts_page')->withQueryString(),
             'aiMode' => config('workforce.ai_provider'),
             'canDelete' => $actor->role === 'owner',
             'vehicle' => $item->vehicle_id ? Vehicle::query()->where('tenant_id', $tenant)->findOrFail($item->vehicle_id)->only(['id', 'plate']) : null,

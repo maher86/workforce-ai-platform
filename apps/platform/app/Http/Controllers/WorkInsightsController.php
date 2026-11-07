@@ -8,6 +8,7 @@ use App\Modules\Identity\Tenant;
 use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportActivity;
+use App\Modules\Reporting\ServiceInsights;
 use App\Modules\WorkManagement\ReportVehicle;
 use App\Modules\WorkManagement\Vehicle;
 use Carbon\CarbonImmutable;
@@ -75,6 +76,7 @@ class WorkInsightsController extends Controller
         return Inertia::render('insights/index', [
             'tenant' => Tenant::query()->findOrFail($tenant), 'period' => $period, 'selectedEmployee' => $employee,
             'people' => array_values($people), 'metrics' => $rows, 'series' => $series,
+            'serviceInsights' => app(ServiceInsights::class)->summarize($query, $tenant),
             'days' => $employee !== null ? $this->activity->days($query) : null,
             'timezone' => ReportActivity::ZONE,
         ]);
