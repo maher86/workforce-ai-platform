@@ -1,8 +1,10 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Download, FileText, FolderPlus, Users } from 'lucide-react';
+import { Download, FolderPlus, Users } from 'lucide-react';
 import { useEffect } from 'react';
 import type { WorkItem } from '@/components/report-composer';
 import { Button } from '@/components/ui/button';
+import ReportDayAccordion from '@/components/report-day-accordion';
+import type { DayPages } from '@/components/report-day-accordion';
 
 type Report = {
     id: number;
@@ -21,6 +23,7 @@ type Props = {
     filters: Record<string, string>;
     workItems: WorkItem[];
     aiMode: string;
+    days: DayPages;
 };
 const statusLabels: Record<string, string> = {
     submitted: 'تم الاستلام',
@@ -39,6 +42,7 @@ export default function Reports({
     filters,
     workItems,
     aiMode,
+    days,
 }: Props) {
     const filter = useForm({
         status: filters.status || '',
@@ -54,7 +58,7 @@ export default function Reports({
     useEffect(() => {
         if (!pending) return;
         const timer = window.setInterval(
-            () => router.reload({ only: ['reports'] }),
+            () => router.reload({ only: ['reports', 'days'] }),
             10000,
         );
         return () => window.clearInterval(timer);
@@ -80,6 +84,18 @@ export default function Reports({
                     </p>
                 </div>
                 <div className="flex gap-3">
+                    <Link
+                        href={`/tenants/${tenant.id}/vehicles`}
+                        className="rounded-xl border p-3"
+                    >
+                        السيارات
+                    </Link>
+                    <Link
+                        href={`/tenants/${tenant.id}/insights`}
+                        className="rounded-xl border p-3"
+                    >
+                        المؤشرات
+                    </Link>
                     <Link
                         href={`/tenants/${tenant.id}/team`}
                         className="flex items-center gap-2 rounded-xl border p-3"
@@ -198,60 +214,11 @@ export default function Reports({
                     </p>
                 )}
             </form>
-            <section className="space-y-3">
-                {reports.data.length === 0 && (
-                    <div className="rounded-xl border p-8 text-center">
-                        <FileText className="mx-auto mb-4" size={48} />
-                        <p>
-                            لا توجد تقارير مطابقة. أرسل أول تقرير من هاتف الموظف.
-                        </p>
-                    </div>
-                )}
-                {reports.data.map((report) => (
-                    <Link
-                        key={report.id}
-                        href={`/tenants/${tenant.id}/reports/${report.id}`}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-5 hover:bg-muted"
-                    >
-                        <div>
-                            <h2 className="font-bold">
-                                #{report.id} ·{' '}
-                                {employeeNames[report.membership_id] || 'موظف'}
-                            </h2>
-                            <p className="text-sm text-muted-foreground">
-                                {new Date(report.created_at).toLocaleString(
-                                    'ar',
-                                )}
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-muted px-3 py-1">
-                                {statusLabels[report.status]}
-                            </span>
-                            <span className="rounded-full border px-3 py-1">
-                                {statusLabels[report.review_status]}
-                            </span>
-                        </div>
-                    </Link>
-                ))}
-            </section>
-            <nav className="flex flex-wrap gap-2" aria-label="صفحات التقارير">
-                {reports.links.map((link, index) =>
-                    link.url ? (
-                        <Link
-                            key={index}
-                            href={link.url}
-                            className={`rounded-lg border px-4 py-2 ${link.active ? 'bg-primary text-primary-foreground' : ''}`}
-                        >
-                            {index === 0
-                                ? 'السابق'
-                                : index === reports.links.length - 1
-                                  ? 'التالي'
-                                  : link.label}
-                        </Link>
-                    ) : null,
-                )}
-            </nav>
+            <ReportDayAccordion
+                days={days}
+                endpoint={`/tenants/${tenant.id}/reports/by-day?${exportParams}`}
+                names={employeeNames}
+            />
             <details className="rounded-xl border p-5">
                 <summary className="cursor-pointer text-lg font-bold">
                     المشاريع والمهام الاختيارية

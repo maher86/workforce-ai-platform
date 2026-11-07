@@ -9,6 +9,7 @@ use App\Modules\Identity\TenantAccess;
 use App\Modules\Media\MediaInput;
 use App\Modules\Media\PreparedMedia;
 use App\Modules\Media\PrepareMedia;
+use App\Modules\WorkManagement\ReportVehicle;
 use App\Modules\WorkManagement\WorkItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class SubmitReport
     public function __construct(private TenantAccess $access, private PrepareMedia $media) {}
 
     /** @param list<MediaInput> $inputs */
-    public function execute(User $actor, int $tenantId, string $submissionKey, ?string $text, array $inputs, ?int $projectId = null, ?int $taskId = null): Report
+    public function execute(User $actor, int $tenantId, string $submissionKey, ?string $text, array $inputs, ?int $projectId = null, ?int $taskId = null, ?string $vehiclePlate = null): Report
     {
         $member = $this->access->member($actor, $tenantId);
         $text = trim($text ?? '');
@@ -31,7 +32,12 @@ class SubmitReport
         $hasImages = count(array_filter($inputs, fn (MediaInput $input) => $input->kind === 'image')) > 0;
         $this->valid(! $hasImages || $hasAudio, 'أضف تسجيلًا صوتيًا مع الصور. الصور مرفقات اختيارية ولا تُرسل وحدها.');
         $sourceHashes = array_map(fn (MediaInput $input) => [$input->kind, hash_file('sha256', $input->sourcePath)], $inputs);
-        $hash = hash('sha256', json_encode([$text, $sourceHashes, $projectId, $taskId], JSON_THROW_ON_ERROR));
+        $identity = [$text, $sourceHashes, $projectId, $taskId];
+        $plateKey = ReportVehicle::key($vehiclePlate);
+        if ($plateKey !== null) {
+            $identity[] = $plateKey;
+        }
+        $hash = hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
         $existing = Report::query()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
         if ($existing) {
             $this->valid(hash_equals($existing->content_hash, $hash), 'استُخدم مفتاح الإرسال لمحتوى مختلف.');
@@ -46,7 +52,7 @@ class SubmitReport
                 $paths[] = $prepared[array_key_last($prepared)]->path;
             }
 
-            return DB::transaction(function () use ($actor, $tenantId, $submissionKey, $text, $hash, $projectId, $taskId, $prepared, &$paths) {
+            return DB::transaction(function () use ($actor, $tenantId, $submissionKey, $text, $hash, $projectId, $taskId, $prepared, $vehiclePlate, &$paths) {
                 $tenant = Tenant::query()->lockForUpdate()->findOrFail($tenantId);
                 $member = $this->access->member($actor, $tenantId);
                 $existing = Report::query()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
@@ -63,6 +69,7 @@ class SubmitReport
                 $report = Report::query()->create([
                     'tenant_id' => $tenantId, 'membership_id' => $member->id, 'submission_key' => $submissionKey,
                     'content_hash' => $hash, 'source_text' => $text ?: null, 'project_id' => $projectId, 'task_id' => $taskId,
+                    'vehicle_id' => ReportVehicle::resolve($tenantId, $vehiclePlate),
                 ]);
                 foreach ($prepared as $media) {
                     $path = $tenantId.'/'.$report->id.'/'.basename($media->path);

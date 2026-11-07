@@ -4,6 +4,8 @@ Status: approved direction; implementation progresses through the task backlog.
 
 Product update 2026-11-07: new report images require an audio recording; audio-only and text-only submissions remain valid. See docs/product/employee-workflow.ar.md. Profile photos/contact details belong to tenant memberships, separate from report evidence and AI inputs.
 
+Vehicles are optional tenant-owned report subjects, not employee groups. A composite report/vehicle tenant constraint protects links; multiple reporters contribute to one vehicle history. Date folders paginate local Dubai days and load report pages on demand. Period-based insights aggregate employee reporting/review activity with explicit denominators and zero states; they do not infer productivity, attendance or completed quantities. See docs/product/vehicles-and-insights.ar.md.
+
 Employee access follows ADR 0004: managers create profiles and issue one-use QR/link activation. Employees do not sign up, type email/password or navigate manager screens. A revocable device credential restores their profile on subsequent app launches. Managers retain verified-email authentication and recovery. Initial icon/audio guidance and manifest do not replace real-device accessibility and installation validation.
 
 ## Deployment and boundaries

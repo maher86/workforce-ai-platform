@@ -12,6 +12,7 @@ The development MVP provides manager/employee access, private text/audio/image r
 - [Product requirement coverage (Arabic)](docs/product/mvp-coverage.ar.md)
 - [Reporting and pilot operations](docs/runbooks/reporting.md)
 - [Current employee workflow and test steps (Arabic)](docs/product/employee-workflow.ar.md)
+- [Vehicle work history and reporting indicators (Arabic)](docs/product/vehicles-and-insights.ar.md)
 - [Delivery and security](docs/runbooks/delivery.md)
 - [Current handoff](docs/handoffs/current.md)
 

@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $source_text
  * @property int|null $project_id
  * @property int|null $task_id
+ * @property int|null $vehicle_id
  * @property string $status
  * @property string $review_status
  * @property string|null $failure_code

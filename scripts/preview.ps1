@@ -20,6 +20,15 @@ try {
         'Start' {
             Invoke-PreviewCompose up -d --wait postgres redis mailpit
             $runningTunnel = (& docker --context desktop-linux compose ps --status running -q tunnel | Out-String).Trim()
+            if ($runningTunnel) {
+                $tunnelStartedAt = (& docker --context desktop-linux inspect --format '{{.State.StartedAt}}' $runningTunnel | Out-String).Trim()
+                $recentTunnelLogs = (& docker --context desktop-linux compose logs --no-color --since $tunnelStartedAt --tail 20 tunnel 2>&1 | Out-String)
+                if ($recentTunnelLogs -match 'Unauthorized: Tunnel not found') {
+                    Write-Host 'The temporary tunnel expired upstream; issuing a fresh preview hostname.'
+                    Invoke-PreviewCompose stop tunnel
+                    $runningTunnel = ''
+                }
+            }
             $logSince = @()
             if (-not $runningTunnel) {
                 $logSince = @('--since', (Get-Date).ToUniversalTime().ToString('o'))
