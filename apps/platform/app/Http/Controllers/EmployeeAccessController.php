@@ -7,6 +7,7 @@ use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\EmployeeDevice;
 use App\Modules\Identity\Tenant;
 use App\Modules\Reporting\Report;
+use App\Modules\Reporting\ReportActivity;
 use App\Modules\WorkManagement\WorkItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,7 @@ class EmployeeAccessController extends Controller
             'reports' => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at']),
             'workItems' => WorkItem::query()->where('tenant_id', $member->tenant_id)->where('active', true)->get(['id', 'kind', 'name', 'project_id']),
             'aiMode' => config('workforce.ai_provider'),
+            'days' => app(ReportActivity::class)->days(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)),
         ]);
     }
 

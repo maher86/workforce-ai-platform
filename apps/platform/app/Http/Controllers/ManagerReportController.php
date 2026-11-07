@@ -9,14 +9,17 @@ use App\Modules\Identity\Tenant;
 use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\PurgeReport;
 use App\Modules\Reporting\Report;
+use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\ReportRevision;
 use App\Modules\Reporting\ReportSubmitted;
 use App\Modules\Reporting\ReviewReport;
+use App\Modules\WorkManagement\Vehicle;
 use App\Modules\WorkManagement\WorkItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +41,7 @@ class ManagerReportController extends Controller
         $data = $request->validate([
             'status' => 'nullable|in:submitted,processing,ready,failed', 'review_status' => 'nullable|in:pending,approved,changes_requested',
             'employee' => 'nullable|integer', 'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d',
+            'vehicle' => 'nullable|integer',
         ]);
         if (! empty($data['from']) && ! empty($data['to']) && $data['to'] < $data['from']) {
             throw ValidationException::withMessages(['to' => 'نهاية الفترة يجب أن تكون بعد بدايتها.']);
@@ -49,13 +53,18 @@ class ManagerReportController extends Controller
             }
         }
         if (! empty($data['employee'])) {
+            Membership::query()->where('tenant_id', $tenant)->where('role', 'employee')->findOrFail((int) $data['employee']);
             $query->where('membership_id', (int) $data['employee']);
         }
+        if (! empty($data['vehicle'])) {
+            Vehicle::query()->where('tenant_id', $tenant)->findOrFail((int) $data['vehicle']);
+            $query->where('vehicle_id', (int) $data['vehicle']);
+        }
         if (! empty($data['from'])) {
-            $query->where('created_at', '>=', $data['from'].' 00:00:00');
+            $query->where('created_at', '>=', CarbonImmutable::parse($data['from'], ReportActivity::ZONE)->startOfDay()->utc());
         }
         if (! empty($data['to'])) {
-            $query->where('created_at', '<', CarbonImmutable::parse($data['to'])->addDay());
+            $query->where('created_at', '<', CarbonImmutable::parse($data['to'], ReportActivity::ZONE)->startOfDay()->addDay()->utc());
         }
 
         return $query;
@@ -71,9 +80,10 @@ class ManagerReportController extends Controller
 
         return Inertia::render('reports/index', [
             'tenant' => Tenant::query()->findOrFail($tenant), 'reports' => $reports,
-            'employeeNames' => $employeeNames, 'filters' => $request->only(['status', 'review_status', 'employee', 'from', 'to']),
+            'employeeNames' => $employeeNames, 'filters' => $request->only(['status', 'review_status', 'employee', 'from', 'to', 'vehicle']),
             'workItems' => WorkItem::query()->where('tenant_id', $tenant)->latest('id')->get(),
             'aiMode' => config('workforce.ai_provider'),
+            'days' => app(ReportActivity::class)->days($this->query($request, $tenant)),
         ]);
     }
 
@@ -92,6 +102,7 @@ class ManagerReportController extends Controller
             'revisions' => ReportRevision::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
             'aiMode' => config('workforce.ai_provider'),
             'canDelete' => $actor->role === 'owner',
+            'vehicle' => $item->vehicle_id ? Vehicle::query()->where('tenant_id', $tenant)->findOrFail($item->vehicle_id)->only(['id', 'plate']) : null,
         ]);
     }
 
@@ -102,6 +113,13 @@ class ManagerReportController extends Controller
         $purge->execute($tenant, $report, $request->user()->id);
 
         return redirect('/tenants/'.$tenant.'/reports');
+    }
+
+    public function day(Request $request, int $tenant, ReportActivity $activity): JsonResponse
+    {
+        $request->validate(['day' => 'required|date_format:Y-m-d']);
+
+        return response()->json($activity->reports($this->query($request, $tenant), (string) $request->query('day')));
     }
 
     public function media(Request $request, int $tenant, int $report, int $media): BinaryFileResponse

@@ -51,6 +51,7 @@ type Props = {
     revisions: Revision[];
     aiMode: string;
     canDelete: boolean;
+    vehicle: { id: number; plate: string } | null;
 };
 
 function ReviewForm({ report, initial }: { report: Report; initial: string }) {
@@ -139,7 +140,9 @@ export default function ShowReport({
     revisions,
     aiMode,
     canDelete,
+    vehicle,
 }: Props) {
+    const car = useForm({ vehicle_plate: vehicle?.plate || '' });
     const base = `/tenants/${report.tenant_id}/reports/${report.id}`;
     useEffect(() => {
         if (!['submitted', 'processing'].includes(report.status)) return;
@@ -191,6 +194,47 @@ export default function ShowReport({
                     }
                 </p>
             </header>
+            <section className="rounded-2xl border bg-teal-50 p-5 text-slate-900">
+                <h2 className="mb-3 font-bold">السيارة المرتبطة بالتقرير</h2>
+                {vehicle && (
+                    <Link
+                        href={`/tenants/${report.tenant_id}/vehicles/${vehicle.id}`}
+                        className="mb-4 inline-block rounded-xl bg-white px-5 py-3 text-xl font-bold text-teal-800"
+                    >
+                        🚘 {vehicle.plate} · عرض من عمل عليها
+                    </Link>
+                )}
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        car.post(`${base}/vehicle`, { preserveScroll: true });
+                    }}
+                    className="flex flex-wrap items-end gap-3"
+                >
+                    <label className="flex-1">
+                        اللوحة كاملة، مع المنطقة والرمز
+                        <input
+                            maxLength={80}
+                            value={car.data.vehicle_plate}
+                            onChange={(event) =>
+                                car.setData('vehicle_plate', event.target.value)
+                            }
+                            placeholder="TEST A 123"
+                            className="mt-2 w-full rounded-xl border bg-white p-3"
+                        />
+                    </label>
+                    <Button disabled={car.processing}>حفظ الربط</Button>
+                </form>
+                <p className="mt-3 text-sm text-slate-600">
+                    يمكن لعدة موظفين ربط تقارير بالسيارة نفسها. اترك الحقل فارغًا
+                    لإلغاء الربط؛ التقرير والأدلة يبقيان محفوظين.
+                </p>
+                {car.errors.vehicle_plate && (
+                    <p role="alert" className="text-red-700">
+                        {car.errors.vehicle_plate}
+                    </p>
+                )}
+            </section>
             {aiMode !== 'openai' && (
                 <p className="rounded-xl bg-amber-100 p-4 text-amber-950">
                     ناتج تجريبي واضح، وليس تحليلًا فعليًا. لا تعتمد المحاكاة على

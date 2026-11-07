@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\Membership;
 use App\Modules\Media\MediaInput;
+use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportAccess;
+use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\SubmitReport;
@@ -31,6 +33,7 @@ class EmployeeReportController extends Controller
             'submission_key' => ['required', 'uuid'], 'text' => ['nullable', 'string', 'max:10000'],
             'audio' => ['nullable', 'file', 'max:12288'], 'images' => ['nullable', 'array', 'max:3'],
             'images.*' => ['file', 'max:12288'], 'project_id' => ['nullable', 'integer'], 'task_id' => ['nullable', 'integer'],
+            'vehicle_plate' => ['nullable', 'string', 'max:80'],
         ]);
         $inputs = [];
         $audio = $request->file('audio');
@@ -41,7 +44,7 @@ class EmployeeReportController extends Controller
             $inputs[] = new MediaInput($image->getPathname(), 'image');
         }
         $report = $submit->execute($request->user(), $member->tenant_id, $data['submission_key'], $data['text'] ?? null, $inputs,
-            isset($data['project_id']) ? (int) $data['project_id'] : null, isset($data['task_id']) ? (int) $data['task_id'] : null);
+            isset($data['project_id']) ? (int) $data['project_id'] : null, isset($data['task_id']) ? (int) $data['task_id'] : null, $data['vehicle_plate'] ?? null);
 
         return response()->json(['id' => $report->id, 'status' => $report->status], 201);
     }
@@ -58,6 +61,14 @@ class EmployeeReportController extends Controller
                 ->where(fn ($query) => $query->where('stage', 'like', 'transcript:%')->orWhereIn('stage', ['translation', 'structured']))->orderBy('id')->get(['id', 'stage', 'provider', 'payload']),
             'aiMode' => config('workforce.ai_provider'),
         ]);
+    }
+
+    public function day(Request $request, ReportActivity $activity): JsonResponse
+    {
+        $member = $this->membership($request);
+        $request->validate(['day' => 'required|date_format:Y-m-d']);
+
+        return response()->json($activity->reports(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id), (string) $request->query('day')));
     }
 
     public function media(Request $request, int $report, int $media, ReportAccess $access): BinaryFileResponse

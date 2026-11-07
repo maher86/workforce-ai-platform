@@ -31,6 +31,7 @@ export default function ReportComposer({
     const [text, setText] = useState('');
     const [project, setProject] = useState('');
     const [task, setTask] = useState('');
+    const [vehiclePlate, setVehiclePlate] = useState('');
     const [recording, setRecording] = useState(false);
     const [openingMic, setOpeningMic] = useState(false);
     const [seconds, setSeconds] = useState(0);
@@ -219,6 +220,7 @@ export default function ReportComposer({
         images.forEach((file) => body.append('images[]', file));
         if (project) body.set('project_id', project);
         if (task) body.set('task_id', task);
+        if (vehiclePlate.trim()) body.set('vehicle_plate', vehiclePlate.trim());
         try {
             const csrf = document.cookie
                 .split('; ')
@@ -254,6 +256,7 @@ export default function ReportComposer({
             setAudio(null);
             setImages([]);
             setText('');
+            setVehiclePlate('');
             setProject('');
             setTask('');
             key.current = crypto.randomUUID();
@@ -405,6 +408,22 @@ export default function ReportComposer({
                 <summary className="cursor-pointer p-3 text-slate-600">
                     نص أو مهمة (اختياري)
                 </summary>
+                <label className="block p-2">
+                    لوحة السيارة كاملة (اختياري)
+                    <input
+                        value={vehiclePlate}
+                        onChange={(event) =>
+                            setVehiclePlate(event.target.value)
+                        }
+                        maxLength={80}
+                        disabled={sending}
+                        placeholder="مثال وهمي: TEST A 123"
+                        className="mt-2 block w-full rounded-xl border p-3"
+                    />
+                    <span className="text-sm text-slate-500">
+                        المنطقة والرمز والرقم. يمكن للمدير ربط التقرير لاحقًا.
+                    </span>
+                </label>
                 <label className="block p-2">
                     نص اختياري
                     <textarea

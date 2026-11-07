@@ -100,6 +100,22 @@ export default function Team({
             )}
             <nav aria-label="المؤسسات" className="flex flex-wrap gap-3">
                 {selectedTenant && (
+                    <>
+                        <Link
+                            href={`/tenants/${selectedTenant}/vehicles`}
+                            className="rounded-xl bg-slate-900 px-4 py-2 text-white"
+                        >
+                            🚘 سجل السيارات
+                        </Link>
+                        <Link
+                            href={`/tenants/${selectedTenant}/insights`}
+                            className="rounded-xl border border-teal-300 px-4 py-2 text-teal-800"
+                        >
+                            📊 مؤشرات الفريق
+                        </Link>
+                    </>
+                )}
+                {selectedTenant && (
                     <Link
                         href={`/tenants/${selectedTenant}/reports`}
                         className="rounded-xl bg-teal-700 px-4 py-2 text-white"
@@ -344,9 +360,16 @@ export default function Team({
                                     </Button>
                                 )}
                                 <EmployeeProfileEditor
+                                    key={`profile-${member.id}`}
                                     tenant={selectedTenant}
                                     employee={member}
                                 />
+                                <Link
+                                    href={`/tenants/${selectedTenant}/insights?employee=${member.id}`}
+                                    className="rounded-xl bg-teal-50 px-4 py-2 text-teal-800"
+                                >
+                                    تقارير الموظف ومؤشراته حسب التاريخ ←
+                                </Link>
                             </article>
                         ))}
                     </section>

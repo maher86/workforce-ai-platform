@@ -1,7 +1,9 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import EmployeeProfilePhoto from '@/components/employee-profile-photo';
+import ReportDayAccordion from '@/components/report-day-accordion';
+import type { DayPages } from '@/components/report-day-accordion';
 import { EmployeeGuidance } from '@/components/employee-guidance';
 import ReportComposer from '@/components/report-composer';
 import type { WorkItem } from '@/components/report-composer';
@@ -14,6 +16,7 @@ export default function EmployeeHome({
     aiMode,
     employeePhone,
     profilePhotoUrl,
+    days,
 }: {
     employeeName: string;
     tenantName: string;
@@ -22,6 +25,7 @@ export default function EmployeeHome({
     aiMode: string;
     employeePhone: string | null;
     profilePhotoUrl: string | null;
+    days: DayPages;
 }) {
     const pending = reports.some((report) =>
         ['submitted', 'processing'].includes(report.status),
@@ -29,7 +33,7 @@ export default function EmployeeHome({
     useEffect(() => {
         if (!pending) return;
         const timer = window.setInterval(
-            () => router.reload({ only: ['reports'] }),
+            () => router.reload({ only: ['reports', 'days'] }),
             8000,
         );
         return () => window.clearInterval(timer);
@@ -58,26 +62,11 @@ export default function EmployeeHome({
             <ReportComposer workItems={workItems} />
             <section className="w-full space-y-3 text-right">
                 <h2 className="text-xl font-bold">تقاريري</h2>
-                {reports.map((report) => (
-                    <Link
-                        className="flex items-center justify-between rounded-xl border bg-white p-4"
-                        key={report.id}
-                        href={`/employee/reports/${report.id}`}
-                    >
-                        <span>
-                            #{report.id} ·{' '}
-                            {new Date(report.created_at).toLocaleString('ar')}
-                        </span>
-                        <span>
-                            {{
-                                submitted: '📤 تم الاستلام',
-                                processing: '⏳ تجري المعالجة',
-                                ready: '✅ جاهز',
-                                failed: '⚠️ اطلب مساعدة المدير',
-                            }[report.status] || report.status}
-                        </span>
-                    </Link>
-                ))}
+                <ReportDayAccordion
+                    days={days}
+                    endpoint="/employee/report-days"
+                    employee
+                />
             </section>
             <EmployeeGuidance />
             <button
