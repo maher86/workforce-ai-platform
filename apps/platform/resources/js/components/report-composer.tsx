@@ -12,6 +12,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { speak } from '@/components/employee-guidance';
+import {
+    startVoiceRecorder,
+    voiceAvailability,
+    voiceFailure,
+} from '@/lib/voice-recorder';
 
 export type WorkItem = {
     id: number;
@@ -117,18 +122,19 @@ export default function ReportComposer({
         if (starting.current) return;
         setError('');
         setSent(false);
-        if (
-            !navigator.mediaDevices?.getUserMedia ||
-            typeof MediaRecorder === 'undefined'
-        ) {
-            setError(
-                'التسجيل المباشر غير متاح. استخدم رفع ملف صوتي أو افتح التطبيق في Chrome عبر HTTPS.',
-            );
-            audioInput.current?.click();
+        const unavailable = voiceAvailability(
+            window.isSecureContext,
+            typeof navigator.mediaDevices?.getUserMedia === 'function',
+            typeof MediaRecorder !== 'undefined',
+        );
+        if (unavailable) {
+            setError(`${unavailable.message} [${unavailable.code}]`);
+            speak(unavailable.message);
             return;
         }
         starting.current = true;
         setOpeningMic(true);
+        let phase: 'access' | 'recording' = 'access';
         try {
             const microphone = await navigator.mediaDevices.getUserMedia({
                 audio: true,
@@ -138,50 +144,59 @@ export default function ReportComposer({
                 return;
             }
             stream.current = microphone;
-            const type = [
-                'audio/webm;codecs=opus',
-                'audio/mp4',
-                'audio/webm',
-            ].find((candidate) => MediaRecorder.isTypeSupported(candidate));
-            const current = type
-                ? new MediaRecorder(microphone, { mimeType: type })
-                : new MediaRecorder(microphone);
-            const chunks: Blob[] = [];
-            current.ondataavailable = (event) => {
-                if (event.data.size) chunks.push(event.data);
-            };
-            current.onstop = () => {
-                const mime =
-                    current.mimeType || chunks[0]?.type || 'audio/webm';
-                const blob = new Blob(chunks, { type: mime });
-                if (blob.size && mounted.current)
-                    setAudio(
-                        new File(
-                            [blob],
-                            mime.includes('mp4') ? 'voice.m4a' : 'voice.webm',
-                            { type: mime },
-                        ),
-                    );
-                microphone.getTracks().forEach((track) => track.stop());
-                stream.current = null;
-                setRecording(false);
-            };
-            current.onerror = () => {
-                microphone.getTracks().forEach((track) => track.stop());
-                setRecording(false);
-                setError('تعذّر التسجيل. أعد المحاولة أو ارفع ملفًا صوتيًا.');
-            };
+            phase = 'recording';
+            const current = startVoiceRecorder(microphone, (current) => {
+                const chunks: Blob[] = [];
+                current.ondataavailable = (event) => {
+                    if (event.data.size) chunks.push(event.data);
+                };
+                current.onstop = () => {
+                    const mime =
+                        current.mimeType || chunks[0]?.type || 'audio/webm';
+                    const blob = new Blob(chunks, { type: mime });
+                    if (blob.size && mounted.current)
+                        setAudio(
+                            new File(
+                                [blob],
+                                mime.includes('mp4')
+                                    ? 'voice.m4a'
+                                    : 'voice.webm',
+                                { type: mime },
+                            ),
+                        );
+                    microphone.getTracks().forEach((track) => track.stop());
+                    if (stream.current === microphone) stream.current = null;
+                    if (mounted.current) setRecording(false);
+                };
+                current.onerror = (event) => {
+                    current.ondataavailable = null;
+                    current.onstop = null;
+                    current.onerror = null;
+                    microphone.getTracks().forEach((track) => track.stop());
+                    if (stream.current === microphone) stream.current = null;
+                    recorder.current = null;
+                    if (mounted.current) {
+                        setRecording(false);
+                        const failure = voiceFailure(event, 'recording');
+                        setError(`${failure.message} [${failure.code}]`);
+                        speak(failure.message);
+                    }
+                };
+            });
             recorder.current = current;
             began.current = Date.now();
             setSeconds(0);
             setRecording(true);
-            current.start(1000);
-        } catch {
+        } catch (error) {
             stream.current?.getTracks().forEach((track) => track.stop());
-            setError(
-                'اسمح بالميكروفون من إعدادات المتصفح، أو ارفع ملفًا صوتيًا.',
-            );
-            speak('تعذر فتح الميكروفون. اطلب مساعدة المدير.');
+            stream.current = null;
+            recorder.current = null;
+            if (mounted.current) {
+                setRecording(false);
+                const failure = voiceFailure(error, phase);
+                setError(`${failure.message} [${failure.code}]`);
+                speak(failure.message);
+            }
         } finally {
             starting.current = false;
             if (mounted.current) setOpeningMic(false);
@@ -297,7 +312,11 @@ export default function ReportComposer({
                     className={`flex min-h-36 flex-col items-center justify-center gap-3 rounded-3xl p-5 text-xl font-bold text-white ${recording ? 'animate-pulse bg-red-700' : 'bg-teal-700'}`}
                 >
                     {recording ? <Square size={56} /> : <Mic size={56} />}
-                    {recording ? `${seconds} / 180` : 'تسجيل'}
+                    {recording
+                        ? `${seconds} / 180`
+                        : openingMic
+                          ? 'انتظار الميكروفون…'
+                          : 'تسجيل'}
                 </button>
                 <button
                     disabled={sending || recording || openingMic}
@@ -490,12 +509,23 @@ export default function ReportComposer({
                 </p>
             )}
             {error && (
-                <p
+                <div
                     role="alert"
-                    className="rounded-xl bg-red-100 p-4 text-red-900"
+                    className="space-y-3 rounded-xl bg-red-100 p-4 text-red-900"
                 >
-                    {error}
-                </p>
+                    <p>{error}</p>
+                    <button
+                        type="button"
+                        aria-label="استمع لسبب المشكلة"
+                        className="flex items-center gap-3 rounded-xl border border-red-300 p-3"
+                        onClick={() =>
+                            speak(error.replace(/ \[MIC-[A-Z-]+\]/g, ''))
+                        }
+                    >
+                        <Volume2 size={28} />
+                        استمع للمساعدة
+                    </button>
+                </div>
             )}
             {sent && (
                 <div

@@ -79,6 +79,8 @@ jobs:
         run: npm run build
       - name: Frontend format and lint
         run: npm run check
+      - name: Voice recorder regression tests
+        run: npm run test:voice
       - name: Frontend types
         run: npm run types:check
       - name: Backend formatting, analysis and PostgreSQL tests
