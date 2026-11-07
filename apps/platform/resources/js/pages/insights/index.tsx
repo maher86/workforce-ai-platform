@@ -1,3 +1,5 @@
+import ServiceInsights from '@/components/service-insights';
+import type { ServiceMetrics } from '@/components/service-insights';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BarChart3,
@@ -33,6 +35,7 @@ export default function Insights({
     people,
     metrics,
     series,
+    serviceInsights,
     days,
 }: {
     tenant: { id: number; name: string };
@@ -40,6 +43,7 @@ export default function Insights({
     selectedEmployee: number | null;
     people: Person[];
     metrics: Metric[];
+    serviceInsights: ServiceMetrics;
     series: { day: string; total: number }[];
     days: DayPages | null;
 }) {
@@ -235,6 +239,7 @@ export default function Insights({
                 الحضور. لا تعني كثرة التقارير جودة أعلى. نسبة الاعتماد تستبعد
                 التقارير غير المراجعة، و«—» تعني عدم وجود مراجعات.
             </p>
+            <ServiceInsights metrics={serviceInsights} total={total} />
             <section className="rounded-2xl border bg-white p-5">
                 <h2 className="mb-2 text-xl font-bold">اتجاه إرسال التقارير</h2>
                 <p className="text-sm text-slate-500">

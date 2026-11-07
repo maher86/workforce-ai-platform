@@ -1,3 +1,5 @@
+import ServiceFactsForm from '@/components/service-facts-form';
+import type { ServiceFact, FactHistory } from '@/components/service-facts-form';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,8 @@ type Props = {
     media: { id: number; kind: string }[];
     outputs: Output[];
     revisions: Revision[];
+    currentServiceFact: ServiceFact | null;
+    serviceFacts: FactHistory;
     aiMode: string;
     canDelete: boolean;
     vehicle: { id: number; plate: string } | null;
@@ -140,6 +144,8 @@ export default function ShowReport({
     revisions,
     aiMode,
     canDelete,
+    currentServiceFact,
+    serviceFacts,
     vehicle,
 }: Props) {
     const car = useForm({ vehicle_plate: vehicle?.plate || '' });
@@ -194,6 +200,12 @@ export default function ShowReport({
                     }
                 </p>
             </header>
+            <ServiceFactsForm
+                key={`${report.id}-${currentServiceFact?.version ?? 0}`}
+                base={base}
+                current={currentServiceFact}
+                history={serviceFacts}
+            />
             <section className="rounded-2xl border bg-teal-50 p-5 text-slate-900">
                 <h2 className="mb-3 font-bold">السيارة المرتبطة بالتقرير</h2>
                 {vehicle && (
