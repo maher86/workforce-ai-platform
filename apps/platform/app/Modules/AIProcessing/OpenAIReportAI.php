@@ -48,6 +48,15 @@ class OpenAIReportAI implements ReportAI
             default => 'Produce a work report using source evidence. Image observations are unverified supporting context. Every claim must reference supplied source IDs. Quantities and employee_reported_complete require a verbatim source quote from text/audio, never an image. quantity must occur verbatim inside quantity_quote. Otherwise quantity is null and completion unknown. Never claim verified completion. Cite conflicting evidence and ambiguity in uncertainties.',
         };
         $schema = $this->schema($stage);
+        if ($stage === 'structured') {
+            $evidenceIds = array_values(array_unique(array_merge(
+                array_keys($context['data']['sources'] ?? []),
+                array_keys($context['data']['unverified_images'] ?? []),
+            )));
+            if ($evidenceIds !== []) {
+                $schema['properties']['claims']['items']['properties']['evidence_ids']['items']['enum'] = $evidenceIds;
+            }
+        }
         $response = $client->asJson()->post('https://api.openai.com/v1/responses', [
             'model' => config('workforce.report_model'), 'store' => false,
             'instructions' => $instructions, 'input' => [['role' => 'user', 'content' => $content]],
