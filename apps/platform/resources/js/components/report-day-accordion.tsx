@@ -20,9 +20,6 @@ const labels: Record<string, string> = {
     processing: 'تجري المعالجة',
     ready: 'جاهز',
     failed: 'تعذّرت المعالجة',
-    pending: 'بانتظار المراجعة',
-    approved: 'معتمد',
-    changes_requested: 'يحتاج تعديلًا',
 };
 
 function Day({
@@ -151,9 +148,6 @@ function Day({
                         <span className="flex flex-wrap gap-2 text-xs">
                             <span className="rounded-full bg-white px-3 py-1">
                                 {labels[report.status]}
-                            </span>
-                            <span className="rounded-full border border-teal-200 px-3 py-1 text-teal-800">
-                                {labels[report.review_status]}
                             </span>
                         </span>
                     </Link>

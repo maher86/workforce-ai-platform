@@ -3,6 +3,7 @@
 use App\Http\Controllers\EmployeeAccessController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\ManagerOverviewController;
 use App\Http\Controllers\ManagerReportController;
 use App\Http\Controllers\ServiceFactsController;
 use App\Http\Controllers\WorkforceController;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('tenants/{tenant}/employees/{membership}/reports', [ManagerOverviewController::class, 'index'])->whereNumber(['tenant', 'membership']);
     Route::post('tenants/{tenant}/reports/{report}/service-facts', [ServiceFactsController::class, 'store'])->whereNumber(['tenant', 'report'])->middleware('throttle:30,1');
     Route::get('tenants/{tenant}/insights', [WorkInsightsController::class, 'index'])->whereNumber('tenant');
     Route::get('tenants/{tenant}/vehicles', [WorkInsightsController::class, 'vehicles'])->whereNumber('tenant');

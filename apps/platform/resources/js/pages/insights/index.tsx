@@ -6,7 +6,6 @@ import {
     CalendarDays,
     CarFront,
     CircleUserRound,
-    FileCheck2,
     FileText,
     Users,
 } from 'lucide-react';
@@ -53,11 +52,6 @@ export default function Insights({
         employee: selectedEmployee ? String(selectedEmployee) : '',
     });
     const total = metrics.reduce((sum, item) => sum + item.reports, 0);
-    const approved = metrics.reduce((sum, item) => sum + item.approved, 0);
-    const reviewed = metrics.reduce(
-        (sum, item) => sum + item.approved + item.changes,
-        0,
-    );
     const failures = metrics.reduce((sum, item) => sum + item.failed, 0);
     const max = Math.max(1, ...series.map((item) => item.total));
     const maxReports = Math.max(1, ...metrics.map((item) => item.reports));
@@ -210,11 +204,12 @@ export default function Insights({
                         icon: Users,
                     },
                     {
-                        label: 'اعتماد التقارير المراجعة',
-                        value: reviewed
-                            ? `${Math.round((100 * approved) / reviewed)}%`
-                            : '—',
-                        icon: FileCheck2,
+                        label: 'قيد التحويل',
+                        value: metrics.reduce(
+                            (sum, item) => sum + item.processing,
+                            0,
+                        ),
+                        icon: FileText,
                     },
                     {
                         label: 'تعذّر معالجتها',
@@ -236,8 +231,7 @@ export default function Insights({
             </section>
             <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
                 هذه مؤشرات نشاط الإبلاغ ومراجعة التقارير، وليست تقييمًا للإنتاجية أو
-                الحضور. لا تعني كثرة التقارير جودة أعلى. نسبة الاعتماد تستبعد
-                التقارير غير المراجعة، و«—» تعني عدم وجود مراجعات.
+                الحضور. لا تعني كثرة التقارير جودة أعلى أو إنجازًا مؤكدًا.
             </p>
             <ServiceInsights metrics={serviceInsights} total={total} />
             <section className="rounded-2xl border bg-white p-5">
@@ -355,12 +349,10 @@ export default function Insights({
                                 </p>
                                 <p>
                                     <strong className="block text-xl">
-                                        {person.approvalRate === null
-                                            ? '—'
-                                            : `${person.approvalRate}%`}
+                                        {person.failed}
                                     </strong>
                                     <span className="text-xs text-slate-500">
-                                        اعتماد المراجع
+                                        تعذّر معالجتها
                                     </span>
                                 </p>
                             </div>

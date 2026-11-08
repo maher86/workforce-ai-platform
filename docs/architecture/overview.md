@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-08: report submission and visibility require no manager approval. Manager home defaults to today's employee reports with period/employee filters and submission counts; employee profiles show history and charts. Prior review records remain historical; never auto-label reports as human-approved. Optional service facts stay separate. See ADR 0007.
+
 Product update 2026-11-07: new report images require an audio recording; audio-only and text-only submissions remain valid. See docs/product/employee-workflow.ar.md. Profile photos/contact details belong to tenant memberships, separate from report evidence and AI inputs.
 
 Vehicles are optional tenant-owned report subjects, not employee groups. A composite report/vehicle tenant constraint protects links; multiple reporters contribute to one vehicle history. Date folders paginate local Dubai days and load report pages on demand. Period-based insights aggregate employee reporting/review activity with explicit denominators and zero states; they do not infer productivity, attendance or completed quantities. See docs/product/vehicles-and-insights.ar.md.

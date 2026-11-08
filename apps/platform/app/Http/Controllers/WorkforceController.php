@@ -24,7 +24,10 @@ class WorkforceController extends Controller
         abort_unless($actor instanceof User, 401);
         $memberships = Membership::query()->where('user_id', $actor->id)->where('active', true)->get();
         $workspaces = Tenant::query()->whereIn('id', $memberships->pluck('tenant_id'))->get(['id', 'name']);
-        $selected = $tenant ?? $memberships->first()?->tenant_id;
+        $selected = $tenant ?? $memberships->first(fn (Membership $member) => in_array($member->role, ['owner', 'manager'], true))?->tenant_id;
+        if ($tenant === null && $selected !== null) {
+            return app(ManagerOverviewController::class)->index($request, $selected);
+        }
         $employees = [];
         $canManageManagers = false;
         if ($selected !== null) {
@@ -55,7 +58,6 @@ class WorkforceController extends Controller
                 'employees' => count(array_filter($employees, fn ($member) => $member['active'])),
                 'reports' => Report::query()->where('tenant_id', $selected)->count(),
                 'processing' => Report::query()->where('tenant_id', $selected)->whereIn('status', ['submitted', 'processing'])->count(),
-                'awaitingReview' => Report::query()->where('tenant_id', $selected)->where('review_status', 'pending')->whereIn('status', ['ready', 'failed'])->count(),
             ],
         ]);
     }

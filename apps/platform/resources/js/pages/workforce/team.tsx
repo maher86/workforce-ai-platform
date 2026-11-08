@@ -35,7 +35,6 @@ type Props = {
         employees: number;
         reports: number;
         processing: number;
-        awaitingReview: number;
     } | null;
     activation: { name: string; url: string } | null;
     canManageManagers: boolean;
@@ -70,11 +69,11 @@ export default function Team({
             lang="ar"
             className="workforce-surface manager-surface mx-auto w-full max-w-6xl space-y-7"
         >
-            <Head title="لوحة المدير" />
+            <Head title="إدارة الفريق" />
             <header className="manager-hero space-y-3">
                 <Users size={34} className="text-orange-300" />
                 <h1 className="text-2xl font-bold">
-                    لوحة المدير · {managerName}
+                    إدارة الفريق · {managerName}
                 </h1>
                 <Button
                     variant="outline"
@@ -90,14 +89,13 @@ export default function Team({
             {summary && (
                 <section
                     aria-label="ملخص المؤسسة"
-                    className="grid grid-cols-2 gap-3 md:grid-cols-4"
+                    className="grid grid-cols-2 gap-3 md:grid-cols-3"
                 >
                     {(
                         [
                             ['الموظفون النشطون', summary.employees],
                             ['التقارير', summary.reports],
                             ['قيد المعالجة', summary.processing],
-                            ['بانتظار المراجعة', summary.awaitingReview],
                         ] as const
                     ).map(([label, value]) => (
                         <div
@@ -385,7 +383,7 @@ export default function Team({
                                     employee={member}
                                 />
                                 <Link
-                                    href={`/tenants/${selectedTenant}/insights?employee=${member.id}`}
+                                    href={`/tenants/${selectedTenant}/employees/${member.id}/reports`}
                                     className="rounded-xl bg-teal-50 px-4 py-2 text-teal-800"
                                 >
                                     تقارير الموظف ومؤشراته حسب التاريخ ←
