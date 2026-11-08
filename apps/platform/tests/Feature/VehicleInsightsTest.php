@@ -8,10 +8,12 @@ use App\Modules\Identity\ManageWorkforce;
 use App\Modules\Identity\Membership;
 use App\Modules\Identity\Tenant;
 use App\Modules\Reporting\Report;
+use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\SubmitReport;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -163,5 +165,31 @@ class VehicleInsightsTest extends TestCase
         $this->post($base.'/vehicle', ['vehicle_plate' => ''])->assertRedirect();
         $this->assertNull($report->fresh()->vehicle_id);
         $this->assertSame($hash, $report->fresh()->content_hash);
+    }
+
+    public function test_employee_history_attachments_are_private_and_scoped_to_own_reports(): void
+    {
+        Storage::fake('reports');
+        [$owner, $tenant, $person] = $this->workforce();
+        $coworker = app(ManageWorkforce::class)->addEmployee($owner, $tenant->id, 'Synthetic coworker');
+        [, $foreign, $foreignPerson] = $this->workforce();
+        $reports = [$this->report($tenant, $person), $this->report($tenant, $coworker), $this->report($foreign, $foreignPerson)];
+        $media = [];
+        foreach ($reports as $report) {
+            $report->update(['created_at' => '2026-11-07 10:00:00']);
+            $path = $report->tenant_id.'/'.$report->id.'/synthetic.jpg';
+            Storage::disk('reports')->put($path, 'synthetic media fixture');
+            $media[] = ReportMedia::query()->create(['tenant_id' => $report->tenant_id, 'report_id' => $report->id, 'kind' => 'image', 'path' => $path, 'mime' => 'image/jpeg', 'bytes' => 23, 'sha256' => str_repeat('a', 64)]);
+        }
+        $service = app(EmployeeActivation::class);
+        $grant = $service->consume($service->issue($owner, $tenant->id, $person->id));
+        $this->withCookie('workforce_device', $grant['token'])->get('/employee')->assertOk();
+        $this->get('/employee/report-days?day=2026-11-07&employee='.$coworker->id.'&tenant='.$foreign->id)->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonCount(1, 'data.0.attachments')->assertJsonPath('data.0.attachments.0.id', $media[0]->id)
+            ->assertJsonMissingPath('data.0.attachments.0.path')->assertJsonMissingPath('data.0.attachments.0.report_id');
+        $this->get('/employee/reports/'.$reports[0]->id.'/media/'.$media[0]->id)->assertOk();
+        $this->get('/employee/reports/'.$reports[0]->id.'/media/'.$media[1]->id)->assertNotFound();
+        $this->get('/employee/reports/'.$reports[1]->id.'/media/'.$media[1]->id)->assertNotFound();
+        $this->get('/employee/reports/'.$reports[2]->id.'/media/'.$media[2]->id)->assertNotFound();
     }
 }

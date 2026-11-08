@@ -73,7 +73,7 @@ export default function Reports({
         <main
             dir="rtl"
             lang="ar"
-            className="mx-auto w-full max-w-6xl space-y-6 p-5"
+            className="workforce-surface manager-surface mx-auto w-full max-w-6xl space-y-6 p-5"
         >
             <Head title={`تقارير ${tenant.name}`} />
             <header className="flex flex-wrap items-center justify-between gap-4">

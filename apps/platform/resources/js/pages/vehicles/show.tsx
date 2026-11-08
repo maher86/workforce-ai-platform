@@ -27,7 +27,7 @@ export default function Vehicle({
         <main
             dir="rtl"
             lang="ar"
-            className="mx-auto min-h-svh max-w-6xl space-y-7 bg-slate-50 p-5 text-slate-900"
+            className="workforce-surface manager-surface mx-auto min-h-svh max-w-6xl space-y-7 bg-slate-50 p-5 text-slate-900"
         >
             <Head title={`السيارة ${vehicle.plate}`} />
             <header className="rounded-3xl bg-gradient-to-bl from-slate-950 to-teal-900 p-8 text-white">

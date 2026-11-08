@@ -1,5 +1,16 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Copy, QrCode, ShieldCheck, UserPlus, X } from 'lucide-react';
+import {
+    Copy,
+    QrCode,
+    ShieldCheck,
+    UserPlus,
+    X,
+    LogOut,
+    Users,
+    FileText,
+    CarFront,
+    ChartNoAxesCombined,
+} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
@@ -57,10 +68,11 @@ export default function Team({
         <main
             dir="rtl"
             lang="ar"
-            className="mx-auto w-full max-w-4xl space-y-8 p-6"
+            className="workforce-surface manager-surface mx-auto w-full max-w-6xl space-y-7"
         >
             <Head title="لوحة المدير" />
-            <header className="space-y-2">
+            <header className="manager-hero space-y-3">
+                <Users size={34} className="text-orange-300" />
                 <h1 className="text-2xl font-bold">
                     لوحة المدير · {managerName}
                 </h1>
@@ -68,7 +80,7 @@ export default function Team({
                     variant="outline"
                     onClick={() => router.post('/logout')}
                 >
-                    تسجيل خروج المدير
+                    <LogOut size={18} /> تسجيل خروج
                 </Button>
                 <p className="text-muted-foreground">
                     أضف الموظف وأعطه رمز QR أو رابطًا. لا يحتاج إلى بريد أو كلمة
@@ -90,7 +102,7 @@ export default function Team({
                     ).map(([label, value]) => (
                         <div
                             key={label}
-                            className="rounded-2xl border bg-slate-50 p-4 text-slate-900"
+                            className="rounded-3xl border border-white bg-white/80 p-5 text-slate-900 shadow-sm"
                         >
                             <p className="text-3xl font-bold">{value}</p>
                             <p>{label}</p>
@@ -105,22 +117,22 @@ export default function Team({
                             href={`/tenants/${selectedTenant}/vehicles`}
                             className="rounded-xl bg-slate-900 px-4 py-2 text-white"
                         >
-                            🚘 سجل السيارات
+                            <CarFront size={21} /> سجل السيارات
                         </Link>
                         <Link
                             href={`/tenants/${selectedTenant}/insights`}
                             className="rounded-xl border border-teal-300 px-4 py-2 text-teal-800"
                         >
-                            📊 مؤشرات الفريق
+                            <ChartNoAxesCombined size={21} /> مؤشرات الفريق
                         </Link>
                     </>
                 )}
                 {selectedTenant && (
                     <Link
                         href={`/tenants/${selectedTenant}/reports`}
-                        className="rounded-xl bg-teal-700 px-4 py-2 text-white"
+                        className="rounded-xl bg-orange-500 px-4 py-2 text-white"
                     >
-                        التقارير والمشاريع
+                        <FileText size={21} /> التقارير
                     </Link>
                 )}
                 {workspaces.map((tenant) => (
@@ -133,33 +145,41 @@ export default function Team({
                     </Link>
                 ))}
             </nav>
-            <form
-                className="flex flex-wrap items-end gap-3 rounded-xl border p-4"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    workspace.post('/tenants', {
-                        onSuccess: () => workspace.reset(),
-                    });
-                }}
-            >
-                <div className="flex-1 space-y-2">
-                    <Label htmlFor="workspace-name">اسم المؤسسة الجديدة</Label>
-                    <Input
-                        id="workspace-name"
-                        value={workspace.data.name}
-                        onChange={(event) =>
-                            workspace.setData('name', event.target.value)
-                        }
-                        maxLength={120}
-                        required
-                    />
-                    <InputError message={workspace.errors.name} />
-                </div>
-                <Button disabled={workspace.processing}>إنشاء مؤسسة</Button>
-            </form>
+            <details className="rounded-2xl border p-5">
+                <summary className="cursor-pointer font-semibold">
+                    إضافة مؤسسة
+                </summary>
+                <form
+                    className="flex flex-wrap items-end gap-3 rounded-xl border p-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        workspace.post('/tenants', {
+                            onSuccess: () => workspace.reset(),
+                        });
+                    }}
+                >
+                    <div className="flex-1 space-y-2">
+                        <Label htmlFor="workspace-name">
+                            اسم المؤسسة الجديدة
+                        </Label>
+                        <Input
+                            id="workspace-name"
+                            value={workspace.data.name}
+                            onChange={(event) =>
+                                workspace.setData('name', event.target.value)
+                            }
+                            maxLength={120}
+                            required
+                        />
+                        <InputError message={workspace.errors.name} />
+                    </div>
+                    <Button disabled={workspace.processing}>إنشاء مؤسسة</Button>
+                </form>
+            </details>
             {selectedTenant && (
                 <>
                     <form
+                        id="add-employee"
                         className="flex flex-wrap items-end gap-3 rounded-xl border p-4"
                         onSubmit={(event) => {
                             event.preventDefault();

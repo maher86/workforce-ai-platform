@@ -163,7 +163,7 @@ export default function ShowReport({
         <main
             dir="rtl"
             lang="ar"
-            className="mx-auto w-full max-w-5xl space-y-6 p-5"
+            className="workforce-surface manager-surface mx-auto w-full max-w-5xl space-y-6 p-5"
         >
             <Head title={`تقرير ${report.id}`} />
             <Link

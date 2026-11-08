@@ -7,11 +7,12 @@ import {
     Send,
     Square,
     Trash2,
-    Volume2,
+    AudioLines,
+    LoaderCircle,
     WifiOff,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { speak } from '@/components/employee-guidance';
+import VoicePlayback from '@/components/voice-playback';
 import {
     startVoiceRecorder,
     voiceAvailability,
@@ -26,17 +27,9 @@ export type WorkItem = {
     active?: boolean;
 };
 
-export default function ReportComposer({
-    workItems,
-}: {
-    workItems: WorkItem[];
-}) {
+export default function ReportComposer() {
     const [audio, setAudio] = useState<File | null>(null);
     const [images, setImages] = useState<File[]>([]);
-    const [text, setText] = useState('');
-    const [project, setProject] = useState('');
-    const [task, setTask] = useState('');
-    const [vehiclePlate, setVehiclePlate] = useState('');
     const [recording, setRecording] = useState(false);
     const [openingMic, setOpeningMic] = useState(false);
     const [seconds, setSeconds] = useState(0);
@@ -106,12 +99,11 @@ export default function ReportComposer({
     }, []);
     useEffect(() => {
         const warn = (event: BeforeUnloadEvent) => {
-            if (audio || images.length || text || recording)
-                event.preventDefault();
+            if (audio || images.length || recording) event.preventDefault();
         };
         window.addEventListener('beforeunload', warn);
         return () => window.removeEventListener('beforeunload', warn);
-    }, [audio, images.length, text, recording]);
+    }, [audio, images.length, recording]);
 
     const record = async () => {
         if (recording) {
@@ -129,7 +121,6 @@ export default function ReportComposer({
         );
         if (unavailable) {
             setError(`${unavailable.message} [${unavailable.code}]`);
-            speak(unavailable.message);
             return;
         }
         starting.current = true;
@@ -179,7 +170,6 @@ export default function ReportComposer({
                         setRecording(false);
                         const failure = voiceFailure(event, 'recording');
                         setError(`${failure.message} [${failure.code}]`);
-                        speak(failure.message);
                     }
                 };
             });
@@ -195,7 +185,6 @@ export default function ReportComposer({
                 setRecording(false);
                 const failure = voiceFailure(error, phase);
                 setError(`${failure.message} [${failure.code}]`);
-                speak(failure.message);
             }
         } finally {
             starting.current = false;
@@ -222,7 +211,6 @@ export default function ReportComposer({
         if (sending || recording || openingMic || !online) return;
         if (images.length && !audio) {
             setError('أضف تسجيلًا صوتيًا مع الصور. الصورة وحدها لا تُرسل.');
-            speak('سجّل صوتك أولًا. الصورة مرفق اختياري مع التسجيل.');
             return;
         }
         setError('');
@@ -230,12 +218,8 @@ export default function ReportComposer({
         setSending(true);
         const body = new FormData();
         body.set('submission_key', key.current);
-        if (text.trim()) body.set('text', text.trim());
         if (audio) body.set('audio', audio);
         images.forEach((file) => body.append('images[]', file));
-        if (project) body.set('project_id', project);
-        if (task) body.set('task_id', task);
-        if (vehiclePlate.trim()) body.set('vehicle_plate', vehiclePlate.trim());
         try {
             const csrf = document.cookie
                 .split('; ')
@@ -270,14 +254,9 @@ export default function ReportComposer({
                 );
             setAudio(null);
             setImages([]);
-            setText('');
-            setVehiclePlate('');
-            setProject('');
-            setTask('');
             key.current = crypto.randomUUID();
             setSent(true);
-            speak('تم إرسال التقرير بنجاح.');
-            router.reload({ only: ['reports'] });
+            router.reload({ only: ['reports', 'days'] });
         } catch (exception) {
             setError(
                 exception instanceof Error && exception.name !== 'TypeError'
@@ -291,17 +270,6 @@ export default function ReportComposer({
 
     return (
         <section className="w-full space-y-5" aria-label="إرسال تقرير">
-            <button
-                aria-label="استمع لطريقة إرسال التقرير"
-                className="mx-auto block rounded-full border p-3"
-                onClick={() =>
-                    speak(
-                        'اضغط الميكروفون وتحدث، ثم اضغط إيقاف. الصورة اختيارية مع التسجيل ولا ترسل وحدها. اضغط السهم الأخضر لإرسال التقرير. لا تحتاج إلى مهمة أو كتابة.',
-                    )
-                }
-            >
-                <Volume2 size={32} />
-            </button>
             <div className="grid grid-cols-2 gap-4">
                 <button
                     disabled={sending || openingMic}
@@ -309,23 +277,28 @@ export default function ReportComposer({
                     onClick={() => {
                         void record();
                     }}
-                    className={`flex min-h-36 flex-col items-center justify-center gap-3 rounded-3xl p-5 text-xl font-bold text-white ${recording ? 'animate-pulse bg-red-700' : 'bg-teal-700'}`}
+                    className={`workforce-action workforce-record ${recording ? 'is-recording' : ''}`}
                 >
-                    {recording ? <Square size={56} /> : <Mic size={56} />}
-                    {recording
-                        ? `${seconds} / 180`
-                        : openingMic
-                          ? 'انتظار الميكروفون…'
-                          : 'تسجيل'}
+                    {openingMic ? (
+                        <LoaderCircle size={56} className="animate-spin" />
+                    ) : recording ? (
+                        <Square size={56} />
+                    ) : (
+                        <Mic size={64} strokeWidth={1.6} />
+                    )}
+                    {recording && (
+                        <span className="text-sm tabular-nums" dir="ltr">
+                            {seconds} / 180
+                        </span>
+                    )}
                 </button>
                 <button
                     disabled={sending || recording || openingMic}
                     aria-label="التقاط صورة"
                     onClick={() => camera.current?.click()}
-                    className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-3xl bg-blue-700 p-5 text-xl font-bold text-white"
+                    className="workforce-action workforce-camera"
                 >
                     <Camera size={56} />
-                    صورة
                 </button>
             </div>
             <input
@@ -368,26 +341,30 @@ export default function ReportComposer({
                     event.target.value = '';
                 }}
             />
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex justify-center gap-4">
                 <button
                     disabled={sending || recording || openingMic}
-                    className="flex items-center gap-2 rounded-xl border p-3"
+                    aria-label="اختيار صور من المعرض"
+                    className="workforce-icon"
                     onClick={() => gallery.current?.click()}
                 >
                     <ImagePlus />
-                    معرض الصور
                 </button>
                 <button
                     disabled={sending || recording || openingMic}
-                    className="rounded-xl border p-3"
+                    aria-label="رفع تسجيل صوتي"
+                    className="workforce-icon"
                     onClick={() => audioInput.current?.click()}
                 >
-                    رفع صوت
+                    <AudioLines />
                 </button>
             </div>
             {audioUrl && (
-                <div className="flex items-center gap-2 rounded-xl border p-3">
-                    <audio controls src={audioUrl} className="min-w-0 flex-1" />
+                <div
+                    aria-label="اختيار صور من المعرض"
+                    className="workforce-icon"
+                >
+                    <VoicePlayback src={audioUrl} />
                     <button
                         aria-label="حذف التسجيل قبل الإرسال"
                         disabled={sending || recording || openingMic}
@@ -423,82 +400,6 @@ export default function ReportComposer({
                     </div>
                 ))}
             </div>
-            <details className="text-right">
-                <summary className="cursor-pointer p-3 text-slate-600">
-                    نص أو مهمة (اختياري)
-                </summary>
-                <label className="block p-2">
-                    لوحة السيارة كاملة (اختياري)
-                    <input
-                        value={vehiclePlate}
-                        onChange={(event) =>
-                            setVehiclePlate(event.target.value)
-                        }
-                        maxLength={80}
-                        disabled={sending}
-                        placeholder="مثال وهمي: TEST A 123"
-                        className="mt-2 block w-full rounded-xl border p-3"
-                    />
-                    <span className="text-sm text-slate-500">
-                        المنطقة والرمز والرقم. يمكن للمدير ربط التقرير لاحقًا.
-                    </span>
-                </label>
-                <label className="block p-2">
-                    نص اختياري
-                    <textarea
-                        disabled={sending}
-                        maxLength={10000}
-                        value={text}
-                        onChange={(event) => setText(event.target.value)}
-                        className="mt-2 block min-h-24 w-full rounded-xl border p-3"
-                    />
-                </label>
-                <label className="block p-2">
-                    المشروع
-                    <select
-                        disabled={sending}
-                        value={project}
-                        onChange={(event) => {
-                            setProject(event.target.value);
-                            setTask('');
-                        }}
-                        className="block w-full rounded-xl border p-3"
-                    >
-                        <option value="">بدون مشروع</option>
-                        {workItems
-                            .filter((item) => item.kind === 'project')
-                            .map((item) => (
-                                <option key={item.id} value={item.id}>
-                                    {item.name}
-                                </option>
-                            ))}
-                    </select>
-                </label>
-                <label className="block p-2">
-                    المهمة
-                    <select
-                        disabled={sending}
-                        value={task}
-                        onChange={(event) => setTask(event.target.value)}
-                        className="block w-full rounded-xl border p-3"
-                    >
-                        <option value="">بدون مهمة</option>
-                        {workItems
-                            .filter(
-                                (item) =>
-                                    item.kind === 'task' &&
-                                    (!project ||
-                                        !item.project_id ||
-                                        item.project_id === Number(project)),
-                            )
-                            .map((item) => (
-                                <option key={item.id} value={item.id}>
-                                    {item.name}
-                                </option>
-                            ))}
-                    </select>
-                </label>
-            </details>
             {!online && (
                 <p
                     role="alert"
@@ -514,49 +415,33 @@ export default function ReportComposer({
                     className="space-y-3 rounded-xl bg-red-100 p-4 text-red-900"
                 >
                     <p>{error}</p>
-                    <button
-                        type="button"
-                        aria-label="استمع لسبب المشكلة"
-                        className="flex items-center gap-3 rounded-xl border border-red-300 p-3"
-                        onClick={() =>
-                            speak(error.replace(/ \[MIC-[A-Z-]+\]/g, ''))
-                        }
-                    >
-                        <Volume2 size={28} />
-                        استمع للمساعدة
-                    </button>
                 </div>
             )}
             {sent && (
                 <div
                     role="status"
-                    className="flex items-center justify-center gap-3 rounded-xl bg-teal-100 p-5 text-xl text-teal-950"
+                    aria-label="تم إرسال التقرير"
+                    className="flex items-center justify-center rounded-2xl bg-emerald-50 p-3 text-emerald-700"
                 >
                     <CheckCircle2 size={40} />
-                    تم الإرسال
                 </div>
             )}
             <button
                 disabled={
-                    sending ||
-                    openingMic ||
-                    recording ||
-                    !online ||
-                    (!audio && (!text.trim() || images.length > 0))
+                    sending || openingMic || recording || !online || !audio
                 }
                 onClick={() => {
                     void send();
                 }}
                 aria-label="إرسال التقرير"
-                className="flex min-h-28 w-full items-center justify-center gap-5 rounded-3xl bg-teal-800 p-6 text-3xl font-bold text-white disabled:opacity-40"
+                className="workforce-send"
             >
-                <Send size={48} />
-                {sending ? 'جارٍ الإرسال…' : 'إرسال'}
+                {sending ? (
+                    <LoaderCircle size={42} className="animate-spin" />
+                ) : (
+                    <Send size={42} strokeWidth={1.6} />
+                )}
             </button>
-            <p className="text-sm text-slate-500">
-                تسجيل واحد حتى 3 دقائق، ومعه حتى ثلاث صور اختيارية. الصور تحتاج
-                تسجيلًا صوتيًا. لا تُغلق الصفحة قبل تأكيد الإرسال.
-            </p>
             {images.length > 0 && !audio && (
                 <p
                     role="alert"

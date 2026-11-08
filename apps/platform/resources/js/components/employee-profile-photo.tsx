@@ -1,7 +1,12 @@
 import { router } from '@inertiajs/react';
-import { Camera, CircleUserRound, ImagePlus } from 'lucide-react';
+import {
+    Camera,
+    CircleUserRound,
+    ImagePlus,
+    LoaderCircle,
+    X,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
-import { speak } from '@/components/employee-guidance';
 
 export default function EmployeeProfilePhoto({
     url,
@@ -13,12 +18,12 @@ export default function EmployeeProfilePhoto({
     const camera = useRef<HTMLInputElement>(null);
     const gallery = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
+    const [open, setOpen] = useState(false);
     const [error, setError] = useState('');
     const upload = (file?: File) => {
         if (!file || busy) return;
         if (file.size > 4 * 1024 * 1024) {
             setError('الصورة أكبر من 4MB.');
-            speak('الصورة كبيرة. اختر صورة أصغر.');
             return;
         }
         setError('');
@@ -29,14 +34,12 @@ export default function EmployeeProfilePhoto({
             {
                 forceFormData: true,
                 preserveScroll: true,
-                onSuccess: () => speak('تم حفظ صورتك.'),
-                onError: (errors) => {
+                onSuccess: () => setOpen(false),
+                onError: (errors) =>
                     setError(
                         Object.values(errors)[0] ||
                             'تعذّر حفظ الصورة. أعد المحاولة.',
-                    );
-                    speak('تعذر حفظ الصورة. اطلب مساعدة المدير.');
-                },
+                    ),
                 onFinish: () => setBusy(false),
             },
         );
@@ -44,36 +47,65 @@ export default function EmployeeProfilePhoto({
     return (
         <section
             aria-label="صورتي الشخصية"
-            className="flex flex-col items-center gap-3"
+            className="relative flex flex-col items-center"
         >
-            {url ? (
-                <img
-                    src={url}
-                    alt={`صورة ${name}`}
-                    className="h-28 w-28 rounded-full border-4 border-teal-600 object-cover"
-                />
-            ) : (
-                <CircleUserRound size={96} className="text-teal-700" />
-            )}
-            <div className="flex gap-3">
+            <div className="relative">
+                <div className="profile-portrait">
+                    {url ? (
+                        <img
+                            src={url}
+                            alt={`صورة ${name}`}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <CircleUserRound size={84} strokeWidth={1.2} />
+                    )}
+                </div>
                 <button
+                    type="button"
+                    aria-label="إضافة أو تحديث صورتي الشخصية"
+                    aria-expanded={open}
                     disabled={busy}
-                    aria-label="التقاط صورتي الشخصية"
-                    className="flex items-center gap-2 rounded-xl border bg-white p-4"
-                    onClick={() => camera.current?.click()}
+                    className="profile-camera"
+                    onClick={() => setOpen(!open)}
                 >
-                    <Camera size={28} />
-                    {busy ? '…' : 'صورتي'}
-                </button>
-                <button
-                    disabled={busy}
-                    aria-label="اختيار صورتي من المعرض"
-                    className="rounded-xl border bg-white p-4"
-                    onClick={() => gallery.current?.click()}
-                >
-                    <ImagePlus size={28} />
+                    {busy ? (
+                        <LoaderCircle className="animate-spin" size={21} />
+                    ) : (
+                        <Camera size={21} />
+                    )}
                 </button>
             </div>
+            {open && (
+                <div className="absolute top-full z-20 mt-3 flex gap-2 rounded-2xl border border-white bg-white p-2 shadow-xl">
+                    <button
+                        type="button"
+                        className="workforce-icon"
+                        aria-label="التقاط صورتي بالكاميرا"
+                        disabled={busy}
+                        onClick={() => camera.current?.click()}
+                    >
+                        <Camera />
+                    </button>
+                    <button
+                        type="button"
+                        className="workforce-icon"
+                        aria-label="اختيار صورتي من المعرض"
+                        disabled={busy}
+                        onClick={() => gallery.current?.click()}
+                    >
+                        <ImagePlus />
+                    </button>
+                    <button
+                        type="button"
+                        className="workforce-icon"
+                        aria-label="إغلاق خيارات الصورة"
+                        onClick={() => setOpen(false)}
+                    >
+                        <X />
+                    </button>
+                </div>
+            )}
             <input
                 ref={camera}
                 type="file"
@@ -98,7 +130,7 @@ export default function EmployeeProfilePhoto({
             {error && (
                 <p
                     role="alert"
-                    className="max-w-sm rounded-xl bg-red-100 p-3 text-red-900"
+                    className="mt-4 max-w-sm rounded-xl bg-red-100 p-3 text-sm text-red-900"
                 >
                     {error}
                 </p>

@@ -68,7 +68,14 @@ class EmployeeReportController extends Controller
         $member = $this->membership($request);
         $request->validate(['day' => 'required|date_format:Y-m-d']);
 
-        return response()->json($activity->reports(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id), (string) $request->query('day')));
+        $reports = $activity->reports(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id), (string) $request->query('day'));
+        $attachments = ReportMedia::query()->where('tenant_id', $member->tenant_id)->whereIn('report_id', $reports->getCollection()->pluck('id'))
+            ->get(['id', 'report_id', 'kind'])->groupBy('report_id');
+        foreach ($reports->getCollection() as $report) {
+            $report->setAttribute('attachments', $attachments->get($report->id, collect())->map(fn (ReportMedia $media) => $media->only(['id', 'kind']))->values());
+        }
+
+        return response()->json($reports);
     }
 
     public function media(Request $request, int $report, int $media, ReportAccess $access): BinaryFileResponse

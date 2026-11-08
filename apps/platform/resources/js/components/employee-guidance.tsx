@@ -1,73 +1,68 @@
-import { Download, Volume2 } from 'lucide-react';
+import { Download, Ellipsis, Plus, Share2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-export function speak(text: string) {
-    if ('speechSynthesis' in window) {
-        const message = new SpeechSynthesisUtterance(text);
-        message.lang = 'ar';
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(message);
-    }
-}
-
 interface InstallEvent extends Event {
     prompt(): Promise<void>;
 }
-
 export function EmployeeGuidance() {
     const [install, setInstall] = useState<InstallEvent | null>(null);
-    const [instructions, setInstructions] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [error, setError] = useState('');
     useEffect(() => {
         const handler = (event: Event) => {
             event.preventDefault();
             setInstall(event as InstallEvent);
         };
-        window.addEventListener('beforeinstallprompt', handler);
         const installed = () => setInstall(null);
+        window.addEventListener('beforeinstallprompt', handler);
         window.addEventListener('appinstalled', installed);
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
             window.removeEventListener('appinstalled', installed);
         };
     }, []);
-
     return (
-        <section className="space-y-4">
-            <div className="flex flex-wrap justify-center gap-4">
-                <button
-                    aria-label="استمع للتعليمات بالعربية"
-                    className="rounded-2xl border p-6"
-                    onClick={() =>
-                        speak(
-                            'هذا حسابك. اطلب من المدير إضافة التطبيق إلى الشاشة الرئيسية. بعدها افتح حسابك من الأيقونة.',
-                        )
-                    }
+        <div className="relative">
+            <button
+                type="button"
+                className="workforce-icon"
+                aria-label="إضافة التطبيق إلى الشاشة الرئيسية"
+                onClick={() => {
+                    if (install)
+                        void install
+                            .prompt()
+                            .catch(() =>
+                                setError(
+                                    'تعذّر فتح التثبيت. اطلب مساعدة المدير.',
+                                ),
+                            );
+                    else setOpen(!open);
+                }}
+            >
+                <Download size={21} />
+            </button>
+            {open && (
+                <div
+                    className="absolute top-full left-0 z-20 mt-3 flex items-center gap-3 rounded-2xl bg-white p-4 text-slate-700 shadow-xl"
+                    aria-label="التثبيت من قائمة المتصفح أو المشاركة"
                 >
-                    <Volume2 size={40} />
-                </button>
-                <button
-                    aria-label="إضافة التطبيق للشاشة الرئيسية"
-                    className="flex items-center gap-3 rounded-2xl border p-6 text-xl"
-                    onClick={() => {
-                        if (install) {
-                            void install.prompt().then(() => setInstall(null));
-                        } else {
-                            setInstructions(!instructions);
-                        }
-                    }}
-                >
-                    <Download size={40} />
-                    تثبيت
-                </button>
-            </div>
-            {instructions && (
-                <p className="rounded-xl border p-4">
-                    بمساعدة المدير: من قائمة المتصفح اختر «إضافة إلى الشاشة
-                    الرئيسية». على iPhone استخدم زر المشاركة في Safari. إذا طلب
-                    التطبيق التفعيل مجددًا، اطلب QR جديدًا. لا تُثبّت التطبيق على
-                    هاتف مشترك.
+                    <Ellipsis />
+                    <span aria-hidden="true">→</span>
+                    <Share2 />
+                    <Plus />
+                    <button
+                        type="button"
+                        aria-label="إغلاق"
+                        onClick={() => setOpen(false)}
+                    >
+                        <X />
+                    </button>
+                </div>
+            )}
+            {error && (
+                <p role="alert" className="text-sm text-red-700">
+                    {error}
                 </p>
             )}
-        </section>
+        </div>
     );
 }

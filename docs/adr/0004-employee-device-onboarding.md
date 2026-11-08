@@ -15,7 +15,7 @@ Employees may be unable to read or type. They never register, supply email addre
 
 ## Usability and installation
 
-The employee surface has no manager navigation: large icons, one entry button and optional Arabic speech through the available device speech engine. Managers assist scanning and installation. Translated/recorded guidance and recognizable profile photos should be evaluated with target users before pilot use; text fallbacks do not establish accessibility.
+The employee surface has no manager navigation: large icons, one entry button and recognizable profile photos. Owner clarification 2026-11-08 removes spoken commands, instructions and alerts; errors remain textual for manager diagnosis, while accessible button labels remain available to assistive technology. The employee surface keeps identity and numeric dates/counts but removes instructional copy and typing controls. Managers assist scanning and installation. Icon comprehension and actual-device usability must be evaluated with target employees before pilot use.
 
 The manifest launches `/employee` in standalone mode with local icons. No service worker or offline cache is introduced. Personal HTTP responses use no-store. Installation support and cookie sharing between browser/installed iOS apps vary: validate Android and iPhone on reachable HTTPS staging. A separate cookie store may require reactivation. The browser controls installation prompts; the app cannot silently install itself.
 
