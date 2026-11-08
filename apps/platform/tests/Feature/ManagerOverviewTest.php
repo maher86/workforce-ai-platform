@@ -7,6 +7,7 @@ use App\Modules\Identity\ManageWorkforce;
 use App\Modules\Identity\Membership;
 use App\Modules\Identity\Tenant;
 use App\Modules\Reporting\Report;
+use App\Modules\WorkManagement\ReportVehicle;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -108,5 +109,19 @@ class ManagerOverviewTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('summary.reports', 26)->where('series.0.total', 26)->where('reports.total', 26)->has('reports.data', 25));
         $this->get('/tenants/'.$tenant->id.'/reports?page=2')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('summary.reports', 26)->has('reports.data', 1));
+    }
+
+    public function test_vehicle_filter_preserves_counts_and_denies_foreign_vehicle_ids(): void
+    {
+        [$owner, $tenant, $member] = $this->workforce();
+        [$otherOwner, $foreignTenant, $foreignMember] = $this->workforce();
+        $report = $this->report($member, now()->toDateTimeString());
+        $this->report($member, now()->toDateTimeString());
+        $foreign = $this->report($foreignMember, now()->toDateTimeString());
+        app(ReportVehicle::class)->assign($owner, $tenant->id, $report->id, 'TEST A 123');
+        app(ReportVehicle::class)->assign($otherOwner, $foreignTenant->id, $foreign->id, 'TEST B 456');
+        $this->actingAs($owner)->get('/tenants/'.$tenant->id.'/reports?vehicle='.$report->fresh()->vehicle_id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('summary.reports', 1)->where('reports.total', 1)->where('vehicle.plate', 'TEST A 123'));
+        $this->get('/tenants/'.$tenant->id.'/reports?vehicle='.$foreign->fresh()->vehicle_id)->assertNotFound();
     }
 }

@@ -9,6 +9,7 @@ use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportOutput;
+use App\Modules\WorkManagement\Vehicle;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,7 @@ class ManagerOverviewController extends Controller
             'range' => 'nullable|in:today,yesterday,7,30,month,custom,all',
             'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d',
             'employee' => 'nullable|integer',
+            'vehicle' => 'nullable|integer',
         ]);
         $members = Membership::query()->where('tenant_id', $tenant)->where('role', 'employee')
             ->select('memberships.*')->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')->orderBy('id')->get();
@@ -36,6 +38,10 @@ class ManagerOverviewController extends Controller
             'photo' => $member->profile_photo_path ? '/tenants/'.$tenant.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
         ])->all();
         $query = Report::query()->where('tenant_id', $tenant)->whereIn('membership_id', $members->pluck('id'));
+        $vehicle = ! empty($data['vehicle']) ? Vehicle::query()->where('tenant_id', $tenant)->findOrFail((int) $data['vehicle']) : null;
+        if ($vehicle !== null) {
+            $query->where('vehicle_id', $vehicle->id);
+        }
         if ($employee !== null) {
             $query->where('membership_id', $employee);
         }
@@ -76,6 +82,7 @@ class ManagerOverviewController extends Controller
             'people' => $people, 'selectedEmployee' => $employee, 'profile' => $membership !== null,
             'period' => $period, 'range' => $range, 'summary' => $summary->only(['reports', 'contributors', 'processing', 'failed']),
             'reports' => $reports, 'series' => $series, 'monthly' => $monthly, 'aiMode' => config('workforce.ai_provider'),
+            'vehicle' => $vehicle?->only(['id', 'plate']),
         ]);
     }
 }

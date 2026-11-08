@@ -52,6 +52,7 @@ type Props = {
     series: { day: string; total: number }[];
     monthly: boolean;
     aiMode: string;
+    vehicle: { id: number; plate: string } | null;
 };
 const labels: Record<string, string> = {
     submitted: 'تم الاستلام',
@@ -107,6 +108,7 @@ export default function Overview({
     series,
     monthly,
     aiMode,
+    vehicle,
 }: Props) {
     const selected = people.find((person) => person.id === selectedEmployee);
     const base = `/tenants/${tenant.id}/reports`;
@@ -119,6 +121,7 @@ export default function Overview({
         employee: selectedEmployee ? String(selectedEmployee) : '',
         from: period.from,
         to: period.to,
+        vehicle: vehicle ? String(vehicle.id) : '',
     });
     const [search, setSearch] = useState('');
     const matches = people.filter((person) =>
@@ -132,6 +135,7 @@ export default function Overview({
             {
                 range: nextRange,
                 employee,
+                ...(vehicle ? { vehicle: String(vehicle.id) } : {}),
                 ...(nextRange === 'custom'
                     ? { from: form.data.from, to: form.data.to }
                     : {}),
@@ -181,6 +185,7 @@ export default function Overview({
     const exportQuery = new URLSearchParams({
         ...period,
         ...(selectedEmployee ? { employee: String(selectedEmployee) } : {}),
+        ...(vehicle ? { vehicle: String(vehicle.id) } : {}),
     });
     return (
         <main
@@ -250,6 +255,17 @@ export default function Overview({
                     </button>
                 </nav>
             </header>
+            {vehicle && (
+                <p className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-3">
+                    <CarFront size={20} />
+                    <Link href={`/tenants/${tenant.id}/vehicles/${vehicle.id}`}>
+                        {vehicle.plate}
+                    </Link>
+                    <Link href={base} className="text-sm text-slate-500">
+                        كل السيارات
+                    </Link>
+                </p>
+            )}
             {workspaces.length > 1 && (
                 <label className="block text-sm">
                     المؤسسة
