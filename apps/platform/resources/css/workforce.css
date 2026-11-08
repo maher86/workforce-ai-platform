@@ -1,0 +1,270 @@
+/* Shared local product style. No third-party images or employee data. */
+.workforce-surface {
+    --background: #f1f3f9;
+    --foreground: #24334f;
+    --card: #fff;
+    --card-foreground: #24334f;
+    --primary: #ff7900;
+    --primary-foreground: #fff;
+    --muted: #e8edf5;
+    --muted-foreground: #67748c;
+    --border: #dce2ed;
+    --input: #dce2ed;
+    --accent: #fff1e5;
+    --accent-foreground: #24334f;
+    color: #24334f;
+    background:
+        radial-gradient(ellipse at 12% 20%, #fff 0, transparent 45%),
+        linear-gradient(155deg, #e9edf6, #f6f7fb 65%, #e5eaf3);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+.employee-surface {
+    max-width: 600px;
+    margin-inline: auto;
+    min-height: 100svh;
+    overflow-wrap: anywhere;
+}
+.workforce-cover {
+    height: 160px;
+    overflow: hidden;
+    position: relative;
+    border-bottom: 5px solid #ff7900;
+    border-radius: 0 0 48% 10% / 0 0 16% 8%;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0 68px,
+            #ffffff07 68px 70px
+        ),
+        linear-gradient(125deg, #101b2e, #344761 55%, #14223a);
+}
+.workforce-cover::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    width: 160px;
+    height: 220px;
+    transform: rotate(28deg);
+    background: linear-gradient(90deg, #ffffff09, transparent);
+    left: 30%;
+    top: -40px;
+}
+.cover-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #ffffff24;
+    background: #ffffff0d;
+    border-radius: 50%;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+}
+.employee-identity {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -96px;
+    padding-bottom: 26px;
+}
+.profile-portrait {
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    border: 4px solid white;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #d8e1ef;
+    color: #7182a0;
+    box-shadow: 0 6px 16px #15244228;
+}
+.profile-camera {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    right: -3px;
+    bottom: 0;
+    width: 37px;
+    height: 37px;
+    border-radius: 50%;
+    background: #3478fa;
+    border: 3px solid white;
+    color: white;
+    box-shadow: 0 3px 8px #3478fa3a;
+}
+.workforce-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid #fff;
+    background: linear-gradient(145deg, #fff, #e9edf5);
+    color: #344764;
+    box-shadow:
+        0 4px 8px #23375a14,
+        inset 0 1px 1px #fff;
+}
+.workforce-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 150px;
+    border-radius: 30px;
+    border: 2px solid #fff9;
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+}
+.workforce-action:active,
+.workforce-icon:active {
+    transform: translateY(2px);
+}
+.workforce-record {
+    color: #fff;
+    background: linear-gradient(145deg, #ffa000, #ff7600 58%, #fa4c00);
+    box-shadow:
+        0 10px 18px #fb71002e,
+        inset 0 2px 4px #fff8,
+        0 3px 0 #f48a2d;
+}
+.workforce-record.is-recording {
+    background: #d92d38;
+    animation: record-pulse 1.2s infinite;
+}
+.workforce-camera {
+    color: #314761;
+    background: linear-gradient(145deg, #fff, #e4e9f3);
+    box-shadow:
+        0 9px 16px #273b5a1c,
+        inset 0 2px 2px white,
+        0 3px 0 #d6ddea;
+}
+.workforce-send {
+    display: flex;
+    width: 100%;
+    min-height: 74px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ffb059;
+    border-radius: 25px;
+    color: white;
+    background: linear-gradient(120deg, #ff9400, #ff6500);
+    box-shadow:
+        0 7px 14px #ff790029,
+        inset 0 1px 2px #ffdfb4;
+}
+.workforce-send:disabled {
+    opacity: 0.33;
+    box-shadow: none;
+}
+.voice-play {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: white;
+    background: linear-gradient(140deg, #ffa000, #ff6800);
+}
+.employee-day {
+    overflow: hidden;
+    border-radius: 21px;
+    border: 1px solid #ffffffd9;
+    background: linear-gradient(150deg, #fff, #e8edf6);
+    box-shadow: 0 5px 11px #263a5e1a;
+}
+.employee-day-heading {
+    display: flex;
+    list-style: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 15px;
+    background: linear-gradient(110deg, #344b6d, #1c2b44);
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+}
+.employee-day-heading::-webkit-details-marker {
+    display: none;
+}
+.manager-surface {
+    min-height: 100svh;
+    border-radius: 28px;
+    padding: 24px;
+    margin: 16px auto;
+    box-shadow: 0 15px 50px #23375a12;
+}
+.manager-hero {
+    position: relative;
+    padding: 32px;
+    overflow: hidden;
+    border-radius: 26px;
+    background: linear-gradient(120deg, #15233b, #344d70);
+    color: white;
+    border-bottom: 4px solid #ff8500;
+}
+.manager-hero h1 {
+    font-size: clamp(24px, 3vw, 36px);
+}
+.manager-hero p {
+    color: #c7d3e7;
+}
+.manager-surface > form,
+.manager-surface article,
+.manager-surface > details {
+    border: 1px solid #ffffffd9;
+    background: linear-gradient(145deg, #fff, #f5f7fc);
+    border-radius: 24px;
+    box-shadow: 0 5px 15px #23375a0c;
+}
+.manager-surface article img {
+    border: 3px solid #fff;
+    box-shadow: 0 3px 10px #23375a16;
+}
+.manager-surface > nav > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 18px;
+    padding: 12px 18px;
+}
+.manager-surface :is(button, a):focus-visible,
+.employee-surface :is(button, a, summary, input):focus-visible {
+    outline: 3px solid #ff8b25;
+    outline-offset: 4px;
+}
+@keyframes record-pulse {
+    50% {
+        box-shadow: 0 0 0 8px #d92d381a;
+    }
+}
+@media (max-width: 480px) {
+    .workforce-action {
+        min-height: 134px;
+        border-radius: 25px;
+    }
+    .manager-surface {
+        margin: 0;
+        border-radius: 0;
+        padding: 16px;
+    }
+    .manager-hero {
+        padding: 24px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .workforce-record.is-recording {
+        animation: none;
+    }
+}

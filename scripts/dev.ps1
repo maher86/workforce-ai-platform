@@ -26,7 +26,15 @@ try {
             Invoke-Compose run --rm --no-deps app php artisan migrate --force
             Invoke-Compose up -d --wait app worker scheduler
         }
-        'Start' { Invoke-Compose up -d --wait app worker scheduler postgres redis mailpit }
+        'Start' {
+            # Resume explicitly enabled phone-preview mode; never replace its public origin with localhost.
+            if (Test-Path -LiteralPath (Join-Path $projectRoot '.preview/runtime.json')) {
+                & (Join-Path $PSScriptRoot 'preview.ps1') Start
+                Invoke-Compose up -d --no-deps --wait worker scheduler
+            } else {
+                Invoke-Compose up -d --wait app worker scheduler postgres redis mailpit
+            }
+        }
         'Stop' { Invoke-Compose stop }
         'Status' { Invoke-Compose ps }
         'Check' {

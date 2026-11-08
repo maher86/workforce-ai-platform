@@ -1,32 +1,34 @@
 import { Head, router } from '@inertiajs/react';
-import { useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+    AlertTriangle,
+    Check,
+    FileAudio,
+    LogOut,
+    Settings2,
+    X,
+} from 'lucide-react';
 import EmployeeProfilePhoto from '@/components/employee-profile-photo';
-import ReportDayAccordion from '@/components/report-day-accordion';
+import EmployeeActivity from '@/components/employee-activity';
 import type { DayPages } from '@/components/report-day-accordion';
 import { EmployeeGuidance } from '@/components/employee-guidance';
 import ReportComposer from '@/components/report-composer';
-import type { WorkItem } from '@/components/report-composer';
 
 export default function EmployeeHome({
     employeeName,
-    tenantName,
     reports,
-    workItems,
-    aiMode,
-    employeePhone,
     profilePhotoUrl,
     days,
+    aiMode,
 }: {
     employeeName: string;
-    tenantName: string;
     reports: { id: number; status: string; created_at: string }[];
-    workItems: WorkItem[];
-    aiMode: string;
-    employeePhone: string | null;
     profilePhotoUrl: string | null;
     days: DayPages;
+    aiMode: string;
 }) {
+    const [settings, setSettings] = useState(false);
+    const [confirm, setConfirm] = useState(false);
     const pending = reports.some((report) =>
         ['submitted', 'processing'].includes(report.status),
     );
@@ -42,47 +44,88 @@ export default function EmployeeHome({
         <main
             dir="rtl"
             lang="ar"
-            className="mx-auto flex min-h-svh max-w-xl flex-col items-center gap-5 bg-slate-50 p-5 text-center text-slate-900"
+            className="workforce-surface employee-surface"
         >
             <Head title="حسابي" />
-            <EmployeeProfilePhoto url={profilePhotoUrl} name={employeeName} />
-            <h1 className="text-3xl font-bold">{employeeName}</h1>
-            <p className="text-xl">{tenantName}</p>
-            {employeePhone && (
-                <p dir="ltr" className="text-lg text-slate-600">
-                    {employeePhone}
-                </p>
-            )}
-            {aiMode !== 'openai' && (
-                <p className="rounded-xl bg-amber-100 p-3 text-sm text-amber-950">
-                    نسخة تجريبية: تُحفظ الملفات، ومعالجة AI محاكاة فقط. استخدم
-                    بيانات وهمية.
-                </p>
-            )}
-            <ReportComposer workItems={workItems} />
-            <section className="w-full space-y-3 text-right">
-                <h2 className="text-xl font-bold">تقاريري</h2>
-                <ReportDayAccordion
-                    days={days}
-                    endpoint="/employee/report-days"
-                    employee
+            <div className="workforce-cover">
+                <div className="flex justify-between p-5">
+                    <button
+                        type="button"
+                        className="cover-icon"
+                        aria-label="إعدادات الجهاز"
+                        aria-expanded={settings}
+                        onClick={() => setSettings(!settings)}
+                    >
+                        <Settings2 size={22} />
+                    </button>
+                    {aiMode !== 'openai' && (
+                        <span
+                            role="img"
+                            aria-label="وضع تجريبي: معالجة الذكاء الاصطناعي محاكاة"
+                            title="معالجة تجريبية"
+                            className="cover-icon text-orange-300"
+                        >
+                            <AlertTriangle size={20} />
+                        </span>
+                    )}
+                </div>
+            </div>
+            <header className="employee-identity">
+                <EmployeeProfilePhoto
+                    url={profilePhotoUrl}
+                    name={employeeName}
                 />
-            </section>
-            <EmployeeGuidance />
-            <button
-                className="mt-10 flex items-center gap-3 rounded-xl border p-4"
-                onClick={() => {
-                    if (
-                        window.confirm(
-                            'إلغاء تفعيل هذا الهاتف؟ ستحتاج إلى رمز جديد من المدير.',
-                        )
-                    )
-                        router.post('/employee/disconnect');
-                }}
-            >
-                <LogOut />
-                إلغاء تفعيل الهاتف
-            </button>
+                <h1 className="mt-3 text-xl font-extrabold text-slate-800">
+                    {employeeName}
+                </h1>
+            </header>
+            {settings && (
+                <div className="mx-5 flex items-center justify-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+                    <EmployeeGuidance />
+                    <button
+                        type="button"
+                        className="workforce-icon text-red-600"
+                        aria-label="إلغاء تفعيل هذا الهاتف"
+                        onClick={() => setConfirm(!confirm)}
+                    >
+                        <LogOut size={22} />
+                    </button>
+                    {confirm && (
+                        <>
+                            <button
+                                type="button"
+                                aria-label="تأكيد إلغاء تفعيل الهاتف"
+                                className="workforce-icon bg-red-50 text-red-700"
+                                onClick={() =>
+                                    router.post('/employee/disconnect')
+                                }
+                            >
+                                <Check />
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="إلغاء"
+                                className="workforce-icon"
+                                onClick={() => setConfirm(false)}
+                            >
+                                <X />
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+            <div className="space-y-7 px-5 pb-8">
+                <ReportComposer />
+                <section aria-label="سجل تقاريري" className="space-y-4">
+                    <div className="flex items-center justify-between px-1 text-slate-700">
+                        <FileAudio className="text-orange-500" size={27} />
+                        <span className="text-sm font-bold tabular-nums">
+                            {days.data.reduce((sum, day) => sum + day.total, 0)}
+                        </span>
+                    </div>
+                    <EmployeeActivity days={days} />
+                </section>
+            </div>
         </main>
     );
 }
