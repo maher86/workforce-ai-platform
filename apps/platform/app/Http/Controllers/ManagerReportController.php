@@ -14,6 +14,7 @@ use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\ReportRevision;
 use App\Modules\Reporting\ReportServiceFact;
+use App\Modules\Reporting\ReportSourceChange;
 use App\Modules\Reporting\ReportSubmitted;
 use App\Modules\Reporting\ReviewReport;
 use App\Modules\WorkManagement\Vehicle;
@@ -91,22 +92,33 @@ class ManagerReportController extends Controller
     public function show(Request $request, int $tenant, int $report): Response
     {
         $actor = $this->access->manageTeam($request->user(), $tenant);
-        $item = Report::query()->where('tenant_id', $tenant)->findOrFail($report);
+        $item = Report::withTrashed()->where('tenant_id', $tenant)->findOrFail($report);
         $member = Membership::query()->where('tenant_id', $tenant)->findOrFail($item->membership_id);
 
         return Inertia::render('reports/show', [
             'report' => $item, 'employeeName' => $member->display_name ?? User::query()->findOrFail($member->user_id)->name,
             'employeePhone' => $member->phone,
             'employeePhotoUrl' => $member->profile_photo_path ? '/tenants/'.$tenant.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
-            'media' => ReportMedia::query()->where('tenant_id', $tenant)->where('report_id', $report)->get(['id', 'kind', 'mime', 'bytes', 'duration']),
+            'media' => ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $tenant)->where('report_id', $report)->get(['id', 'kind', 'mime', 'bytes', 'duration']),
             'outputs' => ReportOutput::query()->where('tenant_id', $tenant)->where('report_id', $report)->orderBy('id')->get(),
-            'revisions' => ReportRevision::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
+            'revisions' => ReportRevision::query()->where('source_version', $item->source_version)->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
             'currentServiceFact' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->first(),
             'serviceFacts' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->paginate(10, ['*'], 'facts_page')->withQueryString(),
             'aiMode' => config('workforce.ai_provider'),
-            'canDelete' => $actor->role === 'owner',
+            'sourceChanges' => ReportSourceChange::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('source_version')->paginate(5, ['id', 'source_version', 'kind', 'created_at'], 'sources_page')->withQueryString(),
+            'canDelete' => $actor->role === 'owner' && ! $item->trashed(),
             'vehicle' => $item->vehicle_id ? Vehicle::query()->where('tenant_id', $tenant)->findOrFail($item->vehicle_id)->only(['id', 'plate']) : null,
         ]);
+    }
+
+    public function sourceHistory(Request $request, int $tenant, int $report, int $change): JsonResponse
+    {
+        $this->access->manageTeam($request->user(), $tenant);
+        Report::withTrashed()->where('tenant_id', $tenant)->findOrFail($report);
+
+        $snapshot = ReportSourceChange::query()->where('tenant_id', $tenant)->where('report_id', $report)->findOrFail($change);
+
+        return response()->json([...$snapshot->toArray(), 'reviews' => ReportRevision::query()->where('tenant_id', $tenant)->where('report_id', $report)->where('source_version', $snapshot->getAttribute('source_version'))->latest('version')->get()]);
     }
 
     public function destroy(Request $request, int $tenant, int $report, PurgeReport $purge): RedirectResponse
@@ -128,7 +140,7 @@ class ManagerReportController extends Controller
     public function media(Request $request, int $tenant, int $report, int $media): BinaryFileResponse
     {
         $this->access->manageTeam($request->user(), $tenant);
-        Report::query()->where('tenant_id', $tenant)->findOrFail($report);
+        Report::withTrashed()->where('tenant_id', $tenant)->findOrFail($report);
         $item = ReportMedia::query()->where('tenant_id', $tenant)->where('report_id', $report)->findOrFail($media);
 
         return response()->file(Storage::disk('reports')->path($item->path), ['Content-Type' => $item->mime, 'Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']);
@@ -150,7 +162,7 @@ class ManagerReportController extends Controller
             abort_unless($item->status === 'failed', 409);
             $item->update(['status' => 'submitted', 'review_status' => 'pending', 'failure_code' => null, 'processing_started_at' => null]);
             Audit::record($tenant, $request->user()->id, 'report.retry', 'report', $report);
-            event(new ReportSubmitted($tenant, $report));
+            event(new ReportSubmitted($tenant, $report, $item->source_version));
         });
 
         return back();
@@ -190,7 +202,7 @@ class ManagerReportController extends Controller
         $query = $this->query($request, $tenant);
         $query->select('reports.*')
             ->selectSub(DB::table('memberships')->join('users', 'users.id', '=', 'memberships.user_id')->selectRaw('COALESCE(memberships.display_name, users.name)')->whereColumn('memberships.id', 'reports.membership_id')->whereColumn('memberships.tenant_id', 'reports.tenant_id')->limit(1), 'export_employee')
-            ->selectSub(ReportRevision::query()->select('english_report')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->latest('version')->limit(1), 'export_review')
+            ->selectSub(ReportRevision::query()->whereColumn('source_version', 'reports.source_version')->select('english_report')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->latest('version')->limit(1), 'export_review')
             ->selectSub(ReportOutput::query()->selectRaw("payload->>'summary'")->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_summary')
             ->selectSub(ReportOutput::query()->select('provider')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_provider');
         Audit::record($tenant, $request->user()->id, 'report.export', 'tenant', $tenant);

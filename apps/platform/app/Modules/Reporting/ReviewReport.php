@@ -25,9 +25,9 @@ class ReviewReport
             }
             ReportRevision::query()->create([
                 'tenant_id' => $tenantId, 'report_id' => $reportId, 'actor_id' => $actor->id,
-                'version' => $version + 1, 'status' => $status, 'english_report' => $english, 'reason' => $reason,
+                'source_version' => $report->source_version, 'version' => $version + 1, 'status' => $status, 'english_report' => $english, 'reason' => $reason,
             ]);
-            $report->update(['version' => $version + 1, 'review_status' => $status]);
+            $report->update(['source_version' => $report->source_version, 'version' => $version + 1, 'review_status' => $status]);
             Audit::record($tenantId, $actor->id, 'report.'.$status, 'report', $reportId);
         });
     }

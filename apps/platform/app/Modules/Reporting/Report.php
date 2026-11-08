@@ -3,6 +3,7 @@
 namespace App\Modules\Reporting;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property string $review_status
  * @property string|null $failure_code
+ * @property int $source_version
  * @property int $version
  * @property Carbon|null $processing_started_at
  * @property Carbon $created_at
@@ -25,6 +27,8 @@ use Illuminate\Support\Carbon;
  */
 class Report extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = [];
 
     protected function casts(): array

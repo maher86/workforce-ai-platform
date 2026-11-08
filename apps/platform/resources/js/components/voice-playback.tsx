@@ -13,9 +13,9 @@ export default function VoicePlayback({ src }: { src: string }) {
     const [position, setPosition] = useState(0);
     const [error, setError] = useState('');
     return (
-        <div className="min-w-0 flex-1">
+        <div className="w-full min-w-0 flex-1">
             <div
-                className="flex items-center gap-3 rounded-2xl bg-orange-50/80 px-3 py-2"
+                className="flex min-w-0 items-center gap-2 rounded-2xl bg-orange-50/80 px-3 py-2"
                 dir="ltr"
             >
                 <button
@@ -54,7 +54,7 @@ export default function VoicePlayback({ src }: { src: string }) {
                 <input
                     type="range"
                     aria-label="موضع تشغيل التسجيل"
-                    className="min-w-0 flex-1 accent-orange-500"
+                    className="w-0 min-w-0 flex-1 accent-orange-500"
                     min={0}
                     max={
                         Number.isFinite(duration) && duration > 0 ? duration : 1
@@ -69,7 +69,7 @@ export default function VoicePlayback({ src }: { src: string }) {
                             );
                     }}
                 />
-                <span className="text-xs font-semibold text-slate-600 tabular-nums">
+                <span className="shrink-0 text-xs font-semibold text-slate-600 tabular-nums">
                     {clock(playing ? position : duration)}
                 </span>
                 <audio

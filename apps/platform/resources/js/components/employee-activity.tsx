@@ -22,7 +22,15 @@ type ReportItem = {
     created_at: string;
     attachments: { id: number; kind: string }[];
 };
-function Day({ day, total }: { day: string; total: number }) {
+function Day({
+    day,
+    total,
+    endpoint,
+}: {
+    day: string;
+    total: number;
+    endpoint: string;
+}) {
     const [reports, setReports] = useState<ReportItem[]>([]);
     const [loaded, setLoaded] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -36,7 +44,7 @@ function Day({ day, total }: { day: string; total: number }) {
         setError('');
         try {
             const response = await fetch(
-                `/employee/report-days?day=${encodeURIComponent(day)}&reports_page=${page}`,
+                `${endpoint}${endpoint.includes('?') ? '&' : '?'}day=${encodeURIComponent(day)}&reports_page=${page}`,
                 {
                     credentials: 'same-origin',
                     headers: { Accept: 'application/json' },
@@ -208,7 +216,13 @@ function Day({ day, total }: { day: string; total: number }) {
         </details>
     );
 }
-export default function EmployeeActivity({ days }: { days: DayPages }) {
+export default function EmployeeActivity({
+    days,
+    endpoint = '/employee/report-days',
+}: {
+    days: DayPages;
+    endpoint?: string;
+}) {
     return (
         <div className="space-y-3">
             {days.data.length === 0 && (
@@ -220,7 +234,7 @@ export default function EmployeeActivity({ days }: { days: DayPages }) {
                 </div>
             )}
             {days.data.map((day) => (
-                <Day key={day.day} {...day} />
+                <Day key={endpoint + day.day} {...day} endpoint={endpoint} />
             ))}
             <nav
                 aria-label="صفحات أيام التقارير"

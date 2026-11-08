@@ -1,3 +1,5 @@
+import ReportSourceHistory from '@/components/report-source-history';
+import type { SourcePages } from '@/components/report-source-history';
 import ServiceFactsForm from '@/components/service-facts-form';
 import type { ServiceFact, FactHistory } from '@/components/service-facts-form';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -32,6 +34,8 @@ type Report = {
     status: string;
     review_status: string;
     version: number;
+    source_version: number;
+    deleted_at: string | null;
     failure_code: string | null;
 };
 type Revision = {
@@ -51,6 +55,7 @@ type Props = {
     media: { id: number; kind: string }[];
     outputs: Output[];
     revisions: Revision[];
+    sourceChanges: SourcePages;
     currentServiceFact: ServiceFact | null;
     serviceFacts: FactHistory;
     aiMode: string;
@@ -76,7 +81,7 @@ function ReviewForm({ report, initial }: { report: Report; initial: string }) {
             }}
         >
             <h2 className="text-xl font-bold">مراجعة بشرية</h2>
-            {report.status === 'failed' && (
+            {!report.deleted_at && report.status === 'failed' && (
                 <p className="rounded-xl bg-amber-100 p-3 text-amber-950">
                     المعالجة متوقفة؛ يمكنك إكمال التقرير يدويًا بعد مراجعة
                     المصادر، مع تسجيل سبب المراجعة.
@@ -146,6 +151,7 @@ export default function ShowReport({
     canDelete,
     currentServiceFact,
     serviceFacts,
+    sourceChanges,
     vehicle,
 }: Props) {
     const car = useForm({ vehicle_plate: vehicle?.plate || '' });
@@ -200,13 +206,38 @@ export default function ShowReport({
                     }
                 </p>
             </header>
-            <ServiceFactsForm
-                key={`${report.id}-${currentServiceFact?.version ?? 0}`}
-                base={base}
-                current={currentServiceFact}
-                history={serviceFacts}
-            />
-            <section className="rounded-2xl border bg-teal-50 p-5 text-slate-900">
+            {report.deleted_at && (
+                <p
+                    role="alert"
+                    className="rounded-2xl bg-amber-50 p-4 text-amber-950"
+                >
+                    حذف الموظف هذا التقرير من قائمته؛ هذه نسخة محفوظة للمراجعة
+                    فقط.
+                </p>
+            )}
+            {currentServiceFact &&
+                currentServiceFact.source_version !== report.source_version && (
+                    <p
+                        role="alert"
+                        className="rounded-2xl bg-amber-50 p-4 text-amber-950"
+                    >
+                        تغيّرت مصادر التقرير. بيانات الخدمة السابقة تحتاج إلى
+                        تأكيد جديد ولا تدخل المؤشرات حتى ذلك.
+                    </p>
+                )}
+            {!report.deleted_at && (
+                <ServiceFactsForm
+                    key={`${report.id}-${report.source_version}-${currentServiceFact?.version ?? 0}`}
+                    base={base}
+                    current={currentServiceFact}
+                    sourceVersion={report.source_version}
+                    history={serviceFacts}
+                />
+            )}
+            <section
+                className="rounded-2xl border bg-teal-50 p-5 text-slate-900"
+                hidden={!!report.deleted_at}
+            >
                 <h2 className="mb-3 font-bold">السيارة المرتبطة بالتقرير</h2>
                 {vehicle && (
                     <Link
@@ -253,7 +284,7 @@ export default function ShowReport({
                     أنها ترجمة أو حقائق.
                 </p>
             )}
-            {report.status === 'failed' && (
+            {!report.deleted_at && report.status === 'failed' && (
                 <section className="space-y-3 rounded-xl bg-red-50 p-5 text-red-950">
                     <p>
                         تعذرت المعالجة. المصادر محفوظة. تحقق من إعدادات AI
@@ -372,17 +403,18 @@ export default function ShowReport({
                     </details>
                 </section>
             ))}
-            {['ready', 'failed'].includes(report.status) && (
-                <ReviewForm
-                    key={`${report.id}-${report.version}-${report.status}`}
-                    report={report}
-                    initial={
-                        revisions[0]?.english_report ||
-                        generated?.payload.summary ||
-                        ''
-                    }
-                />
-            )}
+            {!report.deleted_at &&
+                ['ready', 'failed'].includes(report.status) && (
+                    <ReviewForm
+                        key={`${report.id}-${report.version}-${report.status}`}
+                        report={report}
+                        initial={
+                            revisions[0]?.english_report ||
+                            generated?.payload.summary ||
+                            ''
+                        }
+                    />
+                )}
             {canDelete && (
                 <Button
                     variant="destructive"
@@ -398,8 +430,11 @@ export default function ShowReport({
                     حذف التقرير نهائيًا
                 </Button>
             )}
+            <ReportSourceHistory pages={sourceChanges} base={base} />
             <section className="space-y-4">
-                <h2 className="text-xl font-bold">سجل المراجعة</h2>
+                <h2 className="text-xl font-bold">
+                    سجل مراجعة المصادر الحالية
+                </h2>
                 {revisions.map((revision) => (
                     <article
                         className="space-y-2 rounded-xl border p-4"

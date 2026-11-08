@@ -21,7 +21,7 @@ class RecoverReports extends Command
         })->orderBy('id')->limit(100)->get();
         foreach ($items as $report) {
             if (Cache::store('redis')->add('workforce:'.app()->environment().':tenant:'.$report->tenant_id.':recover:'.$report->id, true, 60)) {
-                ProcessReport::dispatch($report->tenant_id, $report->id);
+                ProcessReport::dispatch($report->tenant_id, $report->id, $report->source_version);
             }
         }
         $this->info('Recovery scan completed.');

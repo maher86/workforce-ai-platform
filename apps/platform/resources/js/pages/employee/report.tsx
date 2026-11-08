@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     ArrowRight,
+    Pencil,
+    Trash2,
+    Check,
+    X,
+    LockKeyhole,
     CheckCircle2,
     Clock3,
     FileAudio,
@@ -9,21 +14,91 @@ import {
     TriangleAlert,
 } from 'lucide-react';
 import VoicePlayback from '@/components/voice-playback';
+import ReportComposer from '@/components/report-composer';
 export default function EmployeeReport({
     report,
     media,
+    editableUntil,
+    serverNow,
 }: {
-    report: { id: number; status: string; created_at: string };
+    report: {
+        id: number;
+        status: string;
+        created_at: string;
+        source_version: number;
+    };
+    editableUntil: string;
+    serverNow: string;
     media: { id: number; kind: string }[];
 }) {
+    const [editing, setEditing] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [clock, setClock] = useState(() => Date.now());
+    const offset = useRef(Date.parse(serverNow) - Date.now());
+    const deletionKey = useRef(crypto.randomUUID());
+    const remaining = Math.max(
+        0,
+        Math.ceil((Date.parse(editableUntil) - clock - offset.current) / 1000),
+    );
     useEffect(() => {
-        if (!['submitted', 'processing'].includes(report.status)) return;
+        const timer = window.setInterval(() => setClock(Date.now()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+    const remove = async () => {
+        if (busy || !remaining) return;
+        setBusy(true);
+        setError('');
+        try {
+            const csrf =
+                document.cookie
+                    .split('; ')
+                    .find((part) => part.startsWith('XSRF-TOKEN='))
+                    ?.slice('XSRF-TOKEN='.length) || '';
+            const response = await fetch(`/employee/reports/${report.id}`, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(csrf),
+                },
+                body: JSON.stringify({
+                    source_version: report.source_version,
+                    change_key: deletionKey.current,
+                }),
+            });
+            if (!response.ok) {
+                const result = (await response.json()) as {
+                    errors?: Record<string, string[]>;
+                };
+                throw new Error(
+                    Object.values(result.errors ?? {})
+                        .flat()
+                        .join(' ') || 'تعذّر حذف التقرير. أعد المحاولة.',
+                );
+            }
+            router.visit('/employee/history');
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'تعذّر الحذف. تحقق من الاتصال.',
+            );
+        } finally {
+            setBusy(false);
+        }
+    };
+    useEffect(() => {
+        if (editing || !['submitted', 'processing'].includes(report.status))
+            return;
         const timer = window.setInterval(
             () => router.reload({ only: ['report'] }),
             8000,
         );
         return () => window.clearInterval(timer);
-    }, [report.status]);
+    }, [report.status, editing]);
     return (
         <main
             dir="rtl"
@@ -52,6 +127,97 @@ export default function EmployeeReport({
                     )}
                 </span>
             </header>
+            <section className="mb-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                    {remaining > 0 ? (
+                        <>
+                            <button
+                                type="button"
+                                aria-label="تعديل الصوت والصور"
+                                className="workforce-icon text-orange-600"
+                                onClick={() => {
+                                    setEditing(!editing);
+                                    setConfirmDelete(false);
+                                }}
+                            >
+                                <Pencil />
+                            </button>
+                            <span
+                                dir="ltr"
+                                className="text-sm text-slate-500 tabular-nums"
+                                aria-label="الوقت المتبقي للتعديل"
+                            >
+                                {Math.floor(remaining / 60)}:
+                                {String(remaining % 60).padStart(2, '0')}
+                            </span>
+                            <button
+                                type="button"
+                                aria-label="حذف التقرير"
+                                className="workforce-icon text-red-600"
+                                disabled={busy}
+                                onClick={() => {
+                                    setConfirmDelete(!confirmDelete);
+                                    setEditing(false);
+                                }}
+                            >
+                                <Trash2 />
+                            </button>
+                        </>
+                    ) : (
+                        <LockKeyhole
+                            className="text-slate-400"
+                            aria-label="انتهت مهلة التعديل"
+                        />
+                    )}
+                    {confirmDelete && remaining > 0 && (
+                        <>
+                            <button
+                                type="button"
+                                aria-label="تأكيد حذف التقرير"
+                                className="workforce-icon text-red-600"
+                                disabled={busy}
+                                onClick={() => void remove()}
+                            >
+                                {busy ? (
+                                    <LoaderCircle className="animate-spin" />
+                                ) : (
+                                    <Check />
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="إلغاء الحذف"
+                                className="workforce-icon"
+                                onClick={() => setConfirmDelete(false)}
+                            >
+                                <X />
+                            </button>
+                        </>
+                    )}
+                </div>
+                {error && (
+                    <p
+                        role="alert"
+                        className="rounded-xl bg-red-50 p-3 text-red-700"
+                    >
+                        {error}
+                    </p>
+                )}
+                {editing && remaining > 0 && (
+                    <ReportComposer
+                        key={`${report.id}-${report.source_version}`}
+                        edit={{
+                            id: report.id,
+                            source_version: report.source_version,
+                            media,
+                        }}
+                        onSaved={() => {
+                            setEditing(false);
+                            router.reload();
+                        }}
+                    />
+                )}
+            </section>
             <div className="mb-5 flex items-center justify-center gap-2 text-sm text-slate-500 tabular-nums">
                 <Clock3 size={16} />
                 {new Date(report.created_at).toLocaleString('en-GB', {

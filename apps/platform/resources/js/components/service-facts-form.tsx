@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 export type ServiceFact = {
     id: number;
     version: number;
+    source_version: number;
     actor_id: number | null;
     service_type: string | null;
     started_at: string | null;
@@ -35,13 +36,16 @@ export default function ServiceFactsForm({
     base,
     current,
     history,
+    sourceVersion,
 }: {
     base: string;
     current: ServiceFact | null;
     history: FactHistory;
+    sourceVersion: number;
 }) {
     const form = useForm({
         version: current?.version ?? 0,
+        source_version: sourceVersion,
         service_type: current?.service_type ?? '',
         started_at: localTime(current?.started_at ?? null),
         ended_at: localTime(current?.ended_at ?? null),

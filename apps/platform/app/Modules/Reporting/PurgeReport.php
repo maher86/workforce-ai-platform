@@ -12,10 +12,10 @@ class PurgeReport
     {
         ReportLocks::make($tenantId, $reportId)->block(5, function () use ($tenantId, $reportId, $actorId) {
             DB::transaction(function () use ($tenantId, $reportId, $actorId) {
-                $report = Report::query()->where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($reportId);
+                $report = Report::withTrashed()->where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($reportId);
                 $paths = ReportMedia::query()->where('tenant_id', $tenantId)->where('report_id', $reportId)->pluck('path')->all();
                 Storage::disk('reports')->delete($paths);
-                $report->delete();
+                $report->forceDelete();
                 Audit::record($tenantId, $actorId, 'report.deleted', 'report', $reportId);
             });
         });

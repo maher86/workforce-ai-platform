@@ -27,7 +27,16 @@ export type WorkItem = {
     active?: boolean;
 };
 
-export default function ReportComposer() {
+type EditableReport = {
+    id: number;
+    source_version: number;
+    media: { id: number; kind: string }[];
+};
+export default function ReportComposer({
+    edit,
+    onSaved,
+}: { edit?: EditableReport; onSaved?: () => void } = {}) {
+    const [retained, setRetained] = useState(edit?.media ?? []);
     const [audio, setAudio] = useState<File | null>(null);
     const [images, setImages] = useState<File[]>([]);
     const [recording, setRecording] = useState(false);
@@ -198,7 +207,9 @@ export default function ReportComposer() {
         setError('');
         const next = [...images, ...Array.from(files)];
         if (
-            next.length > 3 ||
+            next.length +
+                retained.filter((item) => item.kind === 'image').length >
+                3 ||
             next.some((file) => file.size > 12 * 1024 * 1024)
         ) {
             setError('الحد ثلاث صور، وحتى 12MB لكل ملف.');
@@ -209,7 +220,11 @@ export default function ReportComposer() {
 
     const send = async () => {
         if (sending || recording || openingMic || !online) return;
-        if (images.length && !audio) {
+        if (
+            (images.length || retained.some((item) => item.kind === 'image')) &&
+            !audio &&
+            !retained.some((item) => item.kind === 'audio')
+        ) {
             setError('أضف تسجيلًا صوتيًا مع الصور. الصورة وحدها لا تُرسل.');
             return;
         }
@@ -217,7 +232,11 @@ export default function ReportComposer() {
         setSent(false);
         setSending(true);
         const body = new FormData();
-        body.set('submission_key', key.current);
+        if (edit) {
+            body.set('change_key', key.current);
+            body.set('source_version', String(edit.source_version));
+            retained.forEach((item) => body.append('keep[]', String(item.id)));
+        } else body.set('submission_key', key.current);
         if (audio) body.set('audio', audio);
         images.forEach((file) => body.append('images[]', file));
         try {
@@ -225,15 +244,20 @@ export default function ReportComposer() {
                 .split('; ')
                 .find((part) => part.startsWith('XSRF-TOKEN='))
                 ?.slice('XSRF-TOKEN='.length);
-            const response = await fetch('/employee/reports', {
-                method: 'POST',
-                credentials: 'same-origin',
-                body,
-                headers: {
-                    Accept: 'application/json',
-                    'X-XSRF-TOKEN': decodeURIComponent(csrf || ''),
+            const response = await fetch(
+                edit
+                    ? `/employee/reports/${edit.id}/amend`
+                    : '/employee/reports',
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body,
+                    headers: {
+                        Accept: 'application/json',
+                        'X-XSRF-TOKEN': decodeURIComponent(csrf || ''),
+                    },
                 },
-            });
+            );
             if (
                 !response.headers
                     .get('content-type')
@@ -252,6 +276,10 @@ export default function ReportComposer() {
                               .join(' ') ||
                               'تعذّر الإرسال. أعد المحاولة أو اطلب مساعدة المدير.',
                 );
+            if (edit) {
+                onSaved?.();
+                return;
+            }
             setAudio(null);
             setImages([]);
             key.current = crypto.randomUUID();
@@ -359,10 +387,69 @@ export default function ReportComposer() {
                     <AudioLines />
                 </button>
             </div>
+            {!audioUrl &&
+                edit &&
+                retained
+                    .filter((item) => item.kind === 'audio')
+                    .map((item) => (
+                        <div
+                            key={item.id}
+                            className="flex w-full min-w-0 items-center gap-2 rounded-2xl bg-white p-3"
+                        >
+                            <VoicePlayback
+                                src={`/employee/reports/${edit.id}/media/${item.id}`}
+                            />
+                            <button
+                                type="button"
+                                aria-label="استبدال التسجيل الحالي"
+                                className="shrink-0 rounded-full p-3 text-red-600"
+                                disabled={sending || recording || openingMic}
+                                onClick={() =>
+                                    setRetained(
+                                        retained.filter(
+                                            (entry) => entry.id !== item.id,
+                                        ),
+                                    )
+                                }
+                            >
+                                <Trash2 />
+                            </button>
+                        </div>
+                    ))}
+            {edit && (
+                <div className="grid grid-cols-3 gap-2">
+                    {retained
+                        .filter((item) => item.kind === 'image')
+                        .map((item) => (
+                            <div key={item.id} className="relative">
+                                <img
+                                    src={`/employee/reports/${edit.id}/media/${item.id}`}
+                                    alt="صورة مرفقة"
+                                    className="aspect-square w-full rounded-2xl object-cover"
+                                />
+                                <button
+                                    type="button"
+                                    aria-label="إزالة الصورة من التقرير"
+                                    className="absolute top-1 right-1 rounded-full bg-white p-2 text-red-600"
+                                    disabled={sending}
+                                    onClick={() =>
+                                        setRetained(
+                                            retained.filter(
+                                                (entry) => entry.id !== item.id,
+                                            ),
+                                        )
+                                    }
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))}
+                </div>
+            )}
             {audioUrl && (
                 <div
-                    aria-label="اختيار صور من المعرض"
-                    className="workforce-icon"
+                    aria-label="معاينة التسجيل قبل الإرسال"
+                    className="flex w-full min-w-0 items-center gap-2 rounded-2xl border border-white bg-white/80 p-3"
                 >
                     <VoicePlayback src={audioUrl} />
                     <button
@@ -428,7 +515,11 @@ export default function ReportComposer() {
             )}
             <button
                 disabled={
-                    sending || openingMic || recording || !online || !audio
+                    sending ||
+                    openingMic ||
+                    recording ||
+                    !online ||
+                    (!audio && !retained.some((item) => item.kind === 'audio'))
                 }
                 onClick={() => {
                     void send();
@@ -442,14 +533,16 @@ export default function ReportComposer() {
                     <Send size={42} strokeWidth={1.6} />
                 )}
             </button>
-            {images.length > 0 && !audio && (
-                <p
-                    role="alert"
-                    className="rounded-xl bg-amber-100 p-3 text-amber-950"
-                >
-                    🎤 أضف تسجيلًا صوتيًا لإرسال هذه الصور.
-                </p>
-            )}
+            {images.length > 0 &&
+                !audio &&
+                !retained.some((item) => item.kind === 'audio') && (
+                    <p
+                        role="alert"
+                        className="rounded-xl bg-amber-100 p-3 text-amber-950"
+                    >
+                        🎤 أضف تسجيلًا صوتيًا لإرسال هذه الصور.
+                    </p>
+                )}
         </section>
     );
 }
