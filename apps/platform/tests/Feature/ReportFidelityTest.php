@@ -107,6 +107,21 @@ class ReportFidelityTest extends TestCase
         $this->assertSame([], $demo->run('structured', [])->payload['claims']);
     }
 
+    public function test_structured_generation_can_reference_only_supplied_evidence_ids(): void
+    {
+        config(['workforce.openai_key' => 'synthetic-test-key']);
+        Http::fake(['api.openai.com/v1/responses' => Http::response([
+            'status' => 'completed',
+            'output' => [['content' => [['type' => 'output_text', 'text' => json_encode($this->payload(null, null), JSON_THROW_ON_ERROR)]]]],
+        ])]);
+        (new OpenAIReportAI)->run('structured', ['data' => [
+            'sources' => ['text' => 'Synthetic note.', 'audio:42' => 'Work remains.'],
+            'english_translation' => ['english' => 'Work remains.', 'uncertainties' => []],
+            'unverified_images' => ['image:43' => ['observations' => [], 'uncertainties' => []]],
+        ]]);
+        Http::assertSent(fn ($request) => $request['text']['format']['schema']['properties']['claims']['items']['properties']['evidence_ids']['items']['enum'] === ['text', 'audio:42', 'image:43']);
+    }
+
     public function test_hostile_employee_text_is_data_not_system_instructions_or_tools(): void
     {
         Http::preventStrayRequests();

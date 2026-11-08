@@ -72,7 +72,7 @@ class ProcessReport implements ShouldQueue
                 }
                 ReportOutput::query()->firstOrCreate(['report_id' => $report->id, 'stage' => $stage['key']], [
                     'tenant_id' => $this->tenantId, 'provider' => $result->provider ?? (string) config('workforce.ai_provider'),
-                    'model' => $result->model, 'prompt_version' => 'workforce-v1', 'schema_version' => '1',
+                    'model' => $result->model, 'prompt_version' => 'workforce-v1', 'schema_version' => $stage['kind'] === 'structured' ? '2' : '1',
                     'payload' => $result->payload, 'usage' => $result->usage,
                 ]);
                 $current->touch();
