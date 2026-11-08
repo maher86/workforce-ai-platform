@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         Event::listen(ReportSubmitted::class, function (ReportSubmitted $event): void {
             try {
-                ProcessReport::dispatch($event->tenantId, $event->reportId);
+                ProcessReport::dispatch($event->tenantId, $event->reportId, $event->sourceVersion);
             } catch (Throwable) {
                 // The scheduler recovers persisted submitted reports if Redis is unavailable.
                 Log::warning('report_dispatch_pending', ['tenant_id' => $event->tenantId, 'report_id' => $event->reportId]);

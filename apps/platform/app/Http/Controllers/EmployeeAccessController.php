@@ -8,7 +8,6 @@ use App\Modules\Identity\EmployeeDevice;
 use App\Modules\Identity\Tenant;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportActivity;
-use App\Modules\WorkManagement\WorkItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,15 +47,14 @@ class EmployeeAccessController extends Controller
         $member = app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
 
         return Inertia::render('employee/home', [
+            'tenantName' => fn () => Tenant::query()->findOrFail($member->tenant_id)->name,
             'employeeName' => $member->display_name ?? $request->user()->name,
             'employeePhone' => $member->phone,
             'profilePhotoUrl' => $member->profile_photo_path ? '/employee/profile/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
             'profileSaved' => $request->session()->pull('profile_saved', false),
-            'tenantName' => Tenant::query()->findOrFail($member->tenant_id)->name,
-            'reports' => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at']),
-            'workItems' => WorkItem::query()->where('tenant_id', $member->tenant_id)->where('active', true)->get(['id', 'kind', 'name', 'project_id']),
+            'reports' => fn () => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at']),
             'aiMode' => config('workforce.ai_provider'),
-            'days' => app(ReportActivity::class)->days(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)),
+            'days' => fn () => app(ReportActivity::class)->days(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)),
         ]);
     }
 

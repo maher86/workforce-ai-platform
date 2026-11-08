@@ -10,6 +10,8 @@
 - Vehicles are optional report subjects, never fixed employee groups. Multiple employees may report on one car; one employee may report on many. Show reporting/approval activity as measured counts, never infer productivity, attendance, hours or verified completion from counts, photos or audio duration. Day boundaries use Asia/Dubai for the current product.
 - Service facts are explicit manager confirmations in separate append-only revisions. Preserve unknown rework, require a source/note and a reason for yes, and never overwrite AI evidence. Service metrics use latest versions with coverage and assessed denominators; documented intervals may overlap and do not establish payroll hours or unique completed operations.
 
+- Employees may amend or withdraw only their own report before original created_at + 1 hour; edits never extend the deadline. Preserve prior evidence/output/review provenance and guard jobs by source version. Withdrawal is soft deletion, excluded from active activity/KPIs, with evidence kept until authorized purge/retention. Daily submission/storage quotas still include retained/deleted evidence.
+
 ## Architecture and workflow
 - Read `docs/architecture/overview.md` and relevant ADRs before changing boundaries.
 - Use Laravel, React/TypeScript, PostgreSQL, Redis and Docker Compose. No n8n, Kubernetes or premature microservices.

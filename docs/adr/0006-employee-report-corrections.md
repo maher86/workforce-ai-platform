@@ -1,0 +1,15 @@
+# ADR 0006: One-hour employee report corrections
+
+Status: accepted owner direction, 2026-11-08.
+
+The employee may replace voice, retain/remove supporting images, add images, or withdraw their own report until strictly before original created_at + 1 hour. Exactly at the boundary editing/deletion closes. Existing device/membership validation precedes the shared action; it rechecks ownership, role, active membership, deadline, current source version and quotas inside the transaction. Corrections are capped at twenty per report within this window to bound processing abuse; withdrawal remains available within the hour. Managers do not gain employee source-edit privileges through this endpoint.
+
+ChangeEmployeeReport is channel-independent. It normalizes new uploads outside the lock, then acquires the same distributed report lock as processing/purge, locks tenant then report, and revalidates. Prepared files are cleaned on rejection/replay; retained IDs must belong to current active media of that exact tenant/report. Images require an active audio recording and the resulting report allows one audio/three images. Optimistic source_version and per-report UUID/request hash prevent stale updates and duplicate retries. Successful replay is read-only even after the hour; a key with different content is rejected.
+
+Each edit/withdrawal appends report_source_changes with previous source version, media IDs, original text, review status and all original AI outputs/provider metadata. Prior media are retired rather than overwritten/deleted. Existing human review rows remain associated with their source version; manager history loads old evidence/output/review on demand through authorized endpoints. No personal history is preloaded into the employee UI or publicly cached.
+
+Editing increments source_version and reviewer version, resets review_status to pending and queues only the new source version. Structured output is rebuilt; unchanged transcript/translation and retained-image observations can be reused. Changing/removing audio invalidates its transcript and translation. Removed-image observations cannot be used as current evidence. Worker persistence and failed callbacks check source version, including legacy jobs defaulting to version one. Service confirmations carry the reviewed source version; old confirmations are excluded from KPIs and stale manager forms cannot confirm new sources without reload.
+
+Withdrawal uses Laravel SoftDeletes. Active lists, history, jobs and KPIs exclude withdrawn reports. Authorized managers can still read a withdrawn report and its evidence by ID; modifications are blocked. PurgeReport force-deletes active or withdrawn reports with all media/archive rows; retention includes withdrawn records. Media quota and daily submission counts include retained/deleted data to prevent deletion from bypassing limits. The original submission hash remains the original idempotency identity; an old submission key cannot resurrect a withdrawn report.
+
+No paid provider evaluation, WhatsApp or production deployment is part of this change. Physical-device usability is separate from synthetic test success.

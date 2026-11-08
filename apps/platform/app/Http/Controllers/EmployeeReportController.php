@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\Membership;
 use App\Modules\Media\MediaInput;
+use App\Modules\Reporting\ChangeEmployeeReport;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportAccess;
 use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportMedia;
-use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\SubmitReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,10 +55,10 @@ class EmployeeReportController extends Controller
         $item = $access->view($request->user(), $member->tenant_id, $report);
 
         return Inertia::render('employee/report', [
-            'report' => $item->only(['id', 'source_text', 'status', 'created_at']),
-            'media' => ReportMedia::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)->get(['id', 'kind', 'mime']),
-            'outputs' => ReportOutput::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)
-                ->where(fn ($query) => $query->where('stage', 'like', 'transcript:%')->orWhereIn('stage', ['translation', 'structured']))->orderBy('id')->get(['id', 'stage', 'provider', 'payload']),
+            'report' => $item->only(['id', 'status', 'created_at', 'source_version']),
+            'media' => fn () => ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $member->tenant_id)->where('report_id', $report)->get(['id', 'kind', 'mime']),
+            'editableUntil' => $item->created_at->copy()->addHour()->toIso8601String(),
+            'serverNow' => now()->toIso8601String(),
             'aiMode' => config('workforce.ai_provider'),
         ]);
     }
@@ -68,8 +68,12 @@ class EmployeeReportController extends Controller
         $member = $this->membership($request);
         $request->validate(['day' => 'required|date_format:Y-m-d']);
 
-        $reports = $activity->reports(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id), (string) $request->query('day'));
-        $attachments = ReportMedia::query()->where('tenant_id', $member->tenant_id)->whereIn('report_id', $reports->getCollection()->pluck('id'))
+        $query = Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id);
+        if ($request->filled('from') || $request->filled('to')) {
+            $query = $activity->during($query, $activity->period($request->only(['from', 'to'])));
+        }
+        $reports = $activity->reports($query, (string) $request->query('day'));
+        $attachments = ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $member->tenant_id)->whereIn('report_id', $reports->getCollection()->pluck('id'))
             ->get(['id', 'report_id', 'kind'])->groupBy('report_id');
         foreach ($reports->getCollection() as $report) {
             $report->setAttribute('attachments', $attachments->get($report->id, collect())->map(fn (ReportMedia $media) => $media->only(['id', 'kind']))->values());
@@ -78,11 +82,50 @@ class EmployeeReportController extends Controller
         return response()->json($reports);
     }
 
+    public function history(Request $request, ReportActivity $activity): Response
+    {
+        $member = $this->membership($request);
+        $period = $activity->period($request->only(['from', 'to']));
+        $query = $activity->during(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id), $period);
+
+        return Inertia::render('employee/history', ['period' => $period, 'days' => $activity->days($query)]);
+    }
+
+    public function change(Request $request, int $report, ChangeEmployeeReport $changes): JsonResponse
+    {
+        $member = $this->membership($request);
+        $data = $request->validate([
+            'source_version' => 'required|integer|min:1', 'change_key' => 'required|uuid',
+            'keep' => 'sometimes|array|max:4', 'keep.*' => 'required|integer|distinct',
+            'audio' => 'nullable|file|max:12288', 'images' => 'nullable|array|max:3', 'images.*' => 'file|max:12288',
+        ]);
+        $inputs = [];
+        $audio = $request->file('audio');
+        if ($audio instanceof UploadedFile) {
+            $inputs[] = new MediaInput($audio->getPathname(), 'audio');
+        }
+        foreach ($request->file('images', []) as $image) {
+            $inputs[] = new MediaInput($image->getPathname(), 'image');
+        }
+        $item = $changes->execute($request->user(), $member->tenant_id, $report, (int) $data['source_version'], $data['change_key'], array_values(array_map('intval', $data['keep'] ?? [])), $inputs);
+
+        return response()->json(['id' => $item->id, 'source_version' => $item->source_version]);
+    }
+
+    public function destroy(Request $request, int $report, ChangeEmployeeReport $changes): JsonResponse
+    {
+        $member = $this->membership($request);
+        $data = $request->validate(['source_version' => 'required|integer|min:1', 'change_key' => 'required|uuid']);
+        $changes->execute($request->user(), $member->tenant_id, $report, (int) $data['source_version'], $data['change_key'], [], [], true);
+
+        return response()->json(['deleted' => true]);
+    }
+
     public function media(Request $request, int $report, int $media, ReportAccess $access): BinaryFileResponse
     {
         $member = $this->membership($request);
         $access->view($request->user(), $member->tenant_id, $report);
-        $item = ReportMedia::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)->findOrFail($media);
+        $item = ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $member->tenant_id)->where('report_id', $report)->findOrFail($media);
 
         return response()->file(Storage::disk('reports')->path($item->path), ['Content-Type' => $item->mime, 'Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']);
     }

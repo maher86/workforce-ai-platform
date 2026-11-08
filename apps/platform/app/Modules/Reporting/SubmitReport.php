@@ -38,8 +38,9 @@ class SubmitReport
             $identity[] = $plateKey;
         }
         $hash = hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
-        $existing = Report::query()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
+        $existing = Report::withTrashed()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
         if ($existing) {
+            $this->valid(! $existing->trashed(), 'هذا التقرير محذوف. أرسل تقريرًا جديدًا بمفتاح جديد.');
             $this->valid(hash_equals($existing->content_hash, $hash), 'استُخدم مفتاح الإرسال لمحتوى مختلف.');
 
             return $existing;
@@ -55,14 +56,15 @@ class SubmitReport
             return DB::transaction(function () use ($actor, $tenantId, $submissionKey, $text, $hash, $projectId, $taskId, $prepared, $vehiclePlate, &$paths) {
                 $tenant = Tenant::query()->lockForUpdate()->findOrFail($tenantId);
                 $member = $this->access->member($actor, $tenantId);
-                $existing = Report::query()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
+                $existing = Report::withTrashed()->where('tenant_id', $tenantId)->where('membership_id', $member->id)->where('submission_key', $submissionKey)->first();
                 if ($existing) {
+                    $this->valid(! $existing->trashed(), 'هذا التقرير محذوف. أرسل تقريرًا جديدًا بمفتاح جديد.');
                     $this->valid(hash_equals($existing->content_hash, $hash), 'استُخدم مفتاح الإرسال لمحتوى مختلف.');
                     Storage::disk('reports')->delete($paths);
 
                     return $existing;
                 }
-                $this->valid(Report::query()->where('tenant_id', $tenantId)->where('created_at', '>=', now()->startOfDay())->count() < $tenant->daily_report_limit, 'وصلت المؤسسة إلى حد التقارير اليومي.');
+                $this->valid(Report::withTrashed()->where('tenant_id', $tenantId)->where('created_at', '>=', now()->startOfDay())->count() < $tenant->daily_report_limit, 'وصلت المؤسسة إلى حد التقارير اليومي.');
                 $bytes = array_sum(array_map(fn (PreparedMedia $media) => $media->bytes, $prepared));
                 $this->valid(ReportMedia::query()->where('tenant_id', $tenantId)->sum('bytes') + $bytes <= $tenant->storage_limit_mb * 1024 * 1024, 'وصلت المؤسسة إلى حد التخزين.');
                 $projectId = $this->validateWork($tenantId, $projectId, $taskId);

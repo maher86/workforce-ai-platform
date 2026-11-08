@@ -26,7 +26,7 @@ class ReportPipeline
     public function next(Report $report): ?array
     {
         $done = ReportOutput::query()->where('tenant_id', $report->tenant_id)->where('report_id', $report->id)->pluck('stage')->all();
-        $media = ReportMedia::query()->where('tenant_id', $report->tenant_id)->where('report_id', $report->id)->orderBy('id')->get();
+        $media = ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $report->tenant_id)->where('report_id', $report->id)->orderBy('id')->get();
         foreach ($media->where('kind', 'audio') as $item) {
             if (! in_array('transcript:'.$item->id, $done, true)) {
                 return ['key' => 'transcript:'.$item->id, 'kind' => 'transcript', 'context' => ['path' => Storage::disk('reports')->path($item->path)]];
@@ -65,7 +65,7 @@ class ReportPipeline
             return;
         }
         $sources = $this->sources($report);
-        $images = ReportMedia::query()->where('tenant_id', $report->tenant_id)->where('report_id', $report->id)->where('kind', 'image')->pluck('id')->map(fn ($id) => 'image:'.$id)->all();
+        $images = ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $report->tenant_id)->where('report_id', $report->id)->where('kind', 'image')->pluck('id')->map(fn ($id) => 'image:'.$id)->all();
         foreach ($payload['claims'] as $claim) {
             $textEvidence = [];
             foreach ($claim['evidence_ids'] as $reference) {

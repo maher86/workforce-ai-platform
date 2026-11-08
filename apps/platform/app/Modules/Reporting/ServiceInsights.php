@@ -14,7 +14,9 @@ class ServiceInsights
     {
         $latest = DB::table('report_service_facts')->where('tenant_id', $tenant)->selectRaw('report_id, MAX(version) as version')->groupBy('report_id');
         $facts = DB::table('report_service_facts as facts')->joinSub($latest, 'latest', fn ($join) => $join->on('facts.report_id', '=', 'latest.report_id')->on('facts.version', '=', 'latest.version'))
-            ->where('facts.tenant_id', $tenant)->whereIn('facts.report_id', (clone $reports)->select('reports.id'));
+            ->join('reports as current_report', function ($join) {
+                $join->on('facts.report_id', '=', 'current_report.id')->on('facts.tenant_id', '=', 'current_report.tenant_id')->on('facts.source_version', '=', 'current_report.source_version');
+            })->where('facts.tenant_id', $tenant)->whereIn('facts.report_id', (clone $reports)->select('reports.id'));
         $counts = (clone $facts)->selectRaw('COUNT(*)::int as confirmed, COUNT(service_type)::int as classified, COUNT(rework)::int as assessed, COUNT(started_at)::int as timed')
             ->selectRaw('COUNT(*) FILTER (WHERE rework IS TRUE)::int as reworks, AVG(EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) as average_minutes')->first();
         $assessed = (int) ($counts->assessed ?? 0);

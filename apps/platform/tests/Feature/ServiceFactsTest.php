@@ -44,7 +44,7 @@ class ServiceFactsTest extends TestCase
     /** @return array<string, mixed> */
     private function facts(): array
     {
-        return ['version' => 0, 'service_type' => 'Synthetic oil service', 'started_at' => '2026-01-01T23:30', 'ended_at' => '2026-01-02T00:30', 'rework' => true, 'rework_reason' => 'Synthetic documented return', 'confirmation_note' => 'Synthetic manager checked original source.'];
+        return ['source_version' => 1, 'version' => 0, 'service_type' => 'Synthetic oil service', 'started_at' => '2026-01-01T23:30', 'ended_at' => '2026-01-02T00:30', 'rework' => true, 'rework_reason' => 'Synthetic documented return', 'confirmation_note' => 'Synthetic manager checked original source.'];
     }
 
     public function test_manager_appends_revisions_converts_dubai_time_and_preserves_evidence(): void
@@ -58,7 +58,7 @@ class ServiceFactsTest extends TestCase
         $fact = ReportServiceFact::query()->firstOrFail();
         $this->assertSame('2026-01-01 19:30:00', $fact->getAttribute('started_at')->utc()->format('Y-m-d H:i:s'));
         $this->assertTrue($fact->getAttribute('rework'));
-        $this->post($url.'/service-facts', ['version' => 1, 'rework' => null, 'confirmation_note' => 'Correcting classification; interval unknown.'])->assertSessionHasNoErrors();
+        $this->post($url.'/service-facts', ['source_version' => 1, 'version' => 1, 'rework' => null, 'confirmation_note' => 'Correcting classification; interval unknown.'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('report_service_facts', 2);
         $this->assertSame($original, $report->fresh()->getAttributes());
         $this->assertSame($originalOutput, $output->fresh()->getAttributes());
@@ -109,8 +109,8 @@ class ServiceFactsTest extends TestCase
         }
         $action = app(ConfirmServiceFacts::class);
         $action->execute($owner, $tenant->id, $report->id, $this->facts());
-        $action->execute($owner, $tenant->id, $report->id, array_replace($this->facts(), ['version' => 1, 'rework' => false]));
-        $action->execute($owner, $tenant->id, $other->id, ['version' => 0, 'rework' => true, 'rework_reason' => 'Synthetic return', 'confirmation_note' => 'Synthetic verification']);
+        $action->execute($owner, $tenant->id, $report->id, array_replace($this->facts(), ['source_version' => 1, 'version' => 1, 'rework' => false]));
+        $action->execute($owner, $tenant->id, $other->id, ['source_version' => 1, 'version' => 0, 'rework' => true, 'rework_reason' => 'Synthetic return', 'confirmation_note' => 'Synthetic verification']);
         $url = '/tenants/'.$tenant->id.'/insights?from=2026-01-02&to=2026-01-02';
         $this->actingAs($owner)->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('serviceInsights.confirmed', 2)->where('serviceInsights.assessed', 2)->where('serviceInsights.reworks', 1)->where('serviceInsights.reworkRate', 50)
@@ -131,7 +131,7 @@ class ServiceFactsTest extends TestCase
     {
         [$owner, $tenant, , $report] = $this->workforce();
         app(ConfirmServiceFacts::class)->execute($owner, $tenant->id, $report->id, $this->facts());
-        $report->delete();
+        $report->forceDelete();
         $this->assertDatabaseCount('report_service_facts', 0);
     }
 }

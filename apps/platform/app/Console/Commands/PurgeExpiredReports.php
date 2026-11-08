@@ -17,7 +17,7 @@ class PurgeExpiredReports extends Command
     {
         $count = 0;
         foreach (Tenant::query()->orderBy('id')->cursor() as $tenant) {
-            $reports = Report::query()->where('tenant_id', $tenant->id)->where('created_at', '<', now()->subDays(max(1, $tenant->retention_days)))->orderBy('id')->limit(100)->get();
+            $reports = Report::withTrashed()->where('tenant_id', $tenant->id)->where('created_at', '<', now()->subDays(max(1, $tenant->retention_days)))->orderBy('id')->limit(100)->get();
             foreach ($reports as $report) {
                 $count++;
                 if ($this->option('apply')) {

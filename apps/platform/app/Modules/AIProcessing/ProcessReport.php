@@ -21,7 +21,12 @@ class ProcessReport implements ShouldQueue
 
     public int $timeout = 60;
 
-    public function __construct(public int $tenantId, public int $reportId) {}
+    public int $sourceVersion = 1;
+
+    public function __construct(public int $tenantId, public int $reportId, int $sourceVersion = 1)
+    {
+        $this->sourceVersion = $sourceVersion;
+    }
 
     /** @return list<int> */
     public function backoff(): array
@@ -39,7 +44,7 @@ class ProcessReport implements ShouldQueue
         }
         try {
             $report = Report::query()->where('tenant_id', $this->tenantId)->find($this->reportId);
-            if (! $report || in_array($report->status, ['ready', 'failed'], true)) {
+            if (! $report || $report->source_version !== $this->sourceVersion || in_array($report->status, ['ready', 'failed'], true)) {
                 return;
             }
             $active = Membership::query()->where('tenant_id', $this->tenantId)->where('active', true)->whereKey($report->membership_id)->exists();
@@ -62,7 +67,7 @@ class ProcessReport implements ShouldQueue
             $pipeline->validate($report, $stage['kind'], $result->payload);
             DB::transaction(function () use ($report, $stage, $result) {
                 $current = Report::query()->where('tenant_id', $this->tenantId)->lockForUpdate()->find($report->id);
-                if (! $current || $current->status === 'failed' || ! Membership::query()->where('tenant_id', $this->tenantId)->where('active', true)->whereKey($current->membership_id)->exists()) {
+                if (! $current || $current->source_version !== $report->source_version || $current->status === 'failed' || ! Membership::query()->where('tenant_id', $this->tenantId)->where('active', true)->whereKey($current->membership_id)->exists()) {
                     return;
                 }
                 ReportOutput::query()->firstOrCreate(['report_id' => $report->id, 'stage' => $stage['key']], [
@@ -79,12 +84,12 @@ class ProcessReport implements ShouldQueue
             $lock->release();
         }
         // One API stage per bounded job; persisted stages survive retries/restarts.
-        self::dispatch($this->tenantId, $this->reportId);
+        self::dispatch($this->tenantId, $this->reportId, $this->sourceVersion);
     }
 
     public function failed(?Throwable $exception): void
     {
-        $changed = Report::query()->where('tenant_id', $this->tenantId)->whereKey($this->reportId)->where('status', '!=', 'ready')
+        $changed = Report::query()->where('tenant_id', $this->tenantId)->whereKey($this->reportId)->where('source_version', $this->sourceVersion)->where('status', '!=', 'ready')
             ->update(['status' => 'failed', 'failure_code' => 'processing_failed', 'processing_started_at' => null]);
         if ($changed > 0) {
             Audit::record($this->tenantId, null, 'report.failed', 'report', $this->reportId);

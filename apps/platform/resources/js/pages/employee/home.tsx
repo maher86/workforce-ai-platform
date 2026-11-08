@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import {
     AlertTriangle,
@@ -16,12 +16,14 @@ import ReportComposer from '@/components/report-composer';
 
 export default function EmployeeHome({
     employeeName,
+    tenantName,
     reports,
     profilePhotoUrl,
     days,
     aiMode,
 }: {
     employeeName: string;
+    tenantName: string;
     reports: { id: number; status: string; created_at: string }[];
     profilePhotoUrl: string | null;
     days: DayPages;
@@ -70,7 +72,7 @@ export default function EmployeeHome({
                     )}
                 </div>
             </div>
-            <header className="employee-identity">
+            <header className="employee-identity" aria-label={tenantName}>
                 <EmployeeProfilePhoto
                     url={profilePhotoUrl}
                     name={employeeName}
@@ -118,7 +120,13 @@ export default function EmployeeHome({
                 <ReportComposer />
                 <section aria-label="سجل تقاريري" className="space-y-4">
                     <div className="flex items-center justify-between px-1 text-slate-700">
-                        <FileAudio className="text-orange-500" size={27} />
+                        <Link
+                            href="/employee/history"
+                            aria-label="عرض جميع تقاريري حسب الفترة"
+                            className="workforce-icon"
+                        >
+                            <FileAudio className="text-orange-500" size={27} />
+                        </Link>
                         <span className="text-sm font-bold tabular-nums">
                             {days.data.reduce((sum, day) => sum + day.total, 0)}
                         </span>
