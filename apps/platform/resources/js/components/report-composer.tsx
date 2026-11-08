@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import VoicePlayback from '@/components/voice-playback';
+import MicrophoneAccessHelp from '@/components/microphone-access-help';
 import {
     startVoiceRecorder,
     voiceAvailability,
@@ -364,6 +365,7 @@ export default function ReportComposer({
                         else {
                             setAudio(file);
                             setSent(false);
+                            setError('');
                         }
                     }
                     event.target.value = '';
@@ -502,6 +504,15 @@ export default function ReportComposer({
                     className="space-y-3 rounded-xl bg-red-100 p-4 text-red-900"
                 >
                     <p>{error}</p>
+                    {error.endsWith('[MIC-ACCESS]') && (
+                        <MicrophoneAccessHelp
+                            busy={sending || recording || openingMic}
+                            onRetry={() => {
+                                void record();
+                            }}
+                            onUpload={() => audioInput.current?.click()}
+                        />
+                    )}
                 </div>
             )}
             {sent && (
