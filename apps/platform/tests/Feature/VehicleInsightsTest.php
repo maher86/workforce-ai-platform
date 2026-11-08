@@ -70,6 +70,7 @@ class VehicleInsightsTest extends TestCase
         $this->actingAs($owner)->get($base.'/vehicles/'.$other->vehicle_id)->assertNotFound();
         $this->get('/tenants/'.$foreign->id.'/vehicles')->assertNotFound();
         $this->get($base.'/reports/by-day?day=2026-11-07&vehicle='.$other->vehicle_id)->assertNotFound();
+        $this->get($base.'/reports?vehicle='.$other->vehicle_id)->assertNotFound();
         $this->get($base.'/insights?employee='.$foreignPerson->id)->assertNotFound();
         $this->post($base.'/reports/'.$other->id.'/vehicle', ['vehicle_plate' => 'TEST Z 1'])->assertNotFound();
     }
@@ -131,7 +132,7 @@ class VehicleInsightsTest extends TestCase
             $rows[] = ['tenant_id' => $tenant->id, 'membership_id' => $person->id, 'submission_key' => Str::uuid(), 'content_hash' => str_repeat('a', 64), 'created_at' => '2026-11-07 10:00:00', 'updated_at' => '2026-11-07 10:00:00'];
         }
         Report::query()->insert($rows);
-        $this->actingAs($owner)->get('/tenants/'.$tenant->id.'/reports?employee='.$person->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('days.data.0.total', 51));
+        $this->actingAs($owner)->get('/tenants/'.$tenant->id.'/reports?range=all&employee='.$person->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('reports.total', 51)->where('summary.reports', 51));
         $path = '/tenants/'.$tenant->id.'/reports/by-day?day=2026-11-07&employee='.$person->id;
         $this->get($path)->assertOk()->assertJsonCount(50, 'data')->assertJsonPath('last_page', 2);
         $this->get($path.'&reports_page=2')->assertOk()->assertJsonCount(1, 'data');

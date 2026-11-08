@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Modules\Audit\Audit;
 use App\Modules\Identity\Membership;
-use App\Modules\Identity\Tenant;
 use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\PurgeReport;
 use App\Modules\Reporting\Report;
@@ -74,19 +73,7 @@ class ManagerReportController extends Controller
 
     public function index(Request $request, int $tenant): Response
     {
-        $query = $this->query($request, $tenant);
-        $reports = $query->latest('id')->paginate(25)->withQueryString();
-        $members = Membership::query()->where('tenant_id', $tenant)->get();
-        $names = User::query()->whereIn('id', $members->pluck('user_id'))->pluck('name', 'id');
-        $employeeNames = $members->mapWithKeys(fn (Membership $member) => [$member->id => $member->display_name ?? $names[$member->user_id] ?? 'Employee'])->all();
-
-        return Inertia::render('reports/index', [
-            'tenant' => Tenant::query()->findOrFail($tenant), 'reports' => $reports,
-            'employeeNames' => $employeeNames, 'filters' => $request->only(['status', 'review_status', 'employee', 'from', 'to', 'vehicle']),
-            'workItems' => WorkItem::query()->where('tenant_id', $tenant)->latest('id')->get(),
-            'aiMode' => config('workforce.ai_provider'),
-            'days' => app(ReportActivity::class)->days($this->query($request, $tenant)),
-        ]);
+        return app(ManagerOverviewController::class)->index($request, $tenant);
     }
 
     public function show(Request $request, int $tenant, int $report): Response

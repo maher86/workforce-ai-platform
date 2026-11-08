@@ -63,82 +63,6 @@ type Props = {
     vehicle: { id: number; plate: string } | null;
 };
 
-function ReviewForm({ report, initial }: { report: Report; initial: string }) {
-    const form = useForm({
-        version: report.version,
-        english_report: initial,
-        reason: '',
-        status: 'approved',
-    });
-    return (
-        <form
-            className="space-y-4 rounded-2xl border p-5"
-            onSubmit={(event) => {
-                event.preventDefault();
-                form.post(
-                    `/tenants/${report.tenant_id}/reports/${report.id}/review`,
-                );
-            }}
-        >
-            <h2 className="text-xl font-bold">مراجعة بشرية</h2>
-            {!report.deleted_at && report.status === 'failed' && (
-                <p className="rounded-xl bg-amber-100 p-3 text-amber-950">
-                    المعالجة متوقفة؛ يمكنك إكمال التقرير يدويًا بعد مراجعة
-                    المصادر، مع تسجيل سبب المراجعة.
-                </p>
-            )}
-            <p className="text-muted-foreground">
-                تحقق من المصادر قبل الاعتماد. التعديلات تُحفظ كإصدار جديد؛ الناتج
-                الأصلي يبقى محفوظًا.
-            </p>
-            <label className="block">
-                التقرير الإنجليزي
-                <textarea
-                    dir="ltr"
-                    required
-                    maxLength={30000}
-                    value={form.data.english_report}
-                    onChange={(event) =>
-                        form.setData('english_report', event.target.value)
-                    }
-                    className="mt-2 min-h-44 w-full rounded-xl border p-3 text-left"
-                />
-            </label>
-            <label className="block">
-                سبب التعديل أو الاعتماد
-                <textarea
-                    required
-                    maxLength={2000}
-                    value={form.data.reason}
-                    onChange={(event) =>
-                        form.setData('reason', event.target.value)
-                    }
-                    className="mt-2 min-h-20 w-full rounded-xl border p-3"
-                />
-            </label>
-            <label className="block">
-                القرار
-                <select
-                    value={form.data.status}
-                    onChange={(event) =>
-                        form.setData('status', event.target.value)
-                    }
-                    className="mx-3 rounded-lg border bg-background p-3"
-                >
-                    <option value="approved">اعتماد بعد المراجعة</option>
-                    <option value="changes_requested">يحتاج تعديلًا</option>
-                </select>
-            </label>
-            {Object.values(form.errors).length > 0 && (
-                <p role="alert" className="text-red-700">
-                    {Object.values(form.errors).join(' ')}
-                </p>
-            )}
-            <Button disabled={form.processing}>حفظ إصدار المراجعة</Button>
-        </form>
-    );
-}
-
 export default function ShowReport({
     report,
     employeeName,
@@ -164,7 +88,6 @@ export default function ShowReport({
         );
         return () => window.clearInterval(timer);
     }, [report.status]);
-    const generated = outputs.find((output) => output.stage === 'structured');
     return (
         <main
             dir="rtl"
@@ -226,13 +149,18 @@ export default function ShowReport({
                     </p>
                 )}
             {!report.deleted_at && (
-                <ServiceFactsForm
-                    key={`${report.id}-${report.source_version}-${currentServiceFact?.version ?? 0}`}
-                    base={base}
-                    current={currentServiceFact}
-                    sourceVersion={report.source_version}
-                    history={serviceFacts}
-                />
+                <details className="rounded-2xl border p-4">
+                    <summary className="cursor-pointer font-semibold">
+                        بيانات خدمة إضافية (اختياري)
+                    </summary>
+                    <ServiceFactsForm
+                        key={`${report.id}-${report.source_version}-${currentServiceFact?.version ?? 0}`}
+                        base={base}
+                        current={currentServiceFact}
+                        sourceVersion={report.source_version}
+                        history={serviceFacts}
+                    />
+                </details>
             )}
             <section
                 className="rounded-2xl border bg-teal-50 p-5 text-slate-900"
@@ -403,18 +331,6 @@ export default function ShowReport({
                     </details>
                 </section>
             ))}
-            {!report.deleted_at &&
-                ['ready', 'failed'].includes(report.status) && (
-                    <ReviewForm
-                        key={`${report.id}-${report.version}-${report.status}`}
-                        report={report}
-                        initial={
-                            revisions[0]?.english_report ||
-                            generated?.payload.summary ||
-                            ''
-                        }
-                    />
-                )}
             {canDelete && (
                 <Button
                     variant="destructive"
@@ -431,32 +347,42 @@ export default function ShowReport({
                 </Button>
             )}
             <ReportSourceHistory pages={sourceChanges} base={base} />
-            <section className="space-y-4">
-                <h2 className="text-xl font-bold">
-                    سجل مراجعة المصادر الحالية
-                </h2>
-                {revisions.map((revision) => (
-                    <article
-                        className="space-y-2 rounded-xl border p-4"
-                        key={revision.id}
-                    >
-                        <h3 className="font-bold">
-                            إصدار {revision.version} ·{' '}
-                            {revision.status === 'approved'
-                                ? 'اعتماد بشري'
-                                : 'يحتاج تعديلًا'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                            {new Date(revision.created_at).toLocaleString('ar')}{' '}
-                            · المراجع #{revision.actor_id}
-                        </p>
-                        <p dir="ltr" className="text-left whitespace-pre-wrap">
-                            {revision.english_report}
-                        </p>
-                        <p>{revision.reason}</p>
-                    </article>
-                ))}
-            </section>
+            {revisions.length > 0 && (
+                <details className="space-y-4 rounded-2xl border p-4">
+                    <summary className="cursor-pointer font-semibold">
+                        سجل المراجعات السابق
+                    </summary>
+                    <h2 className="text-xl font-bold">
+                        سجل مراجعة المصادر الحالية
+                    </h2>
+                    {revisions.map((revision) => (
+                        <article
+                            className="space-y-2 rounded-xl border p-4"
+                            key={revision.id}
+                        >
+                            <h3 className="font-bold">
+                                إصدار {revision.version} ·{' '}
+                                {revision.status === 'approved'
+                                    ? 'اعتماد بشري'
+                                    : 'يحتاج تعديلًا'}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                                {new Date(revision.created_at).toLocaleString(
+                                    'ar',
+                                )}{' '}
+                                · المراجع #{revision.actor_id}
+                            </p>
+                            <p
+                                dir="ltr"
+                                className="text-left whitespace-pre-wrap"
+                            >
+                                {revision.english_report}
+                            </p>
+                            <p>{revision.reason}</p>
+                        </article>
+                    ))}
+                </details>
+            )}
         </main>
     );
 }

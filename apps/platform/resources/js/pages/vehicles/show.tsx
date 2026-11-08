@@ -56,7 +56,7 @@ export default function Vehicle({
                     {contributors.map((person) => (
                         <Link
                             key={person.id}
-                            href={`/tenants/${tenant.id}/insights?employee=${person.id}`}
+                            href={`/tenants/${tenant.id}/employees/${person.id}/reports`}
                             className="flex flex-col items-center gap-3 rounded-2xl border bg-white p-5 shadow-sm"
                         >
                             {person.photo ? (

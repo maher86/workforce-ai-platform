@@ -13,6 +13,8 @@
 - Employees may amend or withdraw only their own report before original created_at + 1 hour; edits never extend the deadline. Preserve prior evidence/output/review provenance and guard jobs by source version. Withdrawal is soft deletion, excluded from active activity/KPIs, with evidence kept until authorized purge/retention. Daily submission/storage quotas still include retained/deleted evidence.
 
 ## Architecture and workflow
+
+- Owner clarification 2026-11-08: reports appear and count without manager approval. Keep the main manager UI simple and default to today's employee reports in Asia/Dubai. Preserve historical review evidence; never auto-mark reports as human-approved. Counts remain submissions, not verified completed tasks. See ADR 0007.
 - Read `docs/architecture/overview.md` and relevant ADRs before changing boundaries.
 - Use Laravel, React/TypeScript, PostgreSQL, Redis and Docker Compose. No n8n, Kubernetes or premature microservices.
 - Track work in GitHub Issues; use short `codex/<issue>-<slug>` branches from `dev`, with PRs to `dev`. The initial foundation branch predates issue numbering.
