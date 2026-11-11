@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { LoaderCircle, Pause, Play } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -6,6 +7,8 @@ const clock = (seconds: number) =>
         ? `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
         : '—';
 export default function VoicePlayback({ src }: { src: string }) {
+    const { t } = useUiLocale();
+
     const audio = useRef<HTMLAudioElement>(null);
     const [playing, setPlaying] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -21,7 +24,7 @@ export default function VoicePlayback({ src }: { src: string }) {
                 <button
                     type="button"
                     aria-label={
-                        playing ? 'إيقاف تشغيل التسجيل' : 'تشغيل التسجيل'
+                        playing ? t('إيقاف تشغيل التسجيل') : t('تشغيل التسجيل')
                     }
                     className="voice-play"
                     disabled={loading}
@@ -36,7 +39,9 @@ export default function VoicePlayback({ src }: { src: string }) {
                                 .play()
                                 .catch(() =>
                                     setError(
-                                        'تعذّر تشغيل الصوت. أعد المحاولة أو اطلب مساعدة المدير.',
+                                        t(
+                                            'تعذّر تشغيل الصوت. أعد المحاولة أو اطلب مساعدة المدير.',
+                                        ),
                                     ),
                                 )
                                 .finally(() => setLoading(false));
@@ -53,7 +58,7 @@ export default function VoicePlayback({ src }: { src: string }) {
                 </button>
                 <input
                     type="range"
-                    aria-label="موضع تشغيل التسجيل"
+                    aria-label={t('موضع تشغيل التسجيل')}
                     className="w-0 min-w-0 flex-1 accent-orange-500"
                     min={0}
                     max={
@@ -92,7 +97,7 @@ export default function VoicePlayback({ src }: { src: string }) {
                         setPlaying(false);
                         setLoading(false);
                         setError(
-                            'تعذّر تحميل التسجيل. تحقق من الاتصال والصلاحية.',
+                            t('تعذّر تحميل التسجيل. تحقق من الاتصال والصلاحية.'),
                         );
                     }}
                 />

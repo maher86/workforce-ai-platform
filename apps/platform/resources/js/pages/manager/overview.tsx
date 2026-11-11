@@ -1,3 +1,5 @@
+import ManagerLanguageSwitch from '@/components/manager-language-switch';
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowUpLeft,
@@ -66,11 +68,7 @@ const date = new Intl.DateTimeFormat('en-CA', {
     month: '2-digit',
     day: '2-digit',
 });
-const time = new Intl.DateTimeFormat('ar-AE', {
-    timeZone: 'Asia/Dubai',
-    hour: '2-digit',
-    minute: '2-digit',
-});
+
 function Avatar({
     person,
     large = false,
@@ -78,6 +76,8 @@ function Avatar({
     person?: Person;
     large?: boolean;
 }) {
+    const { t } = useUiLocale();
+
     return (
         <span
             className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-400 ring-2 ring-white ${large ? 'h-24 w-24' : 'h-12 w-12'}`}
@@ -85,7 +85,7 @@ function Avatar({
             {person?.photo ? (
                 <img
                     src={person.photo}
-                    alt={`صورة ${person.name}`}
+                    alt={`${t('صورة')} ${person.name}`}
                     loading="lazy"
                     className="h-full w-full object-cover"
                 />
@@ -110,6 +110,13 @@ export default function Overview({
     aiMode,
     vehicle,
 }: Props) {
+    const { t, locale, direction } = useUiLocale();
+
+    const time = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-AE' : 'en-GB', {
+        timeZone: 'Asia/Dubai',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
     const selected = people.find((person) => person.id === selectedEmployee);
     const base = `/tenants/${tenant.id}/reports`;
     const endpoint =
@@ -189,12 +196,12 @@ export default function Overview({
     });
     return (
         <main
-            dir="rtl"
-            lang="ar"
+            dir={direction}
+            lang={locale}
             className="workforce-surface manager-surface mx-auto min-h-svh w-full max-w-6xl space-y-5 p-4 sm:p-6"
         >
             <Head
-                title={profile && selected ? selected.name : 'تقارير الفريق'}
+                title={profile && selected ? selected.name : t('تقارير الفريق')}
             />
             <header className="manager-hero flex flex-wrap items-center justify-between gap-5">
                 <div className="flex items-center gap-4">
@@ -208,7 +215,7 @@ export default function Overview({
                         <h1 className="mt-1 text-2xl font-bold">
                             {profile && selected
                                 ? selected.name
-                                : 'تقارير الفريق'}
+                                : t('تقارير الفريق')}
                         </h1>
                         {profile && selected?.phone && (
                             <p
@@ -222,32 +229,34 @@ export default function Overview({
                 </div>
                 <nav
                     className="flex flex-wrap items-center gap-2"
-                    aria-label="لوحة المدير"
+                    aria-label={t('لوحة المدير')}
                 >
+                    <ManagerLanguageSwitch className="border-white/30 text-white" />
+
                     {profile && (
                         <Link
                             href={base}
                             className="rounded-xl border border-white/30 px-4 py-3"
                         >
-                            كل الموظفين
+                            {' '}
+                            {t('كل الموظفين')}{' '}
                         </Link>
                     )}
                     <Link
                         href={`/tenants/${tenant.id}/team`}
                         className="flex items-center gap-2 rounded-xl border border-white/30 px-4 py-3"
                     >
-                        <Users size={20} />
-                        الفريق
+                        <Users size={20} /> {t('الفريق')}{' '}
                     </Link>
                     <Link
                         href={`/tenants/${tenant.id}/vehicles`}
-                        aria-label="السيارات"
+                        aria-label={t('السيارات')}
                         className="rounded-xl border border-white/30 p-3"
                     >
                         <CarFront size={21} />
                     </Link>
                     <button
-                        aria-label="تسجيل الخروج"
+                        aria-label={t('تسجيل الخروج')}
                         className="rounded-xl border border-white/30 p-3"
                         onClick={() => router.post('/logout')}
                     >
@@ -262,13 +271,15 @@ export default function Overview({
                         {vehicle.plate}
                     </Link>
                     <Link href={base} className="text-sm text-slate-500">
-                        كل السيارات
+                        {' '}
+                        {t('كل السيارات')}{' '}
                     </Link>
                 </p>
             )}
             {workspaces.length > 1 && (
                 <label className="block text-sm">
-                    المؤسسة
+                    {' '}
+                    {t('المؤسسة')}{' '}
                     <select
                         className="mx-3 rounded-xl border bg-white p-2"
                         value={tenant.id}
@@ -286,14 +297,16 @@ export default function Overview({
             )}
             {aiMode !== 'openai' && (
                 <p className="rounded-2xl bg-amber-50 p-3 text-amber-900">
-                    وضع تجريبي؛ لا يُحوّل الصوت فعليًا.
+                    {' '}
+                    {t('وضع تجريبي؛ لا يُحوّل الصوت فعليًا.')}{' '}
                 </p>
             )}
             <section className="grid gap-3 sm:grid-cols-2">
                 <div className="flex items-center justify-between rounded-3xl border border-orange-100 bg-white p-5 shadow-sm">
                     <div>
                         <p className="text-sm text-slate-500">
-                            التقارير المرسلة
+                            {' '}
+                            {t('التقارير المرسلة')}{' '}
                         </p>
                         <strong className="mt-1 block text-4xl text-orange-600">
                             {summary.reports}
@@ -304,7 +317,7 @@ export default function Overview({
                 <div className="flex items-center justify-between rounded-3xl border border-white bg-white/80 p-5 shadow-sm">
                     <div>
                         <p className="text-sm text-slate-500">
-                            {selected ? 'الموظف' : 'موظفون أرسلوا تقارير'}
+                            {selected ? t('الموظف') : t('موظفون أرسلوا تقارير')}
                         </p>
                         <strong className="mt-1 block text-2xl text-slate-800">
                             {selected ? selected.name : summary.contributors}
@@ -326,9 +339,10 @@ export default function Overview({
                     }}
                 >
                     <label className="min-w-40 flex-1 text-sm">
-                        الفترة
+                        {' '}
+                        {t('الفترة')}{' '}
                         <select
-                            aria-label="الفترة"
+                            aria-label={t('الفترة')}
                             className="mt-1 w-full rounded-xl border bg-white p-3"
                             value={form.data.range}
                             onChange={(event) => {
@@ -340,27 +354,30 @@ export default function Overview({
                                     );
                             }}
                         >
-                            <option value="today">اليوم</option>
-                            <option value="yesterday">أمس</option>
-                            <option value="7">آخر 7 أيام</option>
-                            <option value="30">آخر 30 يومًا</option>
-                            <option value="month">هذا الشهر</option>
-                            <option value="all">كل التقارير</option>
-                            <option value="custom">من تاريخ إلى تاريخ</option>
+                            <option value="today">{t('اليوم')}</option>
+                            <option value="yesterday">{t('أمس')}</option>
+                            <option value="7">{t('آخر 7 أيام')}</option>
+                            <option value="30">{t('آخر 30 يومًا')}</option>
+                            <option value="month">{t('هذا الشهر')}</option>
+                            <option value="all">{t('كل التقارير')}</option>
+                            <option value="custom">
+                                {t('من تاريخ إلى تاريخ')}
+                            </option>
                         </select>
                     </label>
                     {!profile && (
                         <label className="min-w-44 flex-1 text-sm">
-                            الموظف
+                            {' '}
+                            {t('الموظف')}{' '}
                             <select
-                                aria-label="الموظف"
+                                aria-label={t('الموظف')}
                                 className="mt-1 w-full rounded-xl border bg-white p-3"
                                 value={form.data.employee}
                                 onChange={(event) =>
                                     visit(form.data.range, event.target.value)
                                 }
                             >
-                                <option value="">كل الموظفين</option>
+                                <option value="">{t('كل الموظفين')}</option>
                                 {people.map((person) => (
                                     <option key={person.id} value={person.id}>
                                         {person.name}
@@ -372,7 +389,8 @@ export default function Overview({
                     {form.data.range === 'custom' && (
                         <>
                             <label className="text-sm">
-                                من
+                                {' '}
+                                {t('من')}{' '}
                                 <input
                                     required
                                     type="date"
@@ -384,7 +402,8 @@ export default function Overview({
                                 />
                             </label>
                             <label className="text-sm">
-                                إلى
+                                {' '}
+                                {t('إلى')}{' '}
                                 <input
                                     required
                                     type="date"
@@ -399,12 +418,13 @@ export default function Overview({
                                 disabled={form.processing}
                                 className="rounded-xl bg-orange-500 px-5 py-3 text-white"
                             >
-                                عرض
+                                {' '}
+                                {t('عرض')}{' '}
                             </button>
                         </>
                     )}
                     <a
-                        aria-label="تصدير تقارير الفترة"
+                        aria-label={t('تصدير تقارير الفترة')}
                         href={`${base}/export?${exportQuery}`}
                         className="rounded-xl border p-3"
                     >
@@ -412,24 +432,26 @@ export default function Overview({
                     </a>
                     {Object.keys(form.errors).length > 0 && (
                         <p role="alert" className="w-full text-sm text-red-700">
-                            راجع الفترة: تاريخ النهاية بعد البداية، والفترة
-                            المخصصة حتى 366 يومًا.
+                            {' '}
+                            {t(
+                                'راجع الفترة: تاريخ النهاية بعد البداية، والفترة المخصصة حتى 366 يومًا.',
+                            )}{' '}
                         </p>
                     )}
                 </form>
                 <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-500">
                     <span>
-                        {period.from} — {period.to} · توقيت دبي
+                        {period.from} — {period.to} {t('· توقيت دبي')}{' '}
                     </span>
-                    <span>تظهر التقارير فور الإرسال، دون موافقة.</span>
+                    <span>{t('تظهر التقارير فور الإرسال، دون موافقة.')}</span>
                 </div>
                 {!profile && (
                     <>
                         <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3">
                             <Search size={20} className="text-slate-400" />
                             <input
-                                aria-label="بحث عن موظف بالاسم أو الهاتف"
-                                placeholder="ابحث عن موظف بالاسم أو الهاتف"
+                                aria-label={t('بحث عن موظف بالاسم أو الهاتف')}
+                                placeholder={t('ابحث عن موظف بالاسم أو الهاتف')}
                                 className="min-w-0 flex-1 bg-transparent outline-none"
                                 value={search}
                                 onChange={(event) =>
@@ -463,7 +485,10 @@ export default function Overview({
                                     ))
                                 ) : (
                                     <p className="p-3 text-sm text-slate-500">
-                                        لا يوجد موظف بهذا الاسم أو الهاتف.
+                                        {' '}
+                                        {t(
+                                            'لا يوجد موظف بهذا الاسم أو الهاتف.',
+                                        )}{' '}
                                     </p>
                                 )}
                             </div>
@@ -478,15 +503,15 @@ export default function Overview({
                 >
                     <summary className="cursor-pointer font-bold">
                         {monthly
-                            ? 'عدد التقارير حسب الشهر'
-                            : 'عدد التقارير حسب اليوم'}
+                            ? t('عدد التقارير حسب الشهر')
+                            : t('عدد التقارير حسب اليوم')}
                     </summary>
                     <svg
                         role="img"
                         aria-label={
                             monthly
-                                ? 'رسم عدد التقارير الشهري'
-                                : 'رسم عدد التقارير اليومي'
+                                ? t('رسم عدد التقارير الشهري')
+                                : t('رسم عدد التقارير اليومي')
                         }
                         viewBox="0 0 760 180"
                         className="mt-4 w-full"
@@ -535,11 +560,15 @@ export default function Overview({
                             ))}
                     </svg>
                     <p className="text-xs text-slate-500">
-                        عدد التقارير لا يثبت الإنتاجية أو إنجاز الأعمال.
+                        {' '}
+                        {t(
+                            'عدد التقارير لا يثبت الإنتاجية أو إنجاز الأعمال.',
+                        )}{' '}
                     </p>
                     <details className="mt-3 text-sm">
                         <summary className="cursor-pointer text-slate-500">
-                            الأعداد حسب التاريخ
+                            {' '}
+                            {t('الأعداد حسب التاريخ')}{' '}
                         </summary>
                         <dl className="mt-2 grid max-h-48 grid-cols-2 gap-2 overflow-auto sm:grid-cols-4">
                             {series.map((point) => (
@@ -555,21 +584,26 @@ export default function Overview({
                     </details>
                 </details>
             )}
-            <section aria-label="التقارير" className="space-y-3">
+            <section aria-label={t('التقارير')} className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                     <h2 className="text-lg font-bold">
-                        {selected ? `تقارير ${selected.name}` : 'كل التقارير'}
-                        {range === 'today' ? ' · اليوم' : ''}
+                        {selected
+                            ? `${t('تقارير')} ${selected.name}`
+                            : t('كل التقارير')}
+                        {range === 'today' ? t('· اليوم') : ''}
                     </h2>
                     {summary.processing > 0 && (
                         <span className="text-xs text-orange-700">
-                            جارٍ تحويل {summary.processing} تسجيل
+                            {' '}
+                            {t('جارٍ تحويل')} {summary.processing}{' '}
+                            {t('تسجيل')}{' '}
                         </span>
                     )}
                 </div>
                 {reports.data.length === 0 && (
                     <p className="rounded-3xl border border-dashed bg-white/60 p-10 text-center text-slate-500">
-                        لا توجد تقارير في هذه الفترة.
+                        {' '}
+                        {t('لا توجد تقارير في هذه الفترة.')}{' '}
                     </p>
                 )}
                 {[...groups].map(([day, items], index) => (
@@ -595,13 +629,13 @@ export default function Overview({
                                         className="flex flex-wrap items-center gap-3 p-4 sm:flex-nowrap"
                                     >
                                         <Link
-                                            aria-label={`تقارير ${person?.name ?? 'الموظف'}`}
+                                            aria-label={`${t('تقارير')} ${person?.name ?? t('الموظف')}`}
                                             href={`/tenants/${tenant.id}/employees/${item.membership_id}/reports`}
                                             className="flex w-32 shrink-0 items-center gap-3 sm:w-40"
                                         >
                                             <Avatar person={person} />
                                             <strong className="min-w-0 truncate text-sm">
-                                                {person?.name ?? 'موظف'}
+                                                {person?.name ?? t('موظف')}
                                             </strong>
                                         </Link>
                                         <Link
@@ -614,11 +648,11 @@ export default function Overview({
                                             >
                                                 {item.summary ||
                                                     item.source_text ||
-                                                    labels[item.status]}
+                                                    t(labels[item.status])}
                                             </p>
                                             <span className="mt-1 block text-xs text-slate-400">
                                                 #{item.id} ·{' '}
-                                                {labels[item.status]}
+                                                {t(labels[item.status])}
                                             </span>
                                         </Link>
                                         <time
@@ -630,7 +664,7 @@ export default function Overview({
                                             )}
                                         </time>
                                         <Link
-                                            aria-label={`فتح التقرير ${item.id}`}
+                                            aria-label={`${t('فتح التقرير')} ${item.id}`}
                                             href={`${base}/${item.id}`}
                                             className="rounded-full bg-orange-50 p-2 text-orange-600"
                                         >
@@ -644,12 +678,12 @@ export default function Overview({
                 ))}
                 {reports.total > 0 && (
                     <p className="text-center text-xs text-slate-500">
-                        {reports.from}–{reports.to} من {reports.total}
+                        {reports.from}–{reports.to} {t('من')} {reports.total}
                     </p>
                 )}
                 {reports.links.length > 3 && (
                     <nav
-                        aria-label="صفحات التقارير"
+                        aria-label={t('صفحات التقارير')}
                         className="flex flex-wrap justify-center gap-2"
                     >
                         {reports.links.map((link, index) =>
@@ -660,9 +694,9 @@ export default function Overview({
                                     className={`rounded-xl border px-4 py-2 ${link.active ? 'bg-slate-800 text-white' : 'bg-white'}`}
                                 >
                                     {index === 0
-                                        ? 'السابق'
+                                        ? t('السابق')
                                         : index === reports.links.length - 1
-                                          ? 'التالي'
+                                          ? t('التالي')
                                           : link.label}
                                 </Link>
                             ) : null,

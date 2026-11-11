@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import type { ComponentPropsWithoutRef } from 'react';
 import {
     SidebarGroup,
@@ -16,6 +17,7 @@ export function NavFooter({
 }: ComponentPropsWithoutRef<typeof SidebarGroup> & {
     items: NavItem[];
 }) {
+    const { t } = useUiLocale();
     return (
         <SidebarGroup
             {...props}
@@ -24,7 +26,7 @@ export function NavFooter({
             <SidebarGroupContent>
                 <SidebarMenu>
                     {items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
+                        <SidebarMenuItem key={t(item.title)}>
                             <SidebarMenuButton
                                 asChild
                                 className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
@@ -37,7 +39,7 @@ export function NavFooter({
                                     {item.icon && (
                                         <item.icon className="h-5 w-5" />
                                     )}
-                                    <span>{item.title}</span>
+                                    <span>{t(item.title)}</span>
                                 </a>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

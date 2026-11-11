@@ -42,6 +42,7 @@ class ReportCorrectionsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['workforce.report_analysis' => 'full']);
         $this->withoutVite();
         $this->travelTo(CarbonImmutable::parse('2026-11-08 08:00:00 UTC'));
         Queue::fake();

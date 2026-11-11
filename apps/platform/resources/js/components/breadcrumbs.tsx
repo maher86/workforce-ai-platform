@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link } from '@inertiajs/react';
 import { Fragment } from 'react';
 import {
@@ -15,6 +16,7 @@ export function Breadcrumbs({
 }: {
     breadcrumbs: BreadcrumbItemType[];
 }) {
+    const { t } = useUiLocale();
     return (
         <>
             {breadcrumbs.length > 0 && (
@@ -28,12 +30,12 @@ export function Breadcrumbs({
                                     <BreadcrumbItem>
                                         {isLast ? (
                                             <BreadcrumbPage>
-                                                {item.title}
+                                                {t(item.title)}
                                             </BreadcrumbPage>
                                         ) : (
                                             <BreadcrumbLink asChild>
                                                 <Link href={item.href}>
-                                                    {item.title}
+                                                    {t(item.title)}
                                                 </Link>
                                             </BreadcrumbLink>
                                         )}

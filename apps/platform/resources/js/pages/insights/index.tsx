@@ -1,3 +1,5 @@
+import ManagerLanguageSwitch from '@/components/manager-language-switch';
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import ServiceInsights from '@/components/service-insights';
 import type { ServiceMetrics } from '@/components/service-insights';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -46,6 +48,8 @@ export default function Insights({
     series: { day: string; total: number }[];
     days: DayPages | null;
 }) {
+    const { t, locale, direction } = useUiLocale();
+
     const form = useForm({
         from: period.from,
         to: period.to,
@@ -82,21 +86,23 @@ export default function Insights({
     });
     return (
         <main
-            dir="rtl"
-            lang="ar"
+            dir={direction}
+            lang={locale}
             className="workforce-surface manager-surface mx-auto min-h-svh max-w-7xl space-y-6 bg-slate-50 p-5 text-slate-900"
         >
-            <Head title="مؤشرات التقارير" />
+            <Head title={t('مؤشرات التقارير')} />
             <header className="flex flex-wrap items-center justify-between gap-5 rounded-3xl bg-gradient-to-bl from-slate-950 to-teal-900 p-8 text-white">
+                <ManagerLanguageSwitch className="border-white/30 text-white" />
+
                 <div>
                     <BarChart3 className="mb-4 text-teal-300" size={36} />
                     <h1 className="text-3xl font-bold">
                         {selectedEmployee
                             ? metrics[0]?.name
-                            : 'صورة أوضح لنشاط الفريق'}
+                            : t('صورة أوضح لنشاط الفريق')}
                     </h1>
                     <p className="mt-3 text-teal-100">
-                        {tenant.name} · مؤشرات التقارير، بتوقيت دبي
+                        {tenant.name} {t('· مؤشرات التقارير، بتوقيت دبي')}{' '}
                     </p>
                 </div>
                 <nav className="flex gap-3">
@@ -104,14 +110,14 @@ export default function Insights({
                         href={`/tenants/${tenant.id}/team`}
                         className="rounded-xl border border-white/30 p-3"
                     >
-                        الفريق
+                        {' '}
+                        {t('الفريق')}{' '}
                     </Link>
                     <Link
                         href={`/tenants/${tenant.id}/vehicles`}
                         className="flex items-center gap-2 rounded-xl border border-white/30 p-3"
                     >
-                        <CarFront />
-                        السيارات
+                        <CarFront /> {t('السيارات')}{' '}
                     </Link>
                 </nav>
             </header>
@@ -123,7 +129,8 @@ export default function Insights({
                 }}
             >
                 <label>
-                    من
+                    {' '}
+                    {t('من')}{' '}
                     <input
                         type="date"
                         className="mx-2 rounded-lg border p-2"
@@ -135,7 +142,8 @@ export default function Insights({
                     />
                 </label>
                 <label>
-                    إلى
+                    {' '}
+                    {t('إلى')}{' '}
                     <input
                         type="date"
                         className="mx-2 rounded-lg border p-2"
@@ -147,7 +155,8 @@ export default function Insights({
                     />
                 </label>
                 <label>
-                    الموظف
+                    {' '}
+                    {t('الموظف')}{' '}
                     <select
                         className="mx-2 max-w-60 rounded-lg border p-2"
                         value={form.data.employee}
@@ -155,7 +164,7 @@ export default function Insights({
                             form.setData('employee', event.target.value)
                         }
                     >
-                        <option value="">كل الموظفين</option>
+                        <option value="">{t('كل الموظفين')}</option>
                         {people.map((person) => (
                             <option key={person.id} value={person.id}>
                                 {person.name}
@@ -167,44 +176,55 @@ export default function Insights({
                     disabled={form.processing}
                     className="rounded-xl bg-teal-700 px-5 py-3 text-white"
                 >
-                    عرض الفترة
+                    {' '}
+                    {t('عرض الفترة')}{' '}
                 </button>
                 <button
                     type="button"
                     className="rounded-xl border p-3"
                     onClick={() => quick(7)}
                 >
-                    آخر 7 أيام
+                    {' '}
+                    {t('آخر 7 أيام')}{' '}
                 </button>
                 <button
                     type="button"
                     className="rounded-xl border p-3"
                     onClick={() => quick(30)}
                 >
-                    آخر 30 يومًا
+                    {' '}
+                    {t('آخر 30 يومًا')}{' '}
                 </button>
                 <p className="w-full text-sm text-slate-500">
-                    اختر أي فترة حتى 366 يومًا. المعدلات تُحسب من البيانات الفعلية
-                    فقط.
+                    {' '}
+                    {t(
+                        'اختر أي فترة حتى 366 يومًا. المعدلات تُحسب من البيانات الفعلية فقط.',
+                    )}{' '}
                 </p>
                 {Object.keys(form.errors).length > 0 && (
                     <p role="alert" className="text-red-700">
-                        راجع التاريخ؛ النهاية بعد البداية والفترة لا تتجاوز 366
-                        يومًا.
+                        {' '}
+                        {t(
+                            'راجع التاريخ؛ النهاية بعد البداية والفترة لا تتجاوز 366 يومًا.',
+                        )}{' '}
                     </p>
                 )}
             </form>
             <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {[
-                    { label: 'التقارير المرسلة', value: total, icon: FileText },
                     {
-                        label: 'موظفون أرسلوا تقارير',
+                        label: t('التقارير المرسلة'),
+                        value: total,
+                        icon: FileText,
+                    },
+                    {
+                        label: t('موظفون أرسلوا تقارير'),
                         value: metrics.filter((item) => item.reports > 0)
                             .length,
                         icon: Users,
                     },
                     {
-                        label: 'قيد التحويل',
+                        label: t('قيد التحويل'),
                         value: metrics.reduce(
                             (sum, item) => sum + item.processing,
                             0,
@@ -212,7 +232,7 @@ export default function Insights({
                         icon: FileText,
                     },
                     {
-                        label: 'تعذّر معالجتها',
+                        label: t('تعذّر معالجتها'),
                         value: failures,
                         icon: CalendarDays,
                     },
@@ -230,19 +250,25 @@ export default function Insights({
                 ))}
             </section>
             <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
-                هذه مؤشرات نشاط الإبلاغ ومراجعة التقارير، وليست تقييمًا للإنتاجية أو
-                الحضور. لا تعني كثرة التقارير جودة أعلى أو إنجازًا مؤكدًا.
+                {' '}
+                {t(
+                    'هذه مؤشرات نشاط الإبلاغ ومراجعة التقارير، وليست تقييمًا للإنتاجية أو الحضور. لا تعني كثرة التقارير جودة أعلى أو إنجازًا مؤكدًا.',
+                )}{' '}
             </p>
             <ServiceInsights metrics={serviceInsights} total={total} />
             <section className="rounded-2xl border bg-white p-5">
-                <h2 className="mb-2 text-xl font-bold">اتجاه إرسال التقارير</h2>
+                <h2 className="mb-2 text-xl font-bold">
+                    {t('اتجاه إرسال التقارير')}
+                </h2>
                 <p className="text-sm text-slate-500">
-                    {period.from} — {period.to} · أعلى قيمة يومية:{' '}
+                    {period.from} — {period.to} {t('· أعلى قيمة يومية:')}{' '}
                     {max === 1 && total === 0 ? 0 : max}
                 </p>
                 <svg
                     role="img"
-                    aria-label="اتجاه عدد التقارير اليومي؛ التفاصيل في الجدول التالي"
+                    aria-label={t(
+                        'اتجاه عدد التقارير اليومي؛ التفاصيل في الجدول التالي',
+                    )}
                     viewBox="0 0 800 190"
                     className="mt-3 w-full"
                 >
@@ -273,7 +299,8 @@ export default function Insights({
                 </svg>
                 <details>
                     <summary className="cursor-pointer text-sm text-teal-800">
-                        جدول الأرقام اليومية
+                        {' '}
+                        {t('جدول الأرقام اليومية')}{' '}
                     </summary>
                     <div className="mt-3 max-h-64 overflow-auto">
                         {series.map((item) => (
@@ -282,7 +309,9 @@ export default function Insights({
                                 className="flex justify-between border-b p-2"
                             >
                                 <span>{item.day}</span>
-                                <span>{item.total} تقارير</span>
+                                <span>
+                                    {item.total} {t('تقارير')}
+                                </span>
                             </p>
                         ))}
                     </div>
@@ -291,8 +320,8 @@ export default function Insights({
             <section className="space-y-4">
                 <h2 className="text-xl font-bold">
                     {selectedEmployee
-                        ? 'ملف نشاط الموظف في الفترة'
-                        : 'مقارنة نشاط الإبلاغ بين الموظفين'}
+                        ? t('ملف نشاط الموظف في الفترة')
+                        : t('مقارنة نشاط الإبلاغ بين الموظفين')}
                 </h2>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {metrics.map((person) => (
@@ -305,7 +334,7 @@ export default function Insights({
                                 {person.photo ? (
                                     <img
                                         src={person.photo}
-                                        alt={`صورة ${person.name}`}
+                                        alt={`${t('صورة')} ${person.name}`}
                                         className="h-14 w-14 rounded-full object-cover"
                                     />
                                 ) : (
@@ -317,8 +346,10 @@ export default function Insights({
                                 <div>
                                     <h3 className="font-bold">{person.name}</h3>
                                     <p className="text-sm text-slate-500">
-                                        {person.active ? 'نشط' : 'الوصول موقوف'}{' '}
-                                        · فتح سجل الأيام
+                                        {person.active
+                                            ? t('نشط')
+                                            : t('الوصول موقوف')}{' '}
+                                        {t('· فتح سجل الأيام')}{' '}
                                     </p>
                                 </div>
                             </div>
@@ -336,7 +367,8 @@ export default function Insights({
                                         {person.reports}
                                     </strong>
                                     <span className="text-xs text-slate-500">
-                                        تقارير
+                                        {' '}
+                                        {t('تقارير')}{' '}
                                     </span>
                                 </p>
                                 <p>
@@ -344,7 +376,8 @@ export default function Insights({
                                         {person.days}
                                     </strong>
                                     <span className="text-xs text-slate-500">
-                                        أيام بها تقارير
+                                        {' '}
+                                        {t('أيام بها تقارير')}{' '}
                                     </span>
                                 </p>
                                 <p>
@@ -352,14 +385,15 @@ export default function Insights({
                                         {person.failed}
                                     </strong>
                                     <span className="text-xs text-slate-500">
-                                        تعذّر معالجتها
+                                        {' '}
+                                        {t('تعذّر معالجتها')}{' '}
                                     </span>
                                 </p>
                             </div>
                             <p className="mt-4 text-xs text-slate-500">
-                                {person.processing} قيد المعالجة ·{' '}
-                                {person.failed} تعذّر · {person.changes} يحتاج
-                                تعديلًا
+                                {person.processing} {t('قيد المعالجة ·')}{' '}
+                                {person.failed} {t('تعذّر ·')} {person.changes}{' '}
+                                {t('يحتاج تعديلًا')}{' '}
                             </p>
                         </Link>
                     ))}
@@ -368,7 +402,8 @@ export default function Insights({
             {days && (
                 <section className="space-y-4">
                     <h2 className="text-xl font-bold">
-                        تقارير الموظف حسب اليوم
+                        {' '}
+                        {t('تقارير الموظف حسب اليوم')}{' '}
                     </h2>
                     <ReportDayAccordion
                         days={days}

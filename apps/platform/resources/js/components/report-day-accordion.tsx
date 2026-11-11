@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link } from '@inertiajs/react';
 import { CalendarDays, ChevronDown, FileText, RefreshCw } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -35,6 +36,8 @@ function Day({
     names: Record<string, string>;
     employee: boolean;
 }) {
+    const { t } = useUiLocale();
+
     const [items, setItems] = useState<Item[]>([]);
     const [loaded, setLoaded] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -76,7 +79,7 @@ function Day({
             );
             setLoaded(true);
         } catch {
-            setError('تعذّر تحميل التقارير. أعد المحاولة.');
+            setError(t('تعذّر تحميل التقارير. أعد المحاولة.'));
         } finally {
             lock.current = false;
             setBusy(false);
@@ -100,7 +103,7 @@ function Day({
                             }).format(new Date(day + 'T12:00:00Z'))}
                         </span>
                         <span className="text-sm text-slate-500">
-                            {total} تقارير · توقيت دبي
+                            {total} {t('تقارير · توقيت دبي')}{' '}
                         </span>
                     </span>
                 </span>
@@ -112,8 +115,7 @@ function Day({
                     onClick={() => void load()}
                     className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
                 >
-                    <RefreshCw size={16} />
-                    تحديث اليوم
+                    <RefreshCw size={16} /> {t('تحديث اليوم')}{' '}
                 </button>
                 {items.map((report) => (
                     <Link
@@ -147,12 +149,12 @@ function Day({
                         </span>
                         <span className="flex flex-wrap gap-2 text-xs">
                             <span className="rounded-full bg-white px-3 py-1">
-                                {labels[report.status]}
+                                {t(labels[report.status])}
                             </span>
                         </span>
                     </Link>
                 ))}
-                {busy && <p role="status">جارٍ التحميل…</p>}
+                {busy && <p role="status">{t('جارٍ التحميل…')}</p>}
                 {error && (
                     <p role="alert" className="text-red-700">
                         {error}
@@ -160,7 +162,8 @@ function Day({
                             className="mx-3 underline"
                             onClick={() => void load()}
                         >
-                            إعادة المحاولة
+                            {' '}
+                            {t('إعادة المحاولة')}{' '}
                         </button>
                     </p>
                 )}
@@ -170,7 +173,8 @@ function Day({
                         onClick={() => void load(next)}
                         className="w-full rounded-xl border p-3"
                     >
-                        تحميل المزيد من تقارير هذا اليوم
+                        {' '}
+                        {t('تحميل المزيد من تقارير هذا اليوم')}{' '}
                     </button>
                 )}
             </div>
@@ -189,11 +193,14 @@ export default function ReportDayAccordion({
     names?: Record<string, string>;
     employee?: boolean;
 }) {
+    const { t } = useUiLocale();
+
     return (
         <section className="w-full space-y-3 text-right">
             {days.data.length === 0 && (
                 <div className="rounded-2xl border border-dashed p-8 text-center text-slate-500">
-                    لا توجد تقارير في هذه الفترة.
+                    {' '}
+                    {t('لا توجد تقارير في هذه الفترة.')}{' '}
                 </div>
             )}
             {days.data.map((day) => (
@@ -206,7 +213,7 @@ export default function ReportDayAccordion({
                 />
             ))}
             <nav
-                aria-label="صفحات أيام التقارير"
+                aria-label={t('صفحات أيام التقارير')}
                 className="flex flex-wrap gap-2"
             >
                 {days.links.map((link, index) =>
@@ -217,9 +224,9 @@ export default function ReportDayAccordion({
                             className={`rounded-lg border px-4 py-2 ${link.active ? 'bg-teal-700 text-white' : ''}`}
                         >
                             {index === 0
-                                ? 'السابق'
+                                ? t('السابق')
                                 : index === days.links.length - 1
-                                  ? 'التالي'
+                                  ? t('التالي')
                                   : link.label}
                         </Link>
                     ) : null,

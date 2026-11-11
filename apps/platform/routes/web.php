@@ -6,11 +6,13 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\ManagerOverviewController;
 use App\Http\Controllers\ManagerReportController;
 use App\Http\Controllers\ServiceFactsController;
+use App\Http\Controllers\UiLocaleController;
 use App\Http\Controllers\WorkforceController;
 use App\Http\Controllers\WorkInsightsController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+Route::post('locale', [UiLocaleController::class, 'update'])->middleware('throttle:20,1');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tenants/{tenant}/employees/{membership}/reports', [ManagerOverviewController::class, 'index'])->whereNumber(['tenant', 'membership']);

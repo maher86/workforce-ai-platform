@@ -7,4 +7,6 @@ return [
     'openai_key' => env('OPENAI_API_KEY'),
     'transcription_model' => env('OPENAI_TRANSCRIPTION_MODEL', 'gpt-transcribe'),
     'report_model' => env('OPENAI_REPORT_MODEL', 'gpt-5-mini'),
+    'report_analysis' => env('WORKFORCE_REPORT_ANALYSIS', 'text'),
+    'translation_effort' => env('OPENAI_TRANSLATION_EFFORT', 'minimal'),
 ];

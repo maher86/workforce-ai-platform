@@ -36,6 +36,9 @@ class ReportPipeline
         if (! in_array('translation', $done, true)) {
             return ['key' => 'translation', 'kind' => 'translation', 'context' => ['data' => ['sources' => $sources]]];
         }
+        if ($report->analysis_mode === 'text') {
+            return null;
+        }
         foreach ($media->where('kind', 'image') as $item) {
             if (! in_array('image:'.$item->id, $done, true)) {
                 return ['key' => 'image:'.$item->id, 'kind' => 'image', 'context' => ['path' => Storage::disk('reports')->path($item->path), 'data' => ['source_id' => 'image:'.$item->id]]];
