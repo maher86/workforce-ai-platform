@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 import {
@@ -17,6 +18,8 @@ type Props = {
 };
 
 export function UserMenuContent({ user }: Props) {
+    const { t } = useUiLocale();
+
     const cleanup = useMobileNavigation();
 
     const handleLogout = () => {
@@ -40,8 +43,7 @@ export function UserMenuContent({ user }: Props) {
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
-                        Settings
+                        <Settings className="mr-2" /> {t('Settings')}{' '}
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -54,8 +56,7 @@ export function UserMenuContent({ user }: Props) {
                     onClick={handleLogout}
                     data-test="logout-button"
                 >
-                    <LogOut className="mr-2" />
-                    Log out
+                    <LogOut className="mr-2" /> {t('Log out')}{' '}
                 </Link>
             </DropdownMenuItem>
         </>

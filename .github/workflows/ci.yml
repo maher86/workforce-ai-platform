@@ -85,6 +85,23 @@ jobs:
         run: npm run types:check
       - name: Backend formatting, analysis and PostgreSQL tests
         run: composer test
+      - name: Synthetic 50-employee queue probe
+        env:
+          APP_ENV: testing
+          DB_DATABASE: workforce_testing
+          DB_URL: ''
+          REDIS_DB: '3'
+          REDIS_CACHE_DB: '4'
+          REDIS_URL: ''
+          REDIS_PREFIX: capacity_${{ github.run_id }}_${{ github.run_attempt }}_
+          CACHE_STORE: redis
+          QUEUE_CONNECTION: redis
+          MAIL_MAILER: array
+          WORKFORCE_AI_PROVIDER: demo
+          WORKFORCE_REPORT_ANALYSIS: text
+          OPENAI_API_KEY: ''
+          BCRYPT_ROUNDS: '4'
+        run: php ../../scripts/verify-capacity.php
       - name: Dependency audits
         run: |
           composer audit --locked

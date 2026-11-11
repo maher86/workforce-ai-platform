@@ -15,20 +15,25 @@ import {
 } from 'lucide-react';
 import VoicePlayback from '@/components/voice-playback';
 import ReportComposer from '@/components/report-composer';
+import ReportTexts from '@/components/report-texts';
+import type { TextOutput } from '@/components/report-texts';
 export default function EmployeeReport({
     report,
     media,
     editableUntil,
     serverNow,
+    textOutputs,
 }: {
     report: {
         id: number;
         status: string;
         created_at: string;
         source_version: number;
+        source_text: string | null;
     };
     editableUntil: string;
     serverNow: string;
+    textOutputs: TextOutput[];
     media: { id: number; kind: string }[];
 }) {
     const [editing, setEditing] = useState(false);
@@ -93,10 +98,10 @@ export default function EmployeeReport({
     useEffect(() => {
         if (editing || !['submitted', 'processing'].includes(report.status))
             return;
-        const timer = window.setInterval(
-            () => router.reload({ only: ['report'] }),
-            8000,
-        );
+        const timer = window.setInterval(() => {
+            if (document.visibilityState === 'visible')
+                router.reload({ only: ['report', 'textOutputs'] });
+        }, 8000);
         return () => window.clearInterval(timer);
     }, [report.status, editing]);
     return (
@@ -233,7 +238,12 @@ export default function EmployeeReport({
                     المحاولة.
                 </p>
             )}
-            <div className="space-y-5">
+            <ReportTexts
+                source={report.source_text}
+                outputs={textOutputs}
+                pending={['submitted', 'processing'].includes(report.status)}
+            />
+            <div className="mt-5 space-y-5">
                 {media
                     .filter((item) => item.kind === 'audio')
                     .map((item) => (

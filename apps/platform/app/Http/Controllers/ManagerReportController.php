@@ -87,7 +87,8 @@ class ManagerReportController extends Controller
             'employeePhone' => $member->phone,
             'employeePhotoUrl' => $member->profile_photo_path ? '/tenants/'.$tenant.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
             'media' => ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $tenant)->where('report_id', $report)->get(['id', 'kind', 'mime', 'bytes', 'duration']),
-            'outputs' => ReportOutput::query()->where('tenant_id', $tenant)->where('report_id', $report)->orderBy('id')->get(),
+            'outputs' => ReportOutput::query()->where('tenant_id', $tenant)->where('report_id', $report)->where(fn ($query) => $query->where('stage', 'translation')->orWhere('stage', 'like', 'transcript:%'))->orderBy('id')->get(['stage', 'payload']),
+            'employeeProfileUrl' => $member->role === 'employee' ? '/tenants/'.$tenant.'/employees/'.$member->id.'/reports' : null,
             'revisions' => ReportRevision::query()->where('source_version', $item->source_version)->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->get(),
             'currentServiceFact' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->first(),
             'serviceFacts' => ReportServiceFact::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('version')->paginate(10, ['*'], 'facts_page')->withQueryString(),
@@ -191,7 +192,9 @@ class ManagerReportController extends Controller
             ->selectSub(DB::table('memberships')->join('users', 'users.id', '=', 'memberships.user_id')->selectRaw('COALESCE(memberships.display_name, users.name)')->whereColumn('memberships.id', 'reports.membership_id')->whereColumn('memberships.tenant_id', 'reports.tenant_id')->limit(1), 'export_employee')
             ->selectSub(ReportRevision::query()->whereColumn('source_version', 'reports.source_version')->select('english_report')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->latest('version')->limit(1), 'export_review')
             ->selectSub(ReportOutput::query()->selectRaw("payload->>'summary'")->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_summary')
-            ->selectSub(ReportOutput::query()->select('provider')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'structured')->limit(1), 'export_provider');
+            ->selectSub(ReportOutput::query()->selectRaw("payload->>'english'")->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'translation')->limit(1), 'export_english')
+            ->selectSub(ReportOutput::query()->selectRaw("payload->>'text'")->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->where('stage', 'like', 'transcript:%')->limit(1), 'export_transcript')
+            ->selectSub(ReportOutput::query()->select('provider')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->whereIn('stage', ['translation', 'structured'])->orderByRaw("CASE WHEN stage = 'translation' THEN 0 ELSE 1 END")->limit(1), 'export_provider');
         Audit::record($tenant, $request->user()->id, 'report.export', 'tenant', $tenant);
 
         return response()->streamDownload(function () use ($query) {
@@ -202,8 +205,9 @@ class ManagerReportController extends Controller
             fwrite($stream, "\xEF\xBB\xBF");
             fputcsv($stream, ['ID', 'Employee', 'Submitted UTC', 'Processing', 'Review', 'AI provider', 'Original text', 'English report'], escape: '');
             foreach ($query->orderBy('id')->cursor() as $report) {
-                $english = (string) ($report->getAttribute('export_review') ?? $report->getAttribute('export_summary') ?? '');
-                $values = [(string) $report->id, (string) $report->getAttribute('export_employee'), $report->created_at->toIso8601String(), $report->status, $report->review_status, (string) ($report->getAttribute('export_provider') ?? 'pending'), $report->source_text ?? '', $english];
+                $english = (string) ($report->getAttribute('export_english') ?? $report->getAttribute('export_review') ?? $report->getAttribute('export_summary') ?? '');
+                $original = implode("\n\n", array_filter([$report->source_text, $report->getAttribute('export_transcript')], fn ($value) => is_string($value) && $value !== ''));
+                $values = [(string) $report->id, (string) $report->getAttribute('export_employee'), $report->created_at->toIso8601String(), $report->status, $report->review_status, (string) ($report->getAttribute('export_provider') ?? 'pending'), $original, $english];
                 $safe = array_map(fn (string $value) => preg_match('/^[\s\x00-\x1F]*[=+@-]/u', $value) ? "'".$value : $value, $values);
                 fputcsv($stream, $safe, escape: '');
             }

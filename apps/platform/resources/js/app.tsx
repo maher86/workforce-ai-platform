@@ -14,6 +14,11 @@ void createInertiaApp({
         switch (true) {
             case name === 'welcome':
             case name.startsWith('employee/'):
+            case name.startsWith('workforce/'):
+            case name.startsWith('reports/'):
+            case name.startsWith('vehicles/'):
+            case name.startsWith('insights/'):
+            case name.startsWith('manager/'):
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

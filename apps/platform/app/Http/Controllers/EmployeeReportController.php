@@ -10,6 +10,7 @@ use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportAccess;
 use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportMedia;
+use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\SubmitReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,8 @@ class EmployeeReportController extends Controller
         $item = $access->view($request->user(), $member->tenant_id, $report);
 
         return Inertia::render('employee/report', [
-            'report' => $item->only(['id', 'status', 'created_at', 'source_version']),
+            'report' => $item->only(['id', 'status', 'created_at', 'source_version', 'source_text']),
+            'textOutputs' => fn () => ReportOutput::query()->where('tenant_id', $member->tenant_id)->where('report_id', $report)->where(fn ($query) => $query->where('stage', 'translation')->orWhere('stage', 'like', 'transcript:%'))->orderBy('id')->get(['stage', 'payload']),
             'media' => fn () => ReportMedia::query()->whereNull('retired_at')->where('tenant_id', $member->tenant_id)->where('report_id', $report)->get(['id', 'kind', 'mime']),
             'editableUntil' => $item->created_at->copy()->addHour()->toIso8601String(),
             'serverNow' => now()->toIso8601String(),

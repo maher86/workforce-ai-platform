@@ -280,6 +280,7 @@ class ReportingTest extends TestCase
 
     public function test_demo_pipeline_persists_stages_and_duplicate_jobs_do_not_repeat_them(): void
     {
+        config(['workforce.report_analysis' => 'full']);
         [, $tenant, , $employee] = $this->workforce();
         $report = $this->submit($employee, $tenant);
         $job = new ProcessReport($tenant->id, $report->id);
@@ -333,6 +334,7 @@ class ReportingTest extends TestCase
 
     public function test_review_preserves_generated_output_and_rejects_stale_versions(): void
     {
+        config(['workforce.report_analysis' => 'full']);
         [$owner, $tenant, , $employee] = $this->workforce();
         $report = $this->submit($employee, $tenant);
         for ($i = 0; $i < 3; $i++) {
@@ -427,6 +429,19 @@ class ReportingTest extends TestCase
         $result = (new OpenAIReportAI)->run('translation', ['data' => ['sources' => ['text' => 'تم تركيب ثلاث لوحات.']]]);
         $this->assertSame('Three panels were installed.', $result->payload['english']);
         Http::assertSent(fn ($request) => $request['store'] === false && $request['text']['format']['strict'] === true && ! isset($request['tools']));
+    }
+
+    public function test_translation_uses_minimal_reasoning_only_for_the_compatible_model(): void
+    {
+        config(['workforce.openai_key' => 'synthetic-test-key', 'workforce.translation_effort' => 'minimal']);
+        Http::fake(['api.openai.com/v1/responses' => Http::response(['status' => 'completed', 'output' => [['content' => [['type' => 'output_text', 'text' => '{"english":"Work is not finished.","uncertainties":[]}']]]]])]);
+        config(['workforce.report_model' => 'gpt-5-mini']);
+        (new OpenAIReportAI)->run('translation', ['data' => ['sources' => ['text' => 'Synthetic source.']]]);
+        Http::assertSent(fn ($request) => $request['reasoning']['effort'] === 'minimal' && $request['store'] === false && str_contains($request['instructions'], 'no introductions'));
+        Http::fake(['api.openai.com/v1/responses' => Http::response(['status' => 'completed', 'output' => [['content' => [['type' => 'output_text', 'text' => '{"english":"Work is not finished.","uncertainties":[]}']]]]])]);
+        config(['workforce.report_model' => 'gpt-4.1-mini']);
+        (new OpenAIReportAI)->run('translation', ['data' => ['sources' => ['text' => 'Synthetic source.']]]);
+        Http::assertSent(fn ($request) => ! isset($request['reasoning']));
     }
 
     public function test_openai_transcription_preserves_source_language_and_upload_contract(): void
