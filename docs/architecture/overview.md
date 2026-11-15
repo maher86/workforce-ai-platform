@@ -2,6 +2,12 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Employee recording starts inside the page, including on Android: Stop attaches the clip directly without an external recorder confirmation. Native audio capture is an explicit fallback in recording help when browser recording fails. Ignored browser permission requests time out safely and late streams are stopped. Native3GP/AMR/AAC inputs still pass content sniffing, audio-only checks, bounded decode and private normalization; this is not an OS permission bypass. See ADR 0010; physical Android acceptance remains necessary.
+
+Owner update 2026-11-15: sending keeps employees on their current page. A tab-memory uploader and floating circle distinguish upload, server receipt and actual AI readiness; a bounded tenant/member-scoped batch endpoint reports processing phases without source evidence or invented AI percentages. Opt-in generic system notifications occur on readiness via a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media/status; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.
+
+Owner update 2026-11-08: new reports default to original-language transcription and faithful English only, with private images retained as attachments. Persist analysis_mode; historical full analysis is preserved. Manager UI language (ar/en) is independent of source/translation language. See ADR 0008 and the capacity runbook; demo queue throughput does not establish a real 50-device SLA.
+
 Owner update 2026-11-08: report submission and visibility require no manager approval. Manager home defaults to today's employee reports with period/employee filters and submission counts; employee profiles show history and charts. Prior review records remain historical; never auto-label reports as human-approved. Optional service facts stay separate. See ADR 0007.
 
 Product update 2026-11-07: new report images require an audio recording; audio-only and text-only submissions remain valid. See docs/product/employee-workflow.ar.md. Profile photos/contact details belong to tenant memberships, separate from report evidence and AI inputs.

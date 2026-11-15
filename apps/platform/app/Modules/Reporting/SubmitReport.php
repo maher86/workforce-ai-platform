@@ -64,7 +64,7 @@ class SubmitReport
 
                     return $existing;
                 }
-                $this->valid(Report::withTrashed()->where('tenant_id', $tenantId)->where('created_at', '>=', now()->startOfDay())->count() < $tenant->daily_report_limit, 'وصلت المؤسسة إلى حد التقارير اليومي.');
+                $this->valid(Report::withTrashed()->where('tenant_id', $tenantId)->where('created_at', '>=', now(ReportActivity::ZONE)->startOfDay()->utc())->count() < $tenant->daily_report_limit, 'وصلت المؤسسة إلى حد التقارير اليومي.');
                 $bytes = array_sum(array_map(fn (PreparedMedia $media) => $media->bytes, $prepared));
                 $this->valid(ReportMedia::query()->where('tenant_id', $tenantId)->sum('bytes') + $bytes <= $tenant->storage_limit_mb * 1024 * 1024, 'وصلت المؤسسة إلى حد التخزين.');
                 $projectId = $this->validateWork($tenantId, $projectId, $taskId);
@@ -72,6 +72,7 @@ class SubmitReport
                     'tenant_id' => $tenantId, 'membership_id' => $member->id, 'submission_key' => $submissionKey,
                     'content_hash' => $hash, 'source_text' => $text ?: null, 'project_id' => $projectId, 'task_id' => $taskId,
                     'vehicle_id' => ReportVehicle::resolve($tenantId, $vehiclePlate),
+                    'analysis_mode' => config('workforce.report_analysis'),
                 ]);
                 foreach ($prepared as $media) {
                     $path = $tenantId.'/'.$report->id.'/'.basename($media->path);

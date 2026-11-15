@@ -14,6 +14,8 @@
 
 ## Architecture and workflow
 
+- Latest owner clarification: new reports use text analysis (original transcript + English, no AI explanation/image analysis by default), with mode persisted per report and historical full processing preserved. UI locales ar/en must never translate employee evidence, names or plate values, or set speech language. See ADR 0008. Run scripts/verify-capacity.ps1 only against guarded workforce_testing after other database checks finish; Demo throughput is not a real-provider/device SLA.
+
 - Owner clarification 2026-11-08: reports appear and count without manager approval. Keep the main manager UI simple and default to today's employee reports in Asia/Dubai. Preserve historical review evidence; never auto-mark reports as human-approved. Counts remain submissions, not verified completed tasks. See ADR 0007.
 - Read `docs/architecture/overview.md` and relevant ADRs before changing boundaries.
 - Use Laravel, React/TypeScript, PostgreSQL, Redis and Docker Compose. No n8n, Kubernetes or premature microservices.

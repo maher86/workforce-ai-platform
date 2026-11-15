@@ -13,6 +13,10 @@ import EmployeeActivity from '@/components/employee-activity';
 import type { DayPages } from '@/components/report-day-accordion';
 import { EmployeeGuidance } from '@/components/employee-guidance';
 import ReportComposer from '@/components/report-composer';
+import { reportProgress } from '@/hooks/use-report-upload';
+import { processingReport } from '@/lib/report-progress';
+import type { ReportProgress } from '@/lib/report-progress';
+import { usePage } from '@inertiajs/react';
 
 export default function EmployeeHome({
     employeeName,
@@ -24,24 +28,24 @@ export default function EmployeeHome({
 }: {
     employeeName: string;
     tenantName: string;
-    reports: { id: number; status: string; created_at: string }[];
+    reports: (ReportProgress & { created_at: string })[];
     profilePhotoUrl: string | null;
     days: DayPages;
     aiMode: string;
 }) {
     const [settings, setSettings] = useState(false);
     const [confirm, setConfirm] = useState(false);
-    const pending = reports.some((report) =>
-        ['submitted', 'processing'].includes(report.status),
-    );
+    const { employeeUploadScope } = usePage<{
+        employeeUploadScope: string | null;
+    }>().props;
     useEffect(() => {
-        if (!pending) return;
-        const timer = window.setInterval(
-            () => router.reload({ only: ['reports', 'days'] }),
-            8000,
-        );
-        return () => window.clearInterval(timer);
-    }, [pending]);
+        if (employeeUploadScope)
+            reports
+                .filter(processingReport)
+                .forEach((report) =>
+                    reportProgress.track(employeeUploadScope, report, false),
+                );
+    }, [reports, employeeUploadScope]);
     return (
         <main
             dir="rtl"

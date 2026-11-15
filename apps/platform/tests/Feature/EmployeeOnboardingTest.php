@@ -13,6 +13,8 @@ use App\Modules\Identity\TenantAccess;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -241,5 +243,35 @@ class EmployeeOnboardingTest extends TestCase
         $this->actingAs($owner)->post('/tenants/'.$tenant->id.'/employees/'.$ownerMembership->id.'/revoke')->assertNotFound();
         $this->expectException(QueryException::class);
         Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $owner->id, 'role' => 'employee']);
+    }
+
+    public function test_upload_screen_restores_device_and_scopes_retries_to_the_same_identity(): void
+    {
+        $this->withoutVite();
+        Queue::fake();
+        [$owner, $tenant, $employee] = $this->workforce();
+        $service = app(EmployeeActivation::class);
+        $grant = $service->consume($service->issue($owner, $tenant->id, $employee->id));
+        $scope = $grant['user']->id.':'.$grant['device']->id;
+        $this->withCookie('workforce_device', $grant['token'])->get('/employee')
+            ->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertInertia(fn (Assert $page) => $page->component('employee/home')->where('employeeUploadScope', $scope));
+        $this->get('/employee/upload')->assertRedirect('/employee');
+        Auth::logout();
+        $this->flushSession();
+        $this->get('/employee')->assertOk();
+        $this->assertAuthenticatedAs($grant['user']);
+
+        $key = (string) Str::uuid();
+        $this->withCredentials();
+        $data = ['submission_key' => $key, 'text' => 'Synthetic original source'];
+        $this->withHeader('X-Employee-Upload-Scope', 'foreign:device')->postJson('/employee/reports', $data)->assertConflict();
+        $this->assertDatabaseCount('reports', 0);
+        $first = $this->withHeader('X-Employee-Upload-Scope', $scope)->postJson('/employee/reports', $data)->assertCreated();
+        $first->assertJsonPath('source_version', 1)->assertJsonPath('status', 'submitted');
+        $this->postJson('/employee/reports', $data)->assertCreated()->assertJsonPath('id', $first->json('id'));
+        $this->assertDatabaseCount('reports', 1);
+        app(ManageWorkforce::class)->revokeAccess($owner, $tenant->id, $employee->id);
+        $this->get('/employee/upload')->assertRedirect('/employee/connect');
     }
 }

@@ -23,7 +23,8 @@ class WorkforceController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $memberships = Membership::query()->where('user_id', $actor->id)->where('active', true)->get();
-        $workspaces = Tenant::query()->whereIn('id', $memberships->pluck('tenant_id'))->get(['id', 'name']);
+        $managementMemberships = $memberships->filter(fn (Membership $member) => in_array($member->role, ['owner', 'manager'], true));
+        $workspaces = Tenant::query()->whereIn('id', $managementMemberships->pluck('tenant_id'))->get(['id', 'name']);
         $selected = $tenant ?? $memberships->first(fn (Membership $member) => in_array($member->role, ['owner', 'manager'], true))?->tenant_id;
         if ($tenant === null && $selected !== null) {
             return app(ManagerOverviewController::class)->index($request, $selected);
@@ -32,19 +33,20 @@ class WorkforceController extends Controller
         $canManageManagers = false;
         if ($selected !== null) {
             $canManageManagers = $access->manageTeam($actor, $selected)->role === 'owner';
-            $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->get()
+            $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->select('memberships.*')
+                ->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')
+                ->selectSub(EmployeeDevice::query()->selectRaw('COUNT(*)')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now()), 'device_count')->orderBy('id')->get()
                 ->map(fn (Membership $member) => [
-                    'id' => $member->id, 'name' => $member->display_name ?? User::query()->findOrFail($member->user_id)->name,
+                    'id' => $member->id, 'name' => $member->display_name ?? $member->getAttribute('account_name'),
                     'phone' => $member->phone,
                     'photoUrl' => $member->profile_photo_path ? '/tenants/'.$selected.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
                     'active' => $member->active,
-                    'devices' => EmployeeDevice::query()->where('tenant_id', $selected)->where('membership_id', $member->id)
-                        ->whereNull('revoked_at')->where('expires_at', '>', now())->count(),
+                    'devices' => (int) $member->getAttribute('device_count'),
                 ])->all();
         }
 
-        $managers = $canManageManagers ? Membership::query()->where('tenant_id', $selected)->where('role', 'manager')->get()->map(fn (Membership $member) => [
-            'id' => $member->id, 'name' => User::query()->findOrFail($member->user_id)->name, 'active' => $member->active,
+        $managers = $canManageManagers ? Membership::query()->where('tenant_id', $selected)->where('role', 'manager')->select('memberships.*')->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')->get()->map(fn (Membership $member) => [
+            'id' => $member->id, 'name' => $member->getAttribute('account_name'), 'active' => $member->active,
         ])->all() : [];
 
         return Inertia::render('workforce/team', [

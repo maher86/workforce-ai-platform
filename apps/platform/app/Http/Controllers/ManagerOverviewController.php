@@ -73,7 +73,7 @@ class ManagerOverviewController extends Controller
             $series[] = ['day' => $key, 'total' => $counts->get($key, 0)];
         }
         $reports = (clone $query)->select(['reports.id', 'reports.membership_id', 'reports.status', 'reports.created_at'])->selectRaw('LEFT(reports.source_text, 240) as source_text')
-            ->selectSub(ReportOutput::query()->selectRaw("LEFT(payload->>'summary', 320)")->whereColumn('tenant_id', 'reports.tenant_id')->whereColumn('report_id', 'reports.id')->where('stage', 'structured')->limit(1), 'summary')
+            ->selectSub(ReportOutput::query()->selectRaw("LEFT(payload->>'english', 320)")->whereColumn('tenant_id', 'reports.tenant_id')->whereColumn('report_id', 'reports.id')->where('stage', 'translation')->limit(1), 'summary')
             ->orderByDesc('created_at')->orderByDesc('id')->paginate(25)->withQueryString();
 
         return Inertia::render('reports/index', [

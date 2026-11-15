@@ -6,11 +6,13 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\ManagerOverviewController;
 use App\Http\Controllers\ManagerReportController;
 use App\Http\Controllers\ServiceFactsController;
+use App\Http\Controllers\UiLocaleController;
 use App\Http\Controllers\WorkforceController;
 use App\Http\Controllers\WorkInsightsController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+Route::post('locale', [UiLocaleController::class, 'update'])->middleware('throttle:20,1');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tenants/{tenant}/employees/{membership}/reports', [ManagerOverviewController::class, 'index'])->whereNumber(['tenant', 'membership']);
@@ -53,6 +55,8 @@ Route::get('employee/profile/photo', [EmployeeProfileController::class, 'photo']
 Route::post('employee/reports', [EmployeeReportController::class, 'store'])->middleware(['auth', 'throttle:10,1']);
 Route::get('employee/report-days', [EmployeeReportController::class, 'day'])->middleware('auth');
 Route::get('employee/history', [EmployeeReportController::class, 'history'])->middleware('auth');
+Route::get('employee/upload', [EmployeeReportController::class, 'upload'])->middleware('auth');
+Route::get('employee/report-progress', [EmployeeReportController::class, 'progress'])->middleware(['auth', 'throttle:60,1']);
 Route::post('employee/reports/{report}/amend', [EmployeeReportController::class, 'change'])->whereNumber('report')->middleware(['auth', 'throttle:20,1']);
 Route::delete('employee/reports/{report}', [EmployeeReportController::class, 'destroy'])->whereNumber('report')->middleware(['auth', 'throttle:20,1']);
 Route::get('employee/reports/{report}', [EmployeeReportController::class, 'show'])->whereNumber('report')->middleware('auth');

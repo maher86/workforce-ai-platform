@@ -52,7 +52,7 @@ class EmployeeAccessController extends Controller
             'employeePhone' => $member->phone,
             'profilePhotoUrl' => $member->profile_photo_path ? '/employee/profile/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
             'profileSaved' => $request->session()->pull('profile_saved', false),
-            'reports' => fn () => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at']),
+            'reports' => fn () => Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->latest('id')->limit(12)->get(['id', 'status', 'review_status', 'created_at', 'source_version']),
             'aiMode' => config('workforce.ai_provider'),
             'days' => fn () => app(ReportActivity::class)->days(Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)),
         ]);

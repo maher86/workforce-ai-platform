@@ -4,6 +4,7 @@ import {
     voiceAvailability,
     voiceFailure,
     startVoiceRecorder,
+    openMicrophone,
 } from '../../resources/js/lib/voice-recorder.ts';
 
 await test('preflight distinguishes insecure origin and unavailable browser APIs', () => {
@@ -11,6 +12,72 @@ await test('preflight distinguishes insecure origin and unavailable browser APIs
     assert.equal(voiceAvailability(true, false, true).code, 'MIC-UNSUPPORTED');
     assert.equal(voiceAvailability(true, true, false).code, 'MIC-UNSUPPORTED');
     assert.equal(voiceAvailability(true, true, true), null);
+});
+
+await test('browser mic request starts in click stack and a successful stream is left live', async () => {
+    let calls = 0;
+    let stops = 0;
+    const stream = { getTracks: () => [{ stop: () => stops++ }] };
+    const pending = openMicrophone(
+        () => {
+            calls++;
+            return Promise.resolve(stream);
+        },
+        new AbortController().signal,
+        100,
+    );
+    assert.equal(calls, 1);
+    assert.equal(await pending, stream);
+    assert.equal(stops, 0);
+});
+
+await test('an ignored permission prompt times out and late permission never starts or leaks recording', async () => {
+    let finish;
+    let stops = 0;
+    const access = new Promise((resolve) => {
+        finish = resolve;
+    });
+    const pending = openMicrophone(
+        () => access,
+        new AbortController().signal,
+        5,
+    );
+    await assert.rejects(pending, { name: 'TimeoutError' });
+    finish({ getTracks: () => [{ stop: () => stops++ }] });
+    await Promise.resolve();
+    assert.equal(stops, 1);
+    assert.equal(
+        voiceFailure({ name: 'TimeoutError' }, 'access').code,
+        'MIC-TIMEOUT',
+    );
+});
+
+await test('switching to native capture cancels waiting, disposes late streams and never asks on a cancelled request', async () => {
+    let finish;
+    let stops = 0;
+    const controller = new AbortController();
+    const pending = openMicrophone(
+        () =>
+            new Promise((resolve) => {
+                finish = resolve;
+            }),
+        controller.signal,
+        100,
+    );
+    controller.abort();
+    await assert.rejects(pending, { name: 'AbortError' });
+    finish({ getTracks: () => [{ stop: () => stops++ }] });
+    await Promise.resolve();
+    assert.equal(stops, 1);
+    let calls = 0;
+    await assert.rejects(
+        openMicrophone(() => {
+            calls++;
+            return Promise.resolve({});
+        }, controller.signal),
+        { name: 'AbortError' },
+    );
+    assert.equal(calls, 0);
 });
 
 await test('access errors distinguish blocked, absent and unavailable hardware without exposing raw errors', () => {

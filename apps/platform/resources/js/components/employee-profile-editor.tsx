@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { useForm } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ export default function EmployeeProfileEditor({
     tenant: number;
     employee: { id: number; name: string; phone: string | null };
 }) {
+    const { t } = useUiLocale();
+
     const form = useForm<{ name: string; phone: string; photo: File | null }>({
         name: employee.name,
         phone: employee.phone || '',
@@ -18,7 +21,8 @@ export default function EmployeeProfileEditor({
     return (
         <details className="w-full rounded-xl bg-slate-50 p-3 text-slate-900">
             <summary className="cursor-pointer">
-                تعديل الاسم والهاتف والصورة
+                {' '}
+                {t('تعديل الاسم والهاتف والصورة')}{' '}
             </summary>
             <form
                 className="mt-3 space-y-3"
@@ -35,7 +39,8 @@ export default function EmployeeProfileEditor({
                 }}
             >
                 <label className="block">
-                    اسم الموظف
+                    {' '}
+                    {t('اسم الموظف')}{' '}
                     <Input
                         value={form.data.name}
                         onChange={(event) =>
@@ -47,7 +52,8 @@ export default function EmployeeProfileEditor({
                 </label>
                 <InputError message={form.errors.name} />
                 <label className="block">
-                    رقم الهاتف (اختياري، مع رمز الدولة)
+                    {' '}
+                    {t('رقم الهاتف (اختياري، مع رمز الدولة)')}{' '}
                     <Input
                         type="tel"
                         dir="ltr"
@@ -61,7 +67,8 @@ export default function EmployeeProfileEditor({
                 </label>
                 <InputError message={form.errors.phone} />
                 <label className="block">
-                    صورة الملف (اختيارية، حتى 4MB)
+                    {' '}
+                    {t('صورة الملف (اختيارية، حتى 4MB)')}{' '}
                     <Input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -79,8 +86,10 @@ export default function EmployeeProfileEditor({
                         (form.errors as Record<string, string>).media
                     }
                 />
-                <Button disabled={form.processing}>حفظ الملف</Button>
-                {form.recentlySuccessful && <p role="status">تم حفظ الملف.</p>}
+                <Button disabled={form.processing}>{t('حفظ الملف')}</Button>
+                {form.recentlySuccessful && (
+                    <p role="status">{t('تم حفظ الملف.')}</p>
+                )}
             </form>
         </details>
     );

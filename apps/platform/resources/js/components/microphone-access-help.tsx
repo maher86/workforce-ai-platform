@@ -1,4 +1,4 @@
-import { AudioLines, LockKeyhole, Mic, Pointer, Settings2 } from 'lucide-react';
+import { AudioLines, Mic, Settings2, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { readMicrophonePermission } from '@/lib/microphone-permission';
 import type { MicrophonePermission } from '@/lib/microphone-permission';
@@ -6,10 +6,14 @@ import type { MicrophonePermission } from '@/lib/microphone-permission';
 export default function MicrophoneAccessHelp({
     onRetry,
     onUpload,
+    onCapture,
+    browserBusy,
     busy,
 }: {
     onRetry: () => void;
     onUpload: () => void;
+    onCapture: () => void;
+    browserBusy: boolean;
     busy: boolean;
 }) {
     const [permission, setPermission] =
@@ -38,21 +42,24 @@ export default function MicrophoneAccessHelp({
             <div className="flex items-stretch gap-3">
                 <button
                     type="button"
-                    aria-label="طلب السماح بالميكروفون وإعادة بدء التسجيل"
+                    aria-label="تسجيل الصوت بمسجل الهاتف"
                     disabled={busy}
-                    onClick={onRetry}
+                    onClick={onCapture}
                     className="flex min-h-24 flex-1 items-center justify-center gap-4 rounded-3xl border border-orange-300 bg-gradient-to-br from-orange-400 to-orange-600 p-4 text-white shadow-md disabled:opacity-50"
                 >
                     <Mic size={42} strokeWidth={1.5} />
-                    <span aria-hidden="true">
-                        {permission === 'denied' ? (
-                            <LockKeyhole size={27} />
-                        ) : (
-                            <Pointer size={27} />
-                        )}
-                    </span>
+                    <Smartphone size={27} aria-hidden="true" />
                 </button>
                 <div className="flex flex-col justify-center gap-3">
+                    <button
+                        type="button"
+                        className="workforce-icon"
+                        aria-label="محاولة التسجيل داخل المتصفح"
+                        disabled={busy || browserBusy}
+                        onClick={onRetry}
+                    >
+                        <Mic />
+                    </button>
                     <button
                         type="button"
                         className="workforce-icon"
@@ -76,6 +83,14 @@ export default function MicrophoneAccessHelp({
             {help && (
                 <div className="space-y-3 rounded-2xl border border-red-200 bg-white p-4 text-sm text-slate-800">
                     <p className="font-semibold">إرشادات للمدير</p>
+                    <p>
+                        زر التسجيل الكبير على Android يطلب مسجل الهاتف مباشرة،
+                        دون تكرار طلب إذن تسجيل الموقع. دعم الالتقاط يختلف حسب
+                        الهاتف وقد يظهر اختيار تطبيق أو ملفات. استخدم أيقونة
+                        الميكروفون الصغيرة هنا للتسجيل داخل المتصفح. التطبيق لا
+                        يستطيع تجاوز حظر الميكروفون في النظام أو تثبيت مسجل
+                        تلقائيًا.
+                    </p>
                     {permission === 'denied' ? (
                         <p>
                             المتصفح يبلغ أن الوصول محظور للموقع أو بسبب سياسة.

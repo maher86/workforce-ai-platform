@@ -1,5 +1,58 @@
 export type VoiceFailure = { code: string; message: string };
 
+// A browser permission request itself cannot be cancelled. Ignore/close any late stream.
+export function openMicrophone(
+    getMedia: () => Promise<MediaStream>,
+    signal: AbortSignal,
+    timeoutMs = 15000,
+): Promise<MediaStream> {
+    return new Promise((resolve, reject) => {
+        let finished = false;
+        let timer: ReturnType<typeof setTimeout>;
+        const fail = (error: unknown) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            signal.removeEventListener('abort', abort);
+            reject(error);
+        };
+        const abort = () =>
+            fail(
+                new DOMException('microphone_request_cancelled', 'AbortError'),
+            );
+        if (signal.aborted) {
+            abort();
+            return;
+        }
+        signal.addEventListener('abort', abort, { once: true });
+        timer = setTimeout(
+            () =>
+                fail(
+                    new DOMException(
+                        'microphone_request_timeout',
+                        'TimeoutError',
+                    ),
+                ),
+            timeoutMs,
+        );
+        try {
+            // Invoke during the actual click, without an awaited permission query first.
+            void getMedia().then((stream) => {
+                if (finished || signal.aborted) {
+                    stream.getTracks().forEach((track) => track.stop());
+                    return;
+                }
+                finished = true;
+                clearTimeout(timer);
+                signal.removeEventListener('abort', abort);
+                resolve(stream);
+            }, fail);
+        } catch (error) {
+            fail(error);
+        }
+    });
+}
+
 export function voiceFailure(
     error: unknown,
     phase: 'access' | 'recording',
@@ -8,6 +61,12 @@ export function voiceFailure(
         error && typeof error === 'object' && 'name' in error
             ? String(error.name)
             : '';
+    if (name === 'TimeoutError')
+        return {
+            code: 'MIC-TIMEOUT',
+            message:
+                'لم يُجب المتصفح عن طلب الميكروفون. استخدم زر مسجل الهاتف بدل الانتظار، أو أعد المحاولة داخل المتصفح.',
+        };
     if (phase === 'recording') {
         return {
             code: 'MIC-RECORDER',

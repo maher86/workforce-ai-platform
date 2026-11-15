@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 type Change = {
@@ -12,6 +13,8 @@ export type SourcePages = {
     next_page_url: string | null;
 };
 function Snapshot({ change, base }: { change: Change; base: string }) {
+    const { t, locale } = useUiLocale();
+
     const [snapshot, setSnapshot] = useState<{
         source_text: string | null;
         reviews: {
@@ -46,7 +49,7 @@ function Snapshot({ change, base }: { change: Change; base: string }) {
                 throw new Error();
             setSnapshot(await response.json());
         } catch {
-            setError('تعذّر تحميل النسخة السابقة. أعد المحاولة.');
+            setError(t('تعذّر تحميل النسخة السابقة. أعد المحاولة.'));
         } finally {
             setBusy(false);
         }
@@ -59,13 +62,17 @@ function Snapshot({ change, base }: { change: Change; base: string }) {
             }}
         >
             <summary className="cursor-pointer font-semibold">
-                مصادر الإصدار {change.source_version} ·{' '}
-                {change.kind === 'delete' ? 'قبل الحذف' : 'قبل التعديل'} ·{' '}
-                {new Date(change.created_at).toLocaleString('ar-AE', {
-                    timeZone: 'Asia/Dubai',
-                })}
+                {' '}
+                {t('مصادر الإصدار')} {change.source_version} ·{' '}
+                {change.kind === 'delete' ? t('قبل الحذف') : t('قبل التعديل')} ·{' '}
+                {new Date(change.created_at).toLocaleString(
+                    locale === 'ar' ? 'ar-AE' : 'en-GB',
+                    {
+                        timeZone: 'Asia/Dubai',
+                    },
+                )}
             </summary>
-            {busy && <p>جارٍ تحميل السجل…</p>}
+            {busy && <p>{t('جارٍ تحميل السجل…')}</p>}
             {error && (
                 <p role="alert" className="text-red-700">
                     {error}
@@ -73,7 +80,8 @@ function Snapshot({ change, base }: { change: Change; base: string }) {
                         onClick={() => void load()}
                         className="mx-3 underline"
                     >
-                        إعادة المحاولة
+                        {' '}
+                        {t('إعادة المحاولة')}{' '}
                     </button>
                 </p>
             )}
@@ -91,7 +99,9 @@ function Snapshot({ change, base }: { change: Change; base: string }) {
                                 rel="noreferrer"
                                 className="rounded-xl border px-4 py-2"
                             >
-                                المصدر #{id}
+                                {' '}
+                                {t('المصدر #')}
+                                {id}
                             </a>
                         ))}
                     </div>
@@ -101,7 +111,9 @@ function Snapshot({ change, base }: { change: Change; base: string }) {
                             className="rounded-xl border border-orange-200 p-4"
                         >
                             <h3 className="font-bold">
-                                المراجعة البشرية السابقة · {review.status}
+                                {' '}
+                                {t('المراجعة البشرية السابقة ·')}{' '}
+                                {review.status}
                             </h3>
                             <p dir="ltr" className="whitespace-pre-wrap">
                                 {review.english_report}
@@ -137,11 +149,14 @@ export default function ReportSourceHistory({
     pages: SourcePages;
     base: string;
 }) {
+    const { t } = useUiLocale();
+
     if (!pages.data.length) return null;
     return (
         <section className="space-y-4">
             <h2 className="text-xl font-bold">
-                سجل تغييرات الموظف — الأدلة السابقة محفوظة
+                {' '}
+                {t('سجل تغييرات الموظف — الأدلة السابقة محفوظة')}{' '}
             </h2>
             {pages.data.map((change) => (
                 <Snapshot key={change.id} change={change} base={base} />
@@ -149,12 +164,14 @@ export default function ReportSourceHistory({
             <nav className="flex gap-4">
                 {pages.prev_page_url && (
                     <Link href={pages.prev_page_url} preserveScroll>
-                        أحدث
+                        {' '}
+                        {t('أحدث')}{' '}
                     </Link>
                 )}
                 {pages.next_page_url && (
                     <Link href={pages.next_page_url} preserveScroll>
-                        أقدم
+                        {' '}
+                        {t('أقدم')}{' '}
                     </Link>
                 )}
             </nav>

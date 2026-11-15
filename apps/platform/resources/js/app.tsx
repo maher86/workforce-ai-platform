@@ -5,6 +5,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import EmployeeLayout from '@/layouts/employee-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -12,8 +13,14 @@ void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
-            case name === 'welcome':
             case name.startsWith('employee/'):
+                return EmployeeLayout;
+            case name === 'welcome':
+            case name.startsWith('workforce/'):
+            case name.startsWith('reports/'):
+            case name.startsWith('vehicles/'):
+            case name.startsWith('insights/'):
+            case name.startsWith('manager/'):
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

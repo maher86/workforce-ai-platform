@@ -1,3 +1,4 @@
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 
@@ -43,6 +44,8 @@ export default function ServiceFactsForm({
     history: FactHistory;
     sourceVersion: number;
 }) {
+    const { t, locale } = useUiLocale();
+
     const form = useForm({
         version: current?.version ?? 0,
         source_version: sourceVersion,
@@ -62,11 +65,14 @@ export default function ServiceFactsForm({
         <section className="space-y-5 rounded-3xl border border-teal-200 bg-teal-50 p-6 text-slate-900">
             <div>
                 <h2 className="text-xl font-bold">
-                    بيانات الخدمة المؤكدة من المدير
+                    {' '}
+                    {t('بيانات الخدمة المؤكدة من المدير')}{' '}
                 </h2>
                 <p className="mt-2 text-sm">
-                    راجع المصادر ثم أكّد ما تعرفه فقط. كل حفظ يسجل إصدارًا جديدًا؛
-                    لا يغير التسجيل أو تقرير الذكاء الاصطناعي.
+                    {' '}
+                    {t(
+                        'راجع المصادر ثم أكّد ما تعرفه فقط. كل حفظ يسجل إصدارًا جديدًا؛ لا يغير التسجيل أو تقرير الذكاء الاصطناعي.',
+                    )}{' '}
                 </p>
             </div>
             <form
@@ -85,11 +91,12 @@ export default function ServiceFactsForm({
                 }}
             >
                 <label>
-                    نوع الخدمة (اختياري)
+                    {' '}
+                    {t('نوع الخدمة (اختياري)')}{' '}
                     <input
                         className="mt-2 w-full rounded-xl border bg-white p-3"
                         maxLength={100}
-                        placeholder="مثل: تغيير زيت"
+                        placeholder={t('مثل: تغيير زيت')}
                         value={form.data.service_type}
                         onChange={(e) =>
                             form.setData('service_type', e.target.value)
@@ -97,19 +104,21 @@ export default function ServiceFactsForm({
                     />
                 </label>
                 <label>
-                    هل هذا التقرير عن إعادة عمل؟
+                    {' '}
+                    {t('هل هذا التقرير عن إعادة عمل؟')}{' '}
                     <select
                         className="mt-2 w-full rounded-xl border bg-white p-3"
                         value={form.data.rework}
                         onChange={(e) => form.setData('rework', e.target.value)}
                     >
-                        <option value="">غير معلوم / لم يُقيّم</option>
-                        <option value="0">لا</option>
-                        <option value="1">نعم</option>
+                        <option value="">{t('غير معلوم / لم يُقيّم')}</option>
+                        <option value="0">{t('لا')}</option>
+                        <option value="1">{t('نعم')}</option>
                     </select>
                 </label>
                 <label>
-                    بداية العمل — توقيت دبي
+                    {' '}
+                    {t('بداية العمل — توقيت دبي')}{' '}
                     <input
                         type="datetime-local"
                         className="mt-2 w-full rounded-xl border bg-white p-3"
@@ -120,7 +129,8 @@ export default function ServiceFactsForm({
                     />
                 </label>
                 <label>
-                    نهاية العمل — توقيت دبي
+                    {' '}
+                    {t('نهاية العمل — توقيت دبي')}{' '}
                     <input
                         type="datetime-local"
                         className="mt-2 w-full rounded-xl border bg-white p-3"
@@ -131,12 +141,15 @@ export default function ServiceFactsForm({
                     />
                 </label>
                 <p className="text-sm sm:col-span-2">
-                    الوقتان اختياريان معًا. الفترة المسجلة لا تثبت الحضور أو ساعات
-                    الأجر، وقد تتداخل مع تقارير أخرى.
+                    {' '}
+                    {t(
+                        'الوقتان اختياريان معًا. الفترة المسجلة لا تثبت الحضور أو ساعات الأجر، وقد تتداخل مع تقارير أخرى.',
+                    )}{' '}
                 </p>
                 {form.data.rework === '1' && (
                     <label className="sm:col-span-2">
-                        سبب إعادة العمل
+                        {' '}
+                        {t('سبب إعادة العمل')}{' '}
                         <textarea
                             required
                             maxLength={2000}
@@ -149,12 +162,15 @@ export default function ServiceFactsForm({
                     </label>
                 )}
                 <label className="sm:col-span-2">
-                    مصدر التأكيد / سبب تعديل البيانات
+                    {' '}
+                    {t('مصدر التأكيد / سبب تعديل البيانات')}{' '}
                     <textarea
                         required
                         maxLength={2000}
                         className="mt-2 w-full rounded-xl border bg-white p-3"
-                        placeholder="مثل: راجعت التسجيل وأكدت الوقت مع الموظف"
+                        placeholder={t(
+                            'مثل: راجعت التسجيل وأكدت الوقت مع الموظف',
+                        )}
                         value={form.data.confirmation_note}
                         onChange={(e) =>
                             form.setData('confirmation_note', e.target.value)
@@ -166,11 +182,15 @@ export default function ServiceFactsForm({
                         {Object.values(form.errors).join(' ')}
                     </p>
                 )}
-                <Button disabled={form.processing}>حفظ إصدار مؤكد</Button>
+                <Button disabled={form.processing}>
+                    {t('حفظ إصدار مؤكد')}
+                </Button>
             </form>
             <details>
                 <summary className="cursor-pointer font-bold">
-                    سجل إصدارات بيانات الخدمة ({current?.version ?? 0})
+                    {' '}
+                    {t('سجل إصدارات بيانات الخدمة (')}
+                    {current?.version ?? 0})
                 </summary>
                 <div className="mt-4 space-y-3">
                     {history.data.map((item) => (
@@ -179,31 +199,36 @@ export default function ServiceFactsForm({
                             className="space-y-2 rounded-xl bg-white p-4"
                         >
                             <h3 className="font-bold">
-                                الإصدار {item.version} ·{' '}
-                                {item.service_type || 'خدمة غير مصنفة'}
+                                {' '}
+                                {t('الإصدار')} {item.version} ·{' '}
+                                {item.service_type || t('خدمة غير مصنفة')}
                             </h3>
                             <p>
-                                حفظه المستخدم #{item.actor_id ?? 'محذوف'} ·{' '}
+                                {' '}
+                                {t('حفظه المستخدم #')}
+                                {item.actor_id ?? t('محذوف')} ·{' '}
                                 {new Date(item.created_at).toLocaleString(
-                                    'ar-AE',
+                                    locale === 'ar' ? 'ar-AE' : 'en-GB',
                                     { timeZone: 'Asia/Dubai' },
                                 )}
                             </p>
                             <p>
-                                الفترة بتوقيت دبي:{' '}
+                                {' '}
+                                {t('الفترة بتوقيت دبي:')}{' '}
                                 {localTime(item.started_at).replace('T', ' ') ||
-                                    'غير معلومة'}{' '}
+                                    t('غير معلومة')}{' '}
                                 ←{' '}
                                 {localTime(item.ended_at).replace('T', ' ') ||
-                                    'غير معلومة'}
+                                    t('غير معلومة')}
                             </p>
                             <p>
-                                إعادة العمل:{' '}
+                                {' '}
+                                {t('إعادة العمل:')}{' '}
                                 {item.rework === null
-                                    ? 'لم تُقيّم'
+                                    ? t('لم تُقيّم')
                                     : item.rework
-                                      ? 'نعم'
-                                      : 'لا'}{' '}
+                                      ? t('نعم')
+                                      : t('لا')}{' '}
                                 {item.rework_reason &&
                                     `· ${item.rework_reason}`}
                             </p>
@@ -215,12 +240,14 @@ export default function ServiceFactsForm({
                     <nav className="flex gap-5">
                         {history.prev_page_url && (
                             <Link href={history.prev_page_url} preserveScroll>
-                                إصدارات أحدث
+                                {' '}
+                                {t('إصدارات أحدث')}{' '}
                             </Link>
                         )}
                         {history.next_page_url && (
                             <Link href={history.next_page_url} preserveScroll>
-                                إصدارات أقدم
+                                {' '}
+                                {t('إصدارات أقدم')}{' '}
                             </Link>
                         )}
                     </nav>

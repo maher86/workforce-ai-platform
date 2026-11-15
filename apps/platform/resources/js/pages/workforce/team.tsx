@@ -1,3 +1,5 @@
+import ManagerLanguageSwitch from '@/components/manager-language-switch';
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     Copy,
@@ -53,6 +55,8 @@ export default function Team({
     managerName,
     summary,
 }: Props) {
+    const { t, locale, direction } = useUiLocale();
+
     const workspace = useForm({ name: '' });
     const employee = useForm({ name: '', phone: '' });
     const manager = useForm({ email: '', password: '' });
@@ -65,37 +69,42 @@ export default function Team({
 
     return (
         <main
-            dir="rtl"
-            lang="ar"
+            dir={direction}
+            lang={locale}
             className="workforce-surface manager-surface mx-auto w-full max-w-6xl space-y-7"
         >
-            <Head title="إدارة الفريق" />
+            <Head title={t('إدارة الفريق')} />
             <header className="manager-hero space-y-3">
+                <ManagerLanguageSwitch className="float-end border-white/30 text-white" />
+
                 <Users size={34} className="text-orange-300" />
                 <h1 className="text-2xl font-bold">
-                    إدارة الفريق · {managerName}
+                    {' '}
+                    {t('إدارة الفريق ·')} {managerName}
                 </h1>
                 <Button
                     variant="outline"
                     onClick={() => router.post('/logout')}
                 >
-                    <LogOut size={18} /> تسجيل خروج
+                    <LogOut size={18} /> {t('تسجيل خروج')}{' '}
                 </Button>
                 <p className="text-muted-foreground">
-                    أضف الموظف وأعطه رمز QR أو رابطًا. لا يحتاج إلى بريد أو كلمة
-                    مرور.
+                    {' '}
+                    {t(
+                        'أضف الموظف وأعطه رمز QR أو رابطًا. لا يحتاج إلى بريد أو كلمة مرور.',
+                    )}{' '}
                 </p>
             </header>
             {summary && (
                 <section
-                    aria-label="ملخص المؤسسة"
+                    aria-label={t('ملخص المؤسسة')}
                     className="grid grid-cols-2 gap-3 md:grid-cols-3"
                 >
                     {(
                         [
-                            ['الموظفون النشطون', summary.employees],
-                            ['التقارير', summary.reports],
-                            ['قيد المعالجة', summary.processing],
+                            [t('الموظفون النشطون'), summary.employees],
+                            [t('التقارير'), summary.reports],
+                            [t('قيد المعالجة'), summary.processing],
                         ] as const
                     ).map(([label, value]) => (
                         <div
@@ -108,20 +117,21 @@ export default function Team({
                     ))}
                 </section>
             )}
-            <nav aria-label="المؤسسات" className="flex flex-wrap gap-3">
+            <nav aria-label={t('المؤسسات')} className="flex flex-wrap gap-3">
                 {selectedTenant && (
                     <>
                         <Link
                             href={`/tenants/${selectedTenant}/vehicles`}
                             className="rounded-xl bg-slate-900 px-4 py-2 text-white"
                         >
-                            <CarFront size={21} /> سجل السيارات
+                            <CarFront size={21} /> {t('سجل السيارات')}{' '}
                         </Link>
                         <Link
                             href={`/tenants/${selectedTenant}/insights`}
                             className="rounded-xl border border-teal-300 px-4 py-2 text-teal-800"
                         >
-                            <ChartNoAxesCombined size={21} /> مؤشرات الفريق
+                            <ChartNoAxesCombined size={21} />{' '}
+                            {t('مؤشرات الفريق')}{' '}
                         </Link>
                     </>
                 )}
@@ -130,7 +140,7 @@ export default function Team({
                         href={`/tenants/${selectedTenant}/reports`}
                         className="rounded-xl bg-orange-500 px-4 py-2 text-white"
                     >
-                        <FileText size={21} /> التقارير
+                        <FileText size={21} /> {t('التقارير')}{' '}
                     </Link>
                 )}
                 {workspaces.map((tenant) => (
@@ -145,7 +155,8 @@ export default function Team({
             </nav>
             <details className="rounded-2xl border p-5">
                 <summary className="cursor-pointer font-semibold">
-                    إضافة مؤسسة
+                    {' '}
+                    {t('إضافة مؤسسة')}{' '}
                 </summary>
                 <form
                     className="flex flex-wrap items-end gap-3 rounded-xl border p-4"
@@ -158,7 +169,8 @@ export default function Team({
                 >
                     <div className="flex-1 space-y-2">
                         <Label htmlFor="workspace-name">
-                            اسم المؤسسة الجديدة
+                            {' '}
+                            {t('اسم المؤسسة الجديدة')}{' '}
                         </Label>
                         <Input
                             id="workspace-name"
@@ -171,7 +183,9 @@ export default function Team({
                         />
                         <InputError message={workspace.errors.name} />
                     </div>
-                    <Button disabled={workspace.processing}>إنشاء مؤسسة</Button>
+                    <Button disabled={workspace.processing}>
+                        {t('إنشاء مؤسسة')}
+                    </Button>
                 </form>
             </details>
             {selectedTenant && (
@@ -189,7 +203,9 @@ export default function Team({
                         }}
                     >
                         <div className="flex-1 space-y-2">
-                            <Label htmlFor="employee-name">اسم الموظف</Label>
+                            <Label htmlFor="employee-name">
+                                {t('اسم الموظف')}
+                            </Label>
                             <Input
                                 id="employee-name"
                                 value={employee.data.name}
@@ -203,7 +219,8 @@ export default function Team({
                         </div>
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="employee-phone">
-                                هاتف الموظف (اختياري، مع رمز الدولة)
+                                {' '}
+                                {t('هاتف الموظف (اختياري، مع رمز الدولة)')}{' '}
                             </Label>
                             <Input
                                 id="employee-phone"
@@ -222,22 +239,22 @@ export default function Team({
                             <InputError message={employee.errors.phone} />
                         </div>
                         <Button disabled={employee.processing}>
-                            <UserPlus />
-                            إضافة وإصدار QR
+                            <UserPlus /> {t('إضافة وإصدار QR')}{' '}
                         </Button>
                     </form>
                     {visible && (
                         <section
-                            aria-label="تفعيل هاتف الموظف"
+                            aria-label={t('تفعيل هاتف الموظف')}
                             className="space-y-4 rounded-2xl border-2 border-teal-600 bg-white p-6 text-slate-900"
                         >
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold">
-                                    تفعيل هاتف {activation.name}
+                                    {' '}
+                                    {t('تفعيل هاتف')} {activation.name}
                                 </h2>
                                 <Button
                                     variant="ghost"
-                                    aria-label="إخفاء رمز التفعيل"
+                                    aria-label={t('إخفاء رمز التفعيل')}
                                     onClick={() => setHiddenUrl(activation.url)}
                                 >
                                     <X />
@@ -248,9 +265,10 @@ export default function Team({
                                     role="alert"
                                     className="rounded-xl bg-amber-100 p-4 text-amber-950"
                                 >
-                                    هذا الرابط محلي ويعمل على الكمبيوتر فقط.
-                                    لتجربة الهاتف شغّل معاينة HTTPS ثم أصدر رمزًا
-                                    جديدًا.
+                                    {' '}
+                                    {t(
+                                        'هذا الرابط محلي ويعمل على الكمبيوتر فقط. لتجربة الهاتف شغّل معاينة HTTPS ثم أصدر رمزًا جديدًا.',
+                                    )}{' '}
                                 </p>
                             )}
                             <QRCodeSVG
@@ -258,11 +276,13 @@ export default function Team({
                                 size={256}
                                 marginSize={4}
                                 className="mx-auto h-auto max-w-full"
-                                title={`تفعيل هاتف ${activation.name}`}
+                                title={`${t('تفعيل هاتف')} ${activation.name}`}
                             />
                             <p>
-                                امسح الرمز بهاتف الموظف، ثم اضغط زر الدخول. صالح
-                                30 دقيقة ولمرة واحدة. اعرضه للموظف المقصود فقط.
+                                {' '}
+                                {t(
+                                    'امسح الرمز بهاتف الموظف، ثم اضغط زر الدخول. صالح 30 دقيقة ولمرة واحدة. اعرضه للموظف المقصود فقط.',
+                                )}{' '}
                             </p>
                             <Button
                                 onClick={() => {
@@ -276,23 +296,30 @@ export default function Team({
                                 }}
                             >
                                 <Copy />
-                                {copied ? 'تم نسخ الرابط' : 'نسخ رابط التفعيل'}
+                                {copied
+                                    ? t('تم نسخ الرابط')
+                                    : t('نسخ رابط التفعيل')}
                             </Button>
                             {copyError && (
                                 <p role="alert">
-                                    تعذّر النسخ. امسح رمز QR بالكاميرا.
+                                    {' '}
+                                    {t(
+                                        'تعذّر النسخ. امسح رمز QR بالكاميرا.',
+                                    )}{' '}
                                 </p>
                             )}
                             <p className="text-sm">
-                                للتجربة على هذا الكمبيوتر: افتح الرابط في نافذة
-                                خاصة حتى يبقى حساب المدير مفتوحًا.
+                                {' '}
+                                {t(
+                                    'للتجربة على هذا الكمبيوتر: افتح الرابط في نافذة خاصة حتى يبقى حساب المدير مفتوحًا.',
+                                )}{' '}
                             </p>
                         </section>
                     )}
                     <section className="space-y-3">
-                        <h2 className="text-xl font-bold">الموظفون</h2>
+                        <h2 className="text-xl font-bold">{t('الموظفون')}</h2>
                         {employees.length === 0 && (
-                            <p>أضف أول موظف لبدء تجربة التفعيل.</p>
+                            <p>{t('أضف أول موظف لبدء تجربة التفعيل.')}</p>
                         )}
                         {employees.map((member) => (
                             <article
@@ -303,7 +330,7 @@ export default function Team({
                                     {member.photoUrl && (
                                         <img
                                             src={member.photoUrl}
-                                            alt={`صورة ${member.name}`}
+                                            alt={`${t('صورة')} ${member.name}`}
                                             className="mb-2 h-16 w-16 rounded-full object-cover"
                                         />
                                     )}
@@ -313,8 +340,8 @@ export default function Team({
                                     )}
                                     <p className="text-sm text-muted-foreground">
                                         {member.active
-                                            ? `أجهزة مفعّلة: ${member.devices}`
-                                            : 'الوصول موقوف'}
+                                            ? `${t('أجهزة مفعّلة:')} ${member.devices}`
+                                            : t('الوصول موقوف')}
                                     </p>
                                 </div>
                                 {member.active && (
@@ -328,15 +355,16 @@ export default function Team({
                                                 );
                                             }}
                                         >
-                                            <QrCode />
-                                            رمز جديد
+                                            <QrCode /> {t('رمز جديد')}{' '}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => {
                                                 if (
                                                     window.confirm(
-                                                        'إلغاء دخول جميع أجهزة هذا الموظف؟ سيحتاج إلى رمز جديد.',
+                                                        t(
+                                                            'إلغاء دخول جميع أجهزة هذا الموظف؟ سيحتاج إلى رمز جديد.',
+                                                        ),
                                                     )
                                                 )
                                                     router.post(
@@ -344,15 +372,17 @@ export default function Team({
                                                     );
                                             }}
                                         >
-                                            <ShieldCheck />
-                                            إلغاء الأجهزة
+                                            <ShieldCheck />{' '}
+                                            {t('إلغاء الأجهزة')}{' '}
                                         </Button>
                                         <Button
                                             variant="destructive"
                                             onClick={() => {
                                                 if (
                                                     window.confirm(
-                                                        'إيقاف وصول الموظف وإلغاء أجهزته وروابطه؟',
+                                                        t(
+                                                            'إيقاف وصول الموظف وإلغاء أجهزته وروابطه؟',
+                                                        ),
                                                     )
                                                 )
                                                     router.post(
@@ -361,7 +391,8 @@ export default function Team({
                                                     );
                                             }}
                                         >
-                                            إيقاف الوصول
+                                            {' '}
+                                            {t('إيقاف الوصول')}{' '}
                                         </Button>
                                     </div>
                                 )}
@@ -374,7 +405,8 @@ export default function Team({
                                             )
                                         }
                                     >
-                                        إعادة التفعيل وإصدار QR
+                                        {' '}
+                                        {t('إعادة التفعيل وإصدار QR')}{' '}
                                     </Button>
                                 )}
                                 <EmployeeProfileEditor
@@ -386,7 +418,10 @@ export default function Team({
                                     href={`/tenants/${selectedTenant}/employees/${member.id}/reports`}
                                     className="rounded-xl bg-teal-50 px-4 py-2 text-teal-800"
                                 >
-                                    تقارير الموظف ومؤشراته حسب التاريخ ←
+                                    {' '}
+                                    {t(
+                                        'تقارير الموظف ومؤشراته حسب التاريخ ←',
+                                    )}{' '}
                                 </Link>
                             </article>
                         ))}
@@ -394,11 +429,14 @@ export default function Team({
                     {canManageManagers && (
                         <details className="space-y-4 rounded-xl border p-5">
                             <summary className="cursor-pointer font-bold">
-                                إدارة المديرين · للمالك فقط
+                                {' '}
+                                {t('إدارة المديرين · للمالك فقط')}{' '}
                             </summary>
                             <p className="mt-3 text-muted-foreground">
-                                يسجّل المدير حسابه بالبريد ويؤكده أولًا، ثم أضفه
-                                هنا. لا يمكن تحويل حساب موظف QR إلى مدير.
+                                {' '}
+                                {t(
+                                    'يسجّل المدير حسابه بالبريد ويؤكده أولًا، ثم أضفه هنا. لا يمكن تحويل حساب موظف QR إلى مدير.',
+                                )}{' '}
                             </p>
                             <form
                                 className="mt-4 space-y-3"
@@ -415,7 +453,8 @@ export default function Team({
                                 }}
                             >
                                 <label className="block">
-                                    بريد المدير المؤكّد
+                                    {' '}
+                                    {t('بريد المدير المؤكّد')}{' '}
                                     <Input
                                         type="email"
                                         required
@@ -430,7 +469,8 @@ export default function Team({
                                     />
                                 </label>
                                 <label className="block">
-                                    كلمة مرور حسابك للتأكيد
+                                    {' '}
+                                    {t('كلمة مرور حسابك للتأكيد')}{' '}
                                     <Input
                                         type="password"
                                         required
@@ -452,11 +492,13 @@ export default function Team({
                                     </p>
                                 )}
                                 <Button disabled={manager.processing}>
-                                    إضافة مدير
+                                    {' '}
+                                    {t('إضافة مدير')}{' '}
                                 </Button>
                                 {managerAdded && (
                                     <p role="status" className="text-teal-700">
-                                        تمت إضافة المدير.
+                                        {' '}
+                                        {t('تمت إضافة المدير.')}{' '}
                                     </p>
                                 )}
                             </form>
@@ -467,7 +509,7 @@ export default function Team({
                                         className="rounded-lg border p-3"
                                     >
                                         {item.name} ·{' '}
-                                        {item.active ? 'نشط' : 'موقوف'}
+                                        {item.active ? t('نشط') : t('موقوف')}
                                     </li>
                                 ))}
                             </ul>
@@ -477,7 +519,9 @@ export default function Team({
                                     event.preventDefault();
                                     if (
                                         window.confirm(
-                                            'إيقاف صلاحية هذا المدير في هذه المؤسسة؟',
+                                            t(
+                                                'إيقاف صلاحية هذا المدير في هذه المؤسسة؟',
+                                            ),
                                         )
                                     )
                                         managerRemoval.post(
@@ -492,7 +536,8 @@ export default function Team({
                                 }}
                             >
                                 <label className="block">
-                                    إيقاف مدير
+                                    {' '}
+                                    {t('إيقاف مدير')}{' '}
                                     <select
                                         required
                                         value={managerRemoval.data.membership}
@@ -504,7 +549,9 @@ export default function Team({
                                         }
                                         className="block w-full rounded-lg border bg-background p-2"
                                     >
-                                        <option value="">اختر المدير</option>
+                                        <option value="">
+                                            {t('اختر المدير')}
+                                        </option>
                                         {managers
                                             .filter((item) => item.active)
                                             .map((item) => (
@@ -518,7 +565,8 @@ export default function Team({
                                     </select>
                                 </label>
                                 <label className="block">
-                                    كلمة مرور حسابك
+                                    {' '}
+                                    {t('كلمة مرور حسابك')}{' '}
                                     <Input
                                         type="password"
                                         required
@@ -547,7 +595,8 @@ export default function Team({
                                         !managerRemoval.data.membership
                                     }
                                 >
-                                    إيقاف صلاحية المدير
+                                    {' '}
+                                    {t('إيقاف صلاحية المدير')}{' '}
                                 </Button>
                             </form>
                         </details>

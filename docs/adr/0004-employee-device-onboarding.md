@@ -2,6 +2,8 @@
 
 Status: accepted product direction; physical-device validation pending.
 
+Update 2026-11-15: ADR 0009 adds a notification-only service worker for explicit opt-in generic processing-completion notifications. The original no-service-worker implementation below is superseded only for that narrow purpose; there is still no offline/media cache, durable background upload or closed-app Web Push.
+
 Employees may be unable to read or type. They never register, supply email addresses, or create passwords. A verified manager creates a named profile inside an authorized tenant and hands the employee a one-use activation link or QR. Managers retain verified-email login, password recovery and optional two-factor controls.
 
 ## Credential lifecycle

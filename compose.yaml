@@ -75,7 +75,9 @@ services:
   worker:
     <<: *app
     restart: unless-stopped
-    command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--timeout=120"]
+    deploy:
+      replicas: ${WORKFORCE_QUEUE_WORKERS:-2}
+    command: ["php", "artisan", "queue:work", "redis", "--queue=report-text,default", "--sleep=1", "--tries=3", "--timeout=120"]
     depends_on:
       app:
         condition: service_healthy

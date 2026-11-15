@@ -17,6 +17,8 @@ class ProcessReport implements ShouldQueue
 {
     use Queueable;
 
+    public const TEXT_QUEUE = 'report-text';
+
     public int $tries = 3;
 
     public int $timeout = 60;
@@ -61,19 +63,21 @@ class ProcessReport implements ShouldQueue
 
                 return;
             }
+            $started = hrtime(true);
             $result = $stage['kind'] === 'structured' && $pipeline->sources($report) === []
                 ? new StageResult(['summary' => 'Image-only submission. Supporting observations require human review; no quantities or completion are established.', 'claims' => [], 'uncertainties' => ['No employee text or speech provides work quantities or completion claims.']], 'image-only-policy-v1', [], 'policy')
                 : $ai->run($stage['kind'], $stage['context']);
             $pipeline->validate($report, $stage['kind'], $result->payload);
-            DB::transaction(function () use ($report, $stage, $result) {
+            $duration = (int) ((hrtime(true) - $started) / 1000000);
+            DB::transaction(function () use ($report, $stage, $result, $duration) {
                 $current = Report::query()->where('tenant_id', $this->tenantId)->lockForUpdate()->find($report->id);
                 if (! $current || $current->source_version !== $report->source_version || $current->status === 'failed' || ! Membership::query()->where('tenant_id', $this->tenantId)->where('active', true)->whereKey($current->membership_id)->exists()) {
                     return;
                 }
                 ReportOutput::query()->firstOrCreate(['report_id' => $report->id, 'stage' => $stage['key']], [
                     'tenant_id' => $this->tenantId, 'provider' => $result->provider ?? (string) config('workforce.ai_provider'),
-                    'model' => $result->model, 'prompt_version' => 'workforce-v1', 'schema_version' => $stage['kind'] === 'structured' ? '2' : '1',
-                    'payload' => $result->payload, 'usage' => $result->usage,
+                    'model' => $result->model, 'prompt_version' => $stage['kind'] === 'translation' ? 'workforce-v2' : 'workforce-v1', 'schema_version' => $stage['kind'] === 'structured' ? '2' : '1',
+                    'payload' => $result->payload, 'usage' => [...$result->usage, 'stage_duration_ms' => $duration],
                 ]);
                 $current->touch();
             });
@@ -84,7 +88,10 @@ class ProcessReport implements ShouldQueue
             $lock->release();
         }
         // One API stage per bounded job; persisted stages survive retries/restarts.
-        self::dispatch($this->tenantId, $this->reportId, $this->sourceVersion);
+        $continuation = self::dispatch($this->tenantId, $this->reportId, $this->sourceVersion);
+        if ($report->analysis_mode === 'text' && in_array($stage['kind'], ['transcript', 'translation'], true)) {
+            $continuation->onQueue(self::TEXT_QUEUE);
+        }
     }
 
     public function failed(?Throwable $exception): void

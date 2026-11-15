@@ -38,6 +38,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'uiLocale' => app()->getLocale(),
+            // Identity marker only, not a credential. Device middleware has already validated it.
+            'employeeUploadScope' => $request->user()?->employee_only
+                ? $request->user()->id.':'.$request->session()->get('employee_device_id') : null,
             'auth' => [
                 'user' => $request->user(),
             ],

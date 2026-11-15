@@ -1,3 +1,5 @@
+import ManagerLanguageSwitch from '@/components/manager-language-switch';
+import { useUiLocale } from '@/hooks/use-ui-locale';
 import { Link } from '@inertiajs/react';
 import { LayoutGrid } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -27,8 +29,13 @@ const mainNavItems: NavItem[] = [
 const footerNavItems: NavItem[] = [];
 
 export function AppSidebar() {
+    const { direction } = useUiLocale();
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar
+            collapsible="icon"
+            variant="inset"
+            side={direction === 'rtl' ? 'right' : 'left'}
+        >
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
@@ -46,6 +53,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                <ManagerLanguageSwitch className="group-data-[collapsible=icon]:hidden" />
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
