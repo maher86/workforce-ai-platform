@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-15: an Android debug pilot reuses employee Inertia screens with a Capacitor native AAC recorder and in-app same-origin QR activation. No external recorder confirmation. Native files are private/bounded and removed after handoff; server reporting/AI/auth remain shared. Exact HTTPS origin only, no backup, no release build, no offline upload promise. Stable hosting and a bundled-client contract remain prerequisites for commercial Android distribution. See ADR0011 and runbooks/android-pilot.md.
+
 Employee recording starts inside the page, including on Android: Stop attaches the clip directly without an external recorder confirmation. Native audio capture is an explicit fallback in recording help when browser recording fails. Ignored browser permission requests time out safely and late streams are stopped. Native3GP/AMR/AAC inputs still pass content sniffing, audio-only checks, bounded decode and private normalization; this is not an OS permission bypass. See ADR 0010; physical Android acceptance remains necessary.
 
 Owner update 2026-11-15: sending keeps employees on their current page. A tab-memory uploader and floating circle distinguish upload, server receipt and actual AI readiness; a bounded tenant/member-scoped batch endpoint reports processing phases without source evidence or invented AI percentages. Opt-in generic system notifications occur on readiness via a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media/status; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.

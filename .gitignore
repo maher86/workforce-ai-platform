@@ -11,5 +11,17 @@ coverage/
 playwright-report/
 test-results/
 .preview/
+apps/android/android/.gradle/
+apps/android/android/**/build/
+apps/android/android/local.properties
+apps/android/android/app/src/main/assets/capacitor.config.json
+apps/android/android/app/src/main/assets/capacitor.plugins.json
+apps/android/android/app/src/main/assets/public/
+apps/android/android/capacitor-cordova-android-plugins/
+apps/android/*.local.*
+*.apk
+*.aab
+*.jks
+*.keystore
 .DS_Store
 Thumbs.db

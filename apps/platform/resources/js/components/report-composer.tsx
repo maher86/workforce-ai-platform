@@ -24,6 +24,12 @@ import { uploadPending } from '@/lib/report-upload';
 import { processingReport } from '@/lib/report-progress';
 import { stableRecordedAudio } from '@/lib/audio-preview';
 import {
+    inAndroidApp,
+    nativeVoice,
+    nativeVoiceFailure,
+} from '@/lib/android-device';
+import { startNativeVoice } from '@/lib/native-voice-session';
+import {
     startVoiceRecorder,
     voiceAvailability,
     voiceFailure,
@@ -74,6 +80,9 @@ export default function ReportComposer({
     const [audioUrl, setAudioUrl] = useState('');
     const key = useRef(crypto.randomUUID());
     const recorder = useRef<MediaRecorder | null>(null);
+    const nativeRecorder = useRef<Awaited<
+        ReturnType<typeof startNativeVoice>
+    > | null>(null);
     const starting = useRef(false);
     const mounted = useRef(true);
     const stream = useRef<MediaStream | null>(null);
@@ -122,8 +131,11 @@ export default function ReportComposer({
         const interval = window.setInterval(() => {
             const elapsed = Math.floor((Date.now() - began.current) / 1000);
             setSeconds(Math.min(elapsed, 180));
-            if (elapsed >= 179 && recorder.current?.state === 'recording')
-                recorder.current.stop();
+            if (elapsed >= 180) {
+                if (recorder.current?.state === 'recording')
+                    recorder.current.stop();
+                nativeRecorder.current?.stop();
+            }
         }, 250);
         const hidden = () => {
             if (document.hidden && recorder.current?.state === 'recording')
@@ -139,12 +151,14 @@ export default function ReportComposer({
         mounted.current = true;
         return () => {
             mounted.current = false;
+            selectionVersion.current++;
             microphoneRequest.current?.abort();
+            nativeRecorder.current?.cancel();
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
             stream.current?.getTracks().forEach((track) => track.stop());
         };
-    }, []);
+    }, [employeeUploadScope]);
     useEffect(() => {
         const warn = (event: BeforeUnloadEvent) => {
             if (audio || images.length || recording) event.preventDefault();
@@ -193,12 +207,55 @@ export default function ReportComposer({
 
     const record = async () => {
         if (recording) {
+            if (nativeRecorder.current) {
+                nativeRecorder.current.stop();
+                setRecording(false);
+                setReadingAudio(true);
+                return;
+            }
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
             return;
         }
         if (starting.current) return;
         setError('');
+        if (inAndroidApp()) {
+            starting.current = true;
+            setOpeningMic(true);
+            const access = new AbortController();
+            microphoneRequest.current = access;
+            try {
+                const session = await startNativeVoice(
+                    nativeVoice,
+                    crypto.randomUUID(),
+                    access.signal,
+                    (file) => {
+                        if (!mounted.current) return;
+                        setRecording(false);
+                        void receiveAudio(file);
+                    },
+                    (failure) => {
+                        if (!mounted.current) return;
+                        setRecording(false);
+                        setReadingAudio(false);
+                        setError(nativeVoiceFailure(failure));
+                    },
+                );
+                nativeRecorder.current = session;
+                if (session.state === 'recording' && mounted.current) {
+                    began.current = Date.now();
+                    setSeconds(0);
+                    setRecording(true);
+                }
+            } catch (failure) {
+                if (mounted.current && !access.signal.aborted)
+                    setError(nativeVoiceFailure(failure));
+            } finally {
+                starting.current = false;
+                if (mounted.current) setOpeningMic(false);
+            }
+            return;
+        }
         const unavailable = voiceAvailability(
             window.isSecureContext,
             typeof navigator.mediaDevices?.getUserMedia === 'function',

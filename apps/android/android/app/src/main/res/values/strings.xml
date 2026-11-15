@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Workforce</string>
+    <string name="title_activity_main">Workforce</string>
+    <string name="package_name">com.workforce.reporting.pilot</string>
+    <string name="custom_url_scheme">com.workforce.reporting.pilot</string>
+</resources>
