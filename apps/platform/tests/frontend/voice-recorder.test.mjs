@@ -5,7 +5,6 @@ import {
     voiceFailure,
     startVoiceRecorder,
     openMicrophone,
-    preferNativeAudioCapture,
 } from '../../resources/js/lib/voice-recorder.ts';
 
 await test('preflight distinguishes insecure origin and unavailable browser APIs', () => {
@@ -13,28 +12,6 @@ await test('preflight distinguishes insecure origin and unavailable browser APIs
     assert.equal(voiceAvailability(true, false, true).code, 'MIC-UNSUPPORTED');
     assert.equal(voiceAvailability(true, true, false).code, 'MIC-UNSUPPORTED');
     assert.equal(voiceAvailability(true, true, true), null);
-});
-
-await test('Android capture is preferred only when the browser supports the capture hint', () => {
-    assert.equal(
-        preferNativeAudioCapture(
-            'Mozilla/5.0 (Linux; Android 14) Chrome/142 Mobile',
-            true,
-        ),
-        true,
-    );
-    assert.equal(
-        preferNativeAudioCapture('Mozilla/5.0 (Linux; Android 14)', false),
-        false,
-    );
-    assert.equal(
-        preferNativeAudioCapture('Mozilla/5.0 (iPhone) Safari', true),
-        false,
-    );
-    assert.equal(
-        preferNativeAudioCapture('Mozilla/5.0 (Windows NT 10.0) Chrome', true),
-        false,
-    );
 });
 
 await test('browser mic request starts in click stack and a successful stream is left live', async () => {

@@ -10,7 +10,6 @@ import {
     LoaderCircle,
     WifiOff,
     Settings2,
-    Smartphone,
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -28,7 +27,6 @@ import {
     startVoiceRecorder,
     voiceAvailability,
     voiceFailure,
-    preferNativeAudioCapture,
     openMicrophone,
 } from '@/lib/voice-recorder';
 
@@ -85,10 +83,6 @@ export default function ReportComposer({
     const audioInput = useRef<HTMLInputElement>(null);
     const nativeAudioInput = useRef<HTMLInputElement>(null);
     const microphoneRequest = useRef<AbortController | null>(null);
-    const nativePreferred = preferNativeAudioCapture(
-        navigator.userAgent,
-        'capture' in document.createElement('input'),
-    );
 
     useEffect(() => {
         if (
@@ -197,7 +191,7 @@ export default function ReportComposer({
         }
     };
 
-    const record = async (forceBrowser = false) => {
+    const record = async () => {
         if (recording) {
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
@@ -210,10 +204,6 @@ export default function ReportComposer({
             typeof navigator.mediaDevices?.getUserMedia === 'function',
             typeof MediaRecorder !== 'undefined',
         );
-        if (nativePreferred && !forceBrowser && window.isSecureContext) {
-            captureOnPhone();
-            return;
-        }
         if (unavailable) {
             setError(`${unavailable.message} [${unavailable.code}]`);
             return;
@@ -358,13 +348,7 @@ export default function ReportComposer({
             <div className="grid grid-cols-2 gap-4">
                 <button
                     disabled={openingMic || editingBusy || readingAudio}
-                    aria-label={
-                        recording
-                            ? 'إيقاف التسجيل'
-                            : nativePreferred
-                              ? 'تسجيل الصوت بمسجل الهاتف'
-                              : 'تسجيل صوت'
-                    }
+                    aria-label={recording ? 'إيقاف التسجيل' : 'تسجيل صوت'}
                     onClick={() => {
                         void record();
                     }}
@@ -381,13 +365,6 @@ export default function ReportComposer({
                         <span className="text-sm tabular-nums" dir="ltr">
                             {seconds} / 180
                         </span>
-                    )}
-                    {!recording && nativePreferred && (
-                        <Smartphone
-                            size={19}
-                            className="absolute bottom-3 left-3 opacity-80"
-                            aria-hidden="true"
-                        />
                     )}
                 </button>
                 <button
@@ -606,7 +583,7 @@ export default function ReportComposer({
                     busy={recording || editingBusy}
                     browserBusy={openingMic}
                     onRetry={() => {
-                        void record(true);
+                        void record();
                     }}
                     onCapture={captureOnPhone}
                     onUpload={() => audioInput.current?.click()}

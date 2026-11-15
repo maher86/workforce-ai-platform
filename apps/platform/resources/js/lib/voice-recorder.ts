@@ -1,10 +1,5 @@
 export type VoiceFailure = { code: string; message: string };
 
-export const preferNativeAudioCapture = (
-    userAgent: string,
-    captureSupported: boolean,
-) => captureSupported && /Android/i.test(userAgent);
-
 // A browser permission request itself cannot be cancelled. Ignore/close any late stream.
 export function openMicrophone(
     getMedia: () => Promise<MediaStream>,

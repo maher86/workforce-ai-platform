@@ -2,7 +2,7 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
-Android employee recording uses an explicit native audio-capture hint as its primary action where supported, with browser recording as a manager-accessible alternative. Ignored browser permission requests time out safely and late streams are stopped. Native3GP/AMR/AAC inputs still pass content sniffing, audio-only checks, bounded decode and private normalization; this is not an OS permission bypass. See ADR 0010; physical Android acceptance remains necessary.
+Employee recording starts inside the page, including on Android: Stop attaches the clip directly without an external recorder confirmation. Native audio capture is an explicit fallback in recording help when browser recording fails. Ignored browser permission requests time out safely and late streams are stopped. Native3GP/AMR/AAC inputs still pass content sniffing, audio-only checks, bounded decode and private normalization; this is not an OS permission bypass. See ADR 0010; physical Android acceptance remains necessary.
 
 Owner update 2026-11-15: sending keeps employees on their current page. A tab-memory uploader and floating circle distinguish upload, server receipt and actual AI readiness; a bounded tenant/member-scoped batch endpoint reports processing phases without source evidence or invented AI percentages. Opt-in generic system notifications occur on readiness via a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media/status; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.
 
