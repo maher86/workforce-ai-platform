@@ -1,0 +1,36 @@
+.welcome-page {
+    background: linear-gradient(155deg, #f9fafc 0%, #fff 48%, #faf8f5 100%);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+.welcome-preview::before {
+    content: '';
+    position: absolute;
+    inset: 3% -2%;
+    border-radius: 3rem;
+    background:
+        radial-gradient(ellipse at 75% 20%, #fed7aa65, transparent 65%),
+        linear-gradient(140deg, #e8edf5, #f5efe9);
+    transform: rotate(-4deg);
+}
+.welcome-button,
+.welcome-link {
+    transition:
+        transform 150ms ease,
+        background-color 150ms ease,
+        border-color 150ms ease;
+    -webkit-tap-highlight-color: #ff790033;
+}
+.welcome-button:active,
+.welcome-link:active {
+    transform: translateY(2px);
+}
+.welcome-page :is(a, button):focus-visible {
+    outline: 3px solid #f97316;
+    outline-offset: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .welcome-button,
+    .welcome-link {
+        transition: none;
+    }
+}
