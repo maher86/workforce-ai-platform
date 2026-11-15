@@ -27,7 +27,11 @@ class Request {
     }
     respond(status, result) {
         this.status = status;
-        this.responseText = JSON.stringify(result);
+        this.responseText = JSON.stringify(
+            result && typeof result === 'object'
+                ? { source_version: 1, status: 'submitted', ...result }
+                : result,
+        );
         this.onload();
     }
 }

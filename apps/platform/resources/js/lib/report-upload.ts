@@ -13,7 +13,11 @@ type UploadJob = { scope: string; url: string; body: FormData };
 type Options = {
     xhr: () => XMLHttpRequest;
     csrf: () => string;
-    received?: () => void;
+    received?: (report: {
+        id: number;
+        source_version: number;
+        status: 'submitted' | 'processing' | 'ready' | 'failed';
+    }) => void;
 };
 
 // Tab memory only: no employee media, credentials or drafts in browser storage.
@@ -135,6 +139,8 @@ export class ReportUploadStore {
                     ?.includes('application/json');
                 let result: {
                     id?: unknown;
+                    source_version?: unknown;
+                    status?: unknown;
                     message?: unknown;
                     errors?: Record<string, unknown>;
                 } = {};
@@ -178,7 +184,14 @@ export class ReportUploadStore {
                 if (
                     typeof result.id !== 'number' ||
                     !Number.isSafeInteger(result.id) ||
-                    result.id < 1
+                    result.id < 1 ||
+                    typeof result.source_version !== 'number' ||
+                    !Number.isSafeInteger(result.source_version) ||
+                    result.source_version < 1 ||
+                    typeof result.status !== 'string' ||
+                    !['submitted', 'processing', 'ready', 'failed'].includes(
+                        result.status,
+                    )
                 ) {
                     fail('تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير.');
                     return;
@@ -192,7 +205,15 @@ export class ReportUploadStore {
                     error: '',
                 });
                 try {
-                    this.options.received?.();
+                    this.options.received?.({
+                        id: result.id,
+                        source_version: result.source_version,
+                        status: result.status as
+                            | 'submitted'
+                            | 'processing'
+                            | 'ready'
+                            | 'failed',
+                    });
                 } catch {
                     /* Notification failure must not change a saved report. */
                 }

@@ -253,12 +253,13 @@ class EmployeeOnboardingTest extends TestCase
         $service = app(EmployeeActivation::class);
         $grant = $service->consume($service->issue($owner, $tenant->id, $employee->id));
         $scope = $grant['user']->id.':'.$grant['device']->id;
-        $this->withCookie('workforce_device', $grant['token'])->get('/employee/upload')
+        $this->withCookie('workforce_device', $grant['token'])->get('/employee')
             ->assertOk()->assertHeader('Cache-Control', 'no-store, private')
-            ->assertInertia(fn (Assert $page) => $page->component('employee/upload')->where('employeeUploadScope', $scope));
+            ->assertInertia(fn (Assert $page) => $page->component('employee/home')->where('employeeUploadScope', $scope));
+        $this->get('/employee/upload')->assertRedirect('/employee');
         Auth::logout();
         $this->flushSession();
-        $this->get('/employee/upload')->assertOk();
+        $this->get('/employee')->assertOk();
         $this->assertAuthenticatedAs($grant['user']);
 
         $key = (string) Str::uuid();
@@ -267,6 +268,7 @@ class EmployeeOnboardingTest extends TestCase
         $this->withHeader('X-Employee-Upload-Scope', 'foreign:device')->postJson('/employee/reports', $data)->assertConflict();
         $this->assertDatabaseCount('reports', 0);
         $first = $this->withHeader('X-Employee-Upload-Scope', $scope)->postJson('/employee/reports', $data)->assertCreated();
+        $first->assertJsonPath('source_version', 1)->assertJsonPath('status', 'submitted');
         $this->postJson('/employee/reports', $data)->assertCreated()->assertJsonPath('id', $first->json('id'));
         $this->assertDatabaseCount('reports', 1);
         app(ManageWorkforce::class)->revokeAccess($owner, $tenant->id, $employee->id);

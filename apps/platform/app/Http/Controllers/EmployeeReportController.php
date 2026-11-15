@@ -13,6 +13,7 @@ use App\Modules\Reporting\ReportMedia;
 use App\Modules\Reporting\ReportOutput;
 use App\Modules\Reporting\SubmitReport;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -33,11 +34,36 @@ class EmployeeReportController extends Controller
         return $member;
     }
 
-    public function upload(Request $request): Response
+    public function upload(Request $request): RedirectResponse
     {
         $this->membership($request);
 
-        return Inertia::render('employee/upload');
+        return redirect('/employee');
+    }
+
+    public function progress(Request $request): JsonResponse
+    {
+        $member = $this->membership($request);
+        $data = $request->validate(['ids' => 'required|array|min:1|max:20', 'ids.*' => 'required|integer|min:1|distinct']);
+        $reports = Report::withTrashed()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)
+            ->whereIn('id', $data['ids'])->select(['id', 'status', 'source_version', 'deleted_at'])
+            ->selectSub(ReportMedia::query()->selectRaw('1')->whereColumn('report_id', 'reports.id')->whereColumn('tenant_id', 'reports.tenant_id')->whereNull('retired_at')->where('kind', 'audio')->limit(1), 'has_audio')->get();
+        abort_unless($reports->count() === count($data['ids']), 404);
+        $stages = ReportOutput::query()->where('tenant_id', $member->tenant_id)->whereIn('report_id', $reports->pluck('id'))
+            ->where(fn ($query) => $query->where('stage', 'translation')->orWhere('stage', 'like', 'transcript:%'))
+            ->get(['report_id', 'stage'])->groupBy('report_id');
+
+        return response()->json(['reports' => $reports->map(function (Report $report) use ($stages) {
+            $status = $report->trashed() ? 'withdrawn' : $report->status;
+            $outputs = $stages->get($report->id, collect())->pluck('stage');
+            $phase = match ($status) {
+                'ready', 'failed', 'withdrawn' => $status,
+                'submitted' => 'queued',
+                default => $outputs->contains('translation') ? 'finalizing' : (! $report->getAttribute('has_audio') || $outputs->contains(fn ($stage) => str_starts_with($stage, 'transcript:')) ? 'translating' : 'transcribing'),
+            };
+
+            return ['id' => $report->id, 'status' => $status, 'source_version' => $report->source_version, 'phase' => $phase];
+        })->values()]);
     }
 
     public function store(Request $request, SubmitReport $submit): JsonResponse
@@ -60,7 +86,10 @@ class EmployeeReportController extends Controller
         $report = $submit->execute($request->user(), $member->tenant_id, $data['submission_key'], $data['text'] ?? null, $inputs,
             isset($data['project_id']) ? (int) $data['project_id'] : null, isset($data['task_id']) ? (int) $data['task_id'] : null, $data['vehicle_plate'] ?? null);
 
-        return response()->json(['id' => $report->id, 'status' => $report->status], 201);
+        // Read database defaults and current processing state after the transaction commits.
+        $report = Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->findOrFail($report->id);
+
+        return response()->json(['id' => $report->id, 'status' => $report->status, 'source_version' => $report->source_version], 201);
     }
 
     public function show(Request $request, int $report, ReportAccess $access): Response
@@ -124,7 +153,7 @@ class EmployeeReportController extends Controller
         }
         $item = $changes->execute($request->user(), $member->tenant_id, $report, (int) $data['source_version'], $data['change_key'], array_values(array_map('intval', $data['keep'] ?? [])), $inputs);
 
-        return response()->json(['id' => $item->id, 'source_version' => $item->source_version]);
+        return response()->json(['id' => $item->id, 'source_version' => $item->source_version, 'status' => $item->status]);
     }
 
     public function destroy(Request $request, int $report, ChangeEmployeeReport $changes): JsonResponse

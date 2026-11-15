@@ -1,4 +1,4 @@
-import { router, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import {
     Camera,
     ImagePlus,
@@ -13,8 +13,13 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import VoicePlayback from '@/components/voice-playback';
 import MicrophoneAccessHelp from '@/components/microphone-access-help';
-import { reportUpload, useReportUpload } from '@/hooks/use-report-upload';
+import {
+    reportUpload,
+    useReportUpload,
+    useReportProgress,
+} from '@/hooks/use-report-upload';
 import { uploadPending } from '@/lib/report-upload';
+import { processingReport } from '@/lib/report-progress';
 import {
     startVoiceRecorder,
     voiceAvailability,
@@ -36,18 +41,25 @@ type EditableReport = {
 };
 export default function ReportComposer({
     edit,
-}: { edit?: EditableReport } = {}) {
+    onSaved,
+}: { edit?: EditableReport; onSaved?: () => void } = {}) {
     const { employeeUploadScope } = usePage<{
         employeeUploadScope: string | null;
     }>().props;
     const upload = useReportUpload();
+    const progress = useReportProgress();
+    const started = useRef(false);
     const [retained, setRetained] = useState(edit?.media ?? []);
     const [audio, setAudio] = useState<File | null>(null);
     const [images, setImages] = useState<File[]>([]);
     const [recording, setRecording] = useState(false);
     const [openingMic, setOpeningMic] = useState(false);
     const [seconds, setSeconds] = useState(0);
-    const sending = uploadPending(upload) || upload.status === 'error';
+    const editingBusy = Boolean(edit) && uploadPending(upload);
+    const sending =
+        uploadPending(upload) ||
+        upload.status === 'error' ||
+        progress.reports.filter(processingReport).length >= 20;
     const [error, setError] = useState('');
     const [online, setOnline] = useState(navigator.onLine);
     const [previews, setPreviews] = useState<string[]>([]);
@@ -61,6 +73,18 @@ export default function ReportComposer({
     const camera = useRef<HTMLInputElement>(null);
     const gallery = useRef<HTMLInputElement>(null);
     const audioInput = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (
+            edit &&
+            started.current &&
+            upload.status === 'success' &&
+            upload.reportId === edit.id
+        ) {
+            started.current = false;
+            onSaved?.();
+        }
+    }, [edit, onSaved, upload.status, upload.reportId]);
 
     useEffect(() => {
         const values = images.map((file) => URL.createObjectURL(file));
@@ -252,25 +276,19 @@ export default function ReportComposer({
             setError('تحقق من عملية الإرسال الحالية أو اطلب مساعدة المدير.');
             return;
         }
-        // Inertia navigation keeps the tab-level uploader alive after this composer unmounts.
-        router.push({
-            url: '/employee/upload',
-            component: 'employee/upload',
-            props: (props) => ({
-                auth: props.auth,
-                employeeUploadScope: props.employeeUploadScope,
-                uiLocale: props.uiLocale,
-                errors: {},
-            }),
-            preserveScroll: false,
-        });
+        started.current = true;
+        // The uploader owns the files now. Stay home and allow preparing the next recording.
+        setAudio(null);
+        setImages([]);
+        setSeconds(0);
+        key.current = crypto.randomUUID();
     };
 
     return (
         <section className="w-full space-y-5" aria-label="إرسال تقرير">
             <div className="grid grid-cols-2 gap-4">
                 <button
-                    disabled={openingMic}
+                    disabled={openingMic || editingBusy}
                     aria-label={recording ? 'إيقاف التسجيل' : 'تسجيل صوت'}
                     onClick={() => {
                         void record();
@@ -291,7 +309,7 @@ export default function ReportComposer({
                     )}
                 </button>
                 <button
-                    disabled={recording || openingMic}
+                    disabled={recording || openingMic || editingBusy}
                     aria-label="التقاط صورة"
                     onClick={() => camera.current?.click()}
                     className="workforce-action workforce-camera"
@@ -341,7 +359,7 @@ export default function ReportComposer({
             />
             <div className="flex justify-center gap-4">
                 <button
-                    disabled={recording || openingMic}
+                    disabled={recording || openingMic || editingBusy}
                     aria-label="اختيار صور من المعرض"
                     className="workforce-icon"
                     onClick={() => gallery.current?.click()}
@@ -349,7 +367,7 @@ export default function ReportComposer({
                     <ImagePlus />
                 </button>
                 <button
-                    disabled={recording || openingMic}
+                    disabled={recording || openingMic || editingBusy}
                     aria-label="رفع تسجيل صوتي"
                     className="workforce-icon"
                     onClick={() => audioInput.current?.click()}
@@ -373,7 +391,9 @@ export default function ReportComposer({
                                 type="button"
                                 aria-label="استبدال التسجيل الحالي"
                                 className="shrink-0 rounded-full p-3 text-red-600"
-                                disabled={recording || openingMic}
+                                disabled={
+                                    recording || openingMic || editingBusy
+                                }
                                 onClick={() =>
                                     setRetained(
                                         retained.filter(
@@ -423,7 +443,7 @@ export default function ReportComposer({
                     <VoicePlayback src={audioUrl} />
                     <button
                         aria-label="حذف التسجيل قبل الإرسال"
-                        disabled={recording || openingMic}
+                        disabled={recording || openingMic || editingBusy}
                         onClick={() => setAudio(null)}
                         className="p-3"
                     >

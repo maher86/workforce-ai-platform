@@ -2,7 +2,7 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
-Owner update 2026-11-15: new/amended employee reports use an immediate client-side upload page and a tab-memory uploader that survives employee-page navigation. Receipt notifications distinguish server acceptance from asynchronous AI completion; opt-in generic system notifications use a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.
+Owner update 2026-11-15: sending keeps employees on their current page. A tab-memory uploader and floating circle distinguish upload, server receipt and actual AI readiness; a bounded tenant/member-scoped batch endpoint reports processing phases without source evidence or invented AI percentages. Opt-in generic system notifications occur on readiness via a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media/status; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.
 
 Owner update 2026-11-08: new reports default to original-language transcription and faithful English only, with private images retained as attachments. Persist analysis_mode; historical full analysis is preserved. Manager UI language (ar/en) is independent of source/translation language. See ADR 0008 and the capacity runbook; demo queue throughput does not establish a real 50-device SLA.
 

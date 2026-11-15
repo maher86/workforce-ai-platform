@@ -20,8 +20,8 @@ export async function notifyReportReceived() {
     const registration =
         await navigator.serviceWorker.getRegistration('/employee/');
     if (!registration?.active) return;
-    await registration.showNotification('تم استلام التقرير', {
-        body: 'Report received',
+    await registration.showNotification('اكتملت معالجة التقرير', {
+        body: 'Report ready',
         icon: '/icons/workforce-192.png',
         tag: 'workforce-report-received',
         silent: true,

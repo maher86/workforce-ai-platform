@@ -56,6 +56,7 @@ Route::post('employee/reports', [EmployeeReportController::class, 'store'])->mid
 Route::get('employee/report-days', [EmployeeReportController::class, 'day'])->middleware('auth');
 Route::get('employee/history', [EmployeeReportController::class, 'history'])->middleware('auth');
 Route::get('employee/upload', [EmployeeReportController::class, 'upload'])->middleware('auth');
+Route::get('employee/report-progress', [EmployeeReportController::class, 'progress'])->middleware(['auth', 'throttle:60,1']);
 Route::post('employee/reports/{report}/amend', [EmployeeReportController::class, 'change'])->whereNumber('report')->middleware(['auth', 'throttle:20,1']);
 Route::delete('employee/reports/{report}', [EmployeeReportController::class, 'destroy'])->whereNumber('report')->middleware(['auth', 'throttle:20,1']);
 Route::get('employee/reports/{report}', [EmployeeReportController::class, 'show'])->whereNumber('report')->middleware('auth');
