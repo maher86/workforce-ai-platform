@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { QrCode, LoaderCircle } from 'lucide-react';
+import { QrCode, LoaderCircle, Camera, CircleHelp } from 'lucide-react';
 import { useState } from 'react';
 import {
     activationUrl,
@@ -11,6 +11,12 @@ export default function Connect() {
     const [error, setError] = useState('');
     const scan = async () => {
         if (busy) return;
+        if (!inAndroidApp()) {
+            setError(
+                'المسح المباشر متاح داخل تطبيق Android المثبّت. إذا كنت داخل التطبيق وظهرت هذه الرسالة، أرسل رمز الخطأ للمدير. في المتصفح استخدم كاميرا الهاتف لمسح رمز المدير. [APP-NATIVE-BRIDGE]',
+            );
+            return;
+        }
         setBusy(true);
         setError('');
         try {
@@ -41,26 +47,41 @@ export default function Connect() {
             <div className="space-y-6 text-center">
                 <button
                     type="button"
-                    disabled={busy || !inAndroidApp()}
+                    disabled={busy}
                     onClick={() => {
                         void scan();
                     }}
-                    className="rounded-[2.5rem] border border-white bg-white/70 p-12 shadow-xl"
-                    aria-label="اطلب من المدير رمز QR لتفعيل هاتفك"
+                    className="relative rounded-[2.5rem] border-4 border-white bg-orange-500 p-12 text-white shadow-xl transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-orange-500 active:scale-95 disabled:opacity-60"
+                    aria-label="اضغط لفتح الكاميرا ومسح رمز تفعيل الموظف من المدير"
                 >
                     {busy ? (
-                        <LoaderCircle
-                            size={150}
-                            className="animate-spin text-orange-500"
-                        />
+                        <LoaderCircle size={150} className="animate-spin" />
                     ) : (
-                        <QrCode
-                            size={150}
-                            strokeWidth={1.3}
-                            className="text-slate-800"
-                        />
+                        <QrCode size={150} strokeWidth={1.3} />
+                    )}
+                    {!busy && (
+                        <span
+                            className="absolute -right-4 -bottom-4 rounded-full border-4 border-[#edf0f7] bg-white p-4 text-orange-600 shadow-lg"
+                            aria-hidden="true"
+                        >
+                            <Camera size={36} />
+                        </span>
                     )}
                 </button>
+                <details className="mx-auto max-w-sm rounded-2xl bg-white/70 p-4 text-slate-800">
+                    <summary
+                        aria-label="مساعدة المدير في تفعيل التطبيق"
+                        className="flex cursor-pointer list-none justify-center"
+                    >
+                        <CircleHelp size={28} />
+                    </summary>
+                    <p className="mt-3 leading-7">
+                        هذه شاشة تفعيل الهاتف. اضغط الزر البرتقالي لفتح
+                        الكاميرا، ثم امسح رمز تفعيل جديدًا من صفحة الفريق عند
+                        المدير. بعد التفعيل يفتح حساب الموظف مباشرة عند تشغيل
+                        التطبيق.
+                    </p>
+                </details>
                 {error && (
                     <p
                         role="alert"
