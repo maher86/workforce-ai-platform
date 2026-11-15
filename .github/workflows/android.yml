@@ -2,7 +2,7 @@ name: Android pilot
 on:
   pull_request:
     branches: [dev, main, 'codex/**']
-    paths: ['apps/android/**', 'apps/platform/resources/js/lib/*native*', '.github/workflows/android.yml']
+    paths: ['apps/android/**', 'apps/platform/resources/js/lib/*native*', 'apps/platform/resources/js/lib/*identity*', 'apps/platform/resources/js/lib/device-transport.ts', '.github/workflows/android.yml']
 permissions:
   contents: read
 concurrency:
@@ -35,6 +35,21 @@ jobs:
       - run: npm test
       - name: Generate exact-origin pilot assets
         run: npm run sync
+      - name: Prepare stable private pilot signing
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          KEYSTORE_B64: ${{ secrets.WORKFORCE_ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.WORKFORCE_ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.WORKFORCE_ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.WORKFORCE_ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$KEYSTORE_B64" && test -n "$STORE_PASSWORD" && test -n "$KEY_PASSWORD" && test -n "$KEY_ALIAS"
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/workforce-pilot.p12"
+          echo "WORKFORCE_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/workforce-pilot.p12" >> "$GITHUB_ENV"
+          echo "WORKFORCE_ANDROID_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "WORKFORCE_ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "WORKFORCE_ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
       - name: Unit tests, Android lint and debug APK
         run: |
           chmod +x android/gradlew
@@ -45,6 +60,7 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: workforce-android-debug
           retention-days: 3
@@ -52,3 +68,6 @@ jobs:
           path: |
             apps/android/android/app/build/outputs/apk/debug/app-debug.apk
             apps/android/android/app/build/outputs/apk/debug/app-debug.apk.sha256
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/workforce-pilot.p12"

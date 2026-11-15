@@ -6,8 +6,10 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import EmployeeLayout from '@/layouts/employee-layout';
+import { initializeDeviceTransport } from '@/lib/android-identity';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+initializeDeviceTransport();
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

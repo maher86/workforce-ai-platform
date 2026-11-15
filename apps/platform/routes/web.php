@@ -39,6 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tenants', [WorkforceController::class, 'createTenant'])->middleware('throttle:10,1');
     Route::post('tenants/{tenant}/employees', [WorkforceController::class, 'addEmployee'])->whereNumber('tenant')->middleware('throttle:20,1');
     Route::post('tenants/{tenant}/employees/{membership}/invite', [WorkforceController::class, 'invite'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
+    Route::post('tenants/{tenant}/employees/{membership}/transfer', [WorkforceController::class, 'transfer'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
     Route::post('tenants/{tenant}/employees/{membership}/revoke', [WorkforceController::class, 'revoke'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
     Route::post('tenants/{tenant}/employees/{membership}/enable', [WorkforceController::class, 'enable'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
     Route::post('tenants/{tenant}/managers', [WorkforceController::class, 'addManager'])->whereNumber('tenant')->middleware('throttle:5,1');
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::inertia('employee/connect', 'employee/connect')->name('employee.connect');
+Route::get('employee/device-clock', fn () => response()->json(['timestamp' => now()->timestamp]))->middleware('throttle:120,1');
 Route::get('employee/activate', [EmployeeAccessController::class, 'activationPage'])->middleware('throttle:30,1');
 Route::post('employee/activate', [EmployeeAccessController::class, 'activate'])->middleware('throttle:10,1');
 Route::get('employee', [EmployeeAccessController::class, 'home'])->middleware('auth')->name('employee.home');

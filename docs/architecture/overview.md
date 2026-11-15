@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-15: employees have one approved credential, with manager-confirmed transfer and a database uniqueness constraint. Android invitations require an origin-specific AndroidKeyStore proof on activation and protected requests; browser/PWA invitations retain explicit browser-profile protection. Existing APKs need an identity-enabled update before Android-mode activation. Legacy cleanup preserves history and the newest valid credential. See ADR0012; physical Android acceptance and stable hosting remain required.
+
 Owner update 2026-11-15: an Android debug pilot reuses employee Inertia screens with a Capacitor native AAC recorder and in-app same-origin QR activation. No external recorder confirmation. Native files are private/bounded and removed after handoff; server reporting/AI/auth remain shared. Exact HTTPS origin only, no backup, no release build, no offline upload promise. Stable hosting and a bundled-client contract remain prerequisites for commercial Android distribution. See ADR0011 and runbooks/android-pilot.md.
 
 Employee recording starts inside the page, including on Android: Stop attaches the clip directly without an external recorder confirmation. Native audio capture is an explicit fallback in recording help when browser recording fails. Ignored browser permission requests time out safely and late streams are stopped. Native3GP/AMR/AAC inputs still pass content sniffing, audio-only checks, bounded decode and private normalization; this is not an OS permission bypass. See ADR 0010; physical Android acceptance remains necessary.

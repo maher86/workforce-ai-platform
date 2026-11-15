@@ -13,6 +13,7 @@ use App\Modules\Identity\UpdateEmployeeProfile;
 use App\Modules\Reporting\Report;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,13 +36,15 @@ class WorkforceController extends Controller
             $canManageManagers = $access->manageTeam($actor, $selected)->role === 'owner';
             $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->select('memberships.*')
                 ->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')
-                ->selectSub(EmployeeDevice::query()->selectRaw('COUNT(*)')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now()), 'device_count')->orderBy('id')->get()
+                ->selectSub(EmployeeDevice::query()->selectRaw('COUNT(*)')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now()), 'device_count')
+                ->selectSub(EmployeeDevice::query()->select('id')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now())->limit(1), 'approved_device_id')->orderBy('id')->get()
                 ->map(fn (Membership $member) => [
                     'id' => $member->id, 'name' => $member->display_name ?? $member->getAttribute('account_name'),
                     'phone' => $member->phone,
                     'photoUrl' => $member->profile_photo_path ? '/tenants/'.$selected.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
                     'active' => $member->active,
                     'devices' => (int) $member->getAttribute('device_count'),
+                    'deviceId' => $member->getAttribute('approved_device_id'),
                 ])->all();
         }
 
@@ -74,20 +77,25 @@ class WorkforceController extends Controller
 
     public function addEmployee(Request $request, int $tenant, ManageWorkforce $workforce, EmployeeActivation $activation, UpdateEmployeeProfile $profile): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'phone' => ['nullable', 'regex:/^\+[1-9][0-9]{6,14}$/']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'phone' => ['nullable', 'regex:/^\+[1-9][0-9]{6,14}$/'], 'device_mode' => 'sometimes|in:android,browser']);
         $employee = $workforce->addEmployee($request->user(), $tenant, $data['name']);
         $profile->execute($request->user(), $tenant, $employee->id, ['phone' => $data['phone'] ?? null]);
-        $token = $activation->issue($request->user(), $tenant, $employee->id);
+        $token = $activation->issue($request->user(), $tenant, $employee->id, $data['device_mode'] ?? 'browser');
 
-        return $this->showActivation($tenant, $data['name'], $token);
+        return $this->showActivation($tenant, $data['name'], $token, $data['device_mode'] ?? 'browser');
     }
 
     public function invite(Request $request, int $tenant, int $membership, EmployeeActivation $activation, TenantAccess $access): RedirectResponse
     {
         $employee = $access->employee($request->user(), $tenant, $membership);
-        $token = $activation->issue($request->user(), $tenant, $membership);
+        try {
+            $data = $request->validate(['device_mode' => 'sometimes|in:android,browser']);
+            $token = $activation->issue($request->user(), $tenant, $membership, $data['device_mode'] ?? 'browser');
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo('/tenants/'.$tenant.'/team');
+        }
 
-        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token);
+        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token, $data['device_mode'] ?? 'browser');
     }
 
     public function revoke(Request $request, int $tenant, int $membership, ManageWorkforce $workforce): RedirectResponse
@@ -97,12 +105,26 @@ class WorkforceController extends Controller
         return redirect('/tenants/'.$tenant.'/team');
     }
 
+    public function transfer(Request $request, int $tenant, int $membership, EmployeeActivation $activation, TenantAccess $access): RedirectResponse
+    {
+        $employee = $access->employee($request->user(), $tenant, $membership);
+        try {
+            $data = $request->validate(['confirmed' => 'required|accepted', 'expected_device_id' => 'required|integer|min:1', 'device_mode' => 'required|in:android,browser']);
+            $token = $activation->transfer($request->user(), $tenant, $membership, $data['expected_device_id'], $data['device_mode']);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo('/tenants/'.$tenant.'/team');
+        }
+
+        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token, $data['device_mode']);
+    }
+
     public function enable(Request $request, int $tenant, int $membership, ManageWorkforce $workforce, EmployeeActivation $activation): RedirectResponse
     {
+        $data = $request->validate(['device_mode' => 'sometimes|in:android,browser']);
         $employee = $workforce->restoreAccess($request->user(), $tenant, $membership);
-        $token = $activation->issue($request->user(), $tenant, $membership);
+        $token = $activation->issue($request->user(), $tenant, $membership, $data['device_mode'] ?? 'browser');
 
-        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token);
+        return $this->showActivation($tenant, $employee->display_name ?? User::query()->findOrFail($employee->user_id)->name, $token, $data['device_mode'] ?? 'browser');
     }
 
     public function addManager(Request $request, int $tenant, ManageWorkforce $workforce): RedirectResponse
@@ -121,7 +143,7 @@ class WorkforceController extends Controller
         return back();
     }
 
-    private function showActivation(int $tenant, string $name, string $token): RedirectResponse
+    private function showActivation(int $tenant, string $name, string $token, string $deviceMode = 'browser'): RedirectResponse
     {
         $publicUrl = config('workforce.public_url');
         $activationUrl = is_string($publicUrl) && $publicUrl !== ''
@@ -130,7 +152,7 @@ class WorkforceController extends Controller
 
         // Fragment stays on the device: HTTP access logs and referrers never receive it.
         return redirect('/tenants/'.$tenant.'/team')->with('activation', [
-            'name' => $name, 'url' => $activationUrl.'#'.$token,
+            'name' => $name, 'url' => $activationUrl.'#'.$token, 'deviceMode' => $deviceMode,
         ]);
     }
 }

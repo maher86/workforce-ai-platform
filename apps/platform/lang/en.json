@@ -304,5 +304,13 @@
     "أجهزة مفعّلة:": "Active devices:",
     "السيارة": "Vehicle",
     "دقيقة": "minutes",
-    "فتح التقرير": "Open report"
+    "فتح التقرير": "Open report",
+    "نوع التفعيل": "Activation type",
+    "تطبيق Android — مفتاح الجهاز": "Android app — device key",
+    "المتصفح / PWA — ملف متصفح واحد": "Browser / PWA — one browser profile",
+    "موظف واحد، جهاز معتمد واحد. تغيير الهاتف يحتاج نقل الحساب من المدير.": "One employee, one approved device. A manager must transfer access when the phone changes.",
+    "نقل إلى جهاز جديد": "Transfer to a new device",
+    "سيُلغى دخول الجهاز الحالي فورًا ويصدر رمز للجهاز الجديد. هل تريد نقل الحساب؟": "The current device will lose access immediately and a new activation code will be issued. Transfer this account?",
+    "الحساب مرتبط بجهاز. استخدم نقل الحساب إلى جهاز جديد.": "This account already has a device. Use Transfer to a new device.",
+    "تغيّر الجهاز المعتمد. حدّث الصفحة قبل نقل الحساب.": "The approved device changed. Refresh before transferring access."
 }

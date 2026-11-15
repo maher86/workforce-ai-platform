@@ -24,21 +24,27 @@ class EmployeeAccessController extends Controller
         ]);
     }
 
-    public function activate(Request $request, EmployeeActivation $activation): RedirectResponse
+    public function activate(Request $request, EmployeeActivation $activation): \Symfony\Component\HttpFoundation\Response
     {
         // Never silently replace the manager's identity or another employee's device.
         if ($request->user() !== null) {
             return redirect('/employee/activate')->withErrors(['account' => 'يوجد حساب مفتوح في هذا المتصفح. افتح الحساب الحالي، أو اطلب مساعدة المدير لتفعيل موظف آخر.']);
         }
-        $data = $request->validate(['token' => ['required', 'string', 'size:64', 'alpha_num:ascii']]);
-        $grant = $activation->consume($data['token']);
+        $data = $request->validate(['token' => ['required', 'string', 'size:64', 'alpha_num:ascii'], 'public_key' => 'nullable|string|max:512', 'signature' => 'nullable|string|max:256']);
+        $grant = $activation->consume($data['token'], $data['public_key'] ?? null, $data['signature'] ?? null);
         Auth::login($grant['user']);
         $request->session()->regenerate();
         $request->session()->put('employee_device_id', $grant['device']->id);
 
-        return redirect('/employee')->withCookie(cookie(
+        // A signed POST cannot be reused by an automatic HTTP redirect as a GET proof.
+        $response = $grant['device']->binding_type === 'android'
+            ? ($request->header('X-Inertia') ? Inertia::location('/employee') : response()->json(['redirect' => '/employee']))
+            : redirect('/employee');
+        $response->headers->setCookie(cookie(
             'workforce_device', $grant['token'], 90 * 24 * 60, '/', null, $request->isSecure(), true, false, 'lax',
         ));
+
+        return $response;
     }
 
     public function home(Request $request): Response
@@ -61,7 +67,8 @@ class EmployeeAccessController extends Controller
     public function disconnect(Request $request): RedirectResponse
     {
         abort_unless($request->user()?->employee_only, 403);
-        EmployeeDevice::query()->whereKey($request->session()->get('employee_device_id'))->update(['revoked_at' => now()]);
+        $member = app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
+        EmployeeDevice::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->whereKey($request->session()->get('employee_device_id'))->update(['revoked_at' => now()]);
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
