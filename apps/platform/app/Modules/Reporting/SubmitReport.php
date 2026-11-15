@@ -73,6 +73,7 @@ class SubmitReport
                     'content_hash' => $hash, 'source_text' => $text ?: null, 'project_id' => $projectId, 'task_id' => $taskId,
                     'vehicle_id' => ReportVehicle::resolve($tenantId, $vehiclePlate),
                     'analysis_mode' => config('workforce.report_analysis'),
+                    'reporting_domain' => $tenant->reporting_domain,
                 ]);
                 foreach ($prepared as $media) {
                     $path = $tenantId.'/'.$report->id.'/'.basename($media->path);

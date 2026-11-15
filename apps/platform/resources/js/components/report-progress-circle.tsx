@@ -22,7 +22,7 @@ import {
     enableReportNotifications,
     notificationsSupported,
 } from '@/lib/report-notifications';
-import { processingReport } from '@/lib/report-progress';
+import { processingReport, reportIndicator } from '@/lib/report-progress';
 import type { ReportProgress } from '@/lib/report-progress';
 import { uploadPending } from '@/lib/report-upload';
 
@@ -63,28 +63,29 @@ export default function ReportProgressCircle() {
         return null;
     const transferring = uploadPending(upload);
     const processing = progress.reports.filter(processingReport);
-    const failed =
-        upload.status === 'error' ||
-        progress.reports.some(
-            (report) =>
-                report.status === 'failed' || report.status === 'withdrawn',
-        );
-    const done =
-        !transferring &&
-        !failed &&
-        progress.reports.length > 0 &&
-        processing.length === 0;
+    const indicator = reportIndicator(upload, progress.reports);
+    const failed = indicator.state === 'failed';
+    const done = indicator.state === 'ready';
+    const withdrawn = indicator.state === 'withdrawn';
     const label = failed
         ? 'تعذّر إرسال أو معالجة تقرير'
         : done
-          ? 'اكتمل التفريغ والترجمة'
-          : transferring
-            ? `جارٍ رفع التقرير ${upload.progress}%`
-            : 'جارٍ تفريغ الصوت والترجمة';
-    const color = failed ? '#dc2626' : done ? '#059669' : '#f97316';
+          ? 'اكتمل تفريغ التقرير الأخير وترجمته'
+          : withdrawn
+            ? 'حُذف التقرير'
+            : transferring
+              ? `جارٍ رفع التقرير ${upload.progress}%`
+              : 'جارٍ تفريغ الصوت والترجمة';
+    const color = failed
+        ? '#dc2626'
+        : done
+          ? '#059669'
+          : withdrawn
+            ? '#64748b'
+            : '#f97316';
     const count =
         processing.length + (transferring || upload.status === 'error' ? 1 : 0);
-    const pendingReport = processing.at(-1);
+    const pendingReport = indicator.report;
     return (
         <aside
             dir="rtl"
@@ -295,7 +296,7 @@ export default function ReportProgressCircle() {
                         style={{ transition: 'stroke-dasharray 250ms ease' }}
                     />
                 </svg>
-                {!done && !failed && (
+                {!done && !failed && !withdrawn && (
                     <svg
                         aria-hidden="true"
                         viewBox="0 0 84 84"
@@ -315,7 +316,7 @@ export default function ReportProgressCircle() {
                         />
                     </svg>
                 )}
-                {failed ? (
+                {failed || withdrawn ? (
                     <X size={34} strokeWidth={2.5} />
                 ) : done ? (
                     <Check size={34} strokeWidth={2.5} />
@@ -333,6 +334,14 @@ export default function ReportProgressCircle() {
                 {count > 1 && (
                     <span className="absolute -top-1 -left-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-800 px-1 text-xs font-bold text-white tabular-nums">
                         {count}
+                    </span>
+                )}
+                {indicator.priorFailures > 0 && (
+                    <span
+                        aria-label={`تقارير سابقة تعذرت معالجتها: ${indicator.priorFailures}`}
+                        className="absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white tabular-nums"
+                    >
+                        {indicator.priorFailures}
                     </span>
                 )}
             </button>

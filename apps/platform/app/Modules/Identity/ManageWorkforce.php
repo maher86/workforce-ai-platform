@@ -16,7 +16,7 @@ class ManageWorkforce
         abort_if($actor->employee_only, 403);
 
         return DB::transaction(function () use ($actor, $name) {
-            $tenant = Tenant::query()->create(['name' => $name]);
+            $tenant = Tenant::query()->create(['name' => $name, 'reporting_domain' => config('workforce.reporting_domain')]);
             Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $actor->id, 'role' => 'owner']);
             Audit::record($tenant->id, $actor->id, 'tenant.created', 'tenant', $tenant->id);
 

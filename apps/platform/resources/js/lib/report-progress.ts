@@ -1,3 +1,5 @@
+import type { UploadState } from './report-upload';
+
 export type ReportProgress = {
     id: number;
     source_version: number;
@@ -13,6 +15,40 @@ export type ReportProgress = {
 };
 export const processingReport = (report: ReportProgress) =>
     report.status === 'submitted' || report.status === 'processing';
+
+// The circle describes the current send, not the worst historical result in this tab.
+// Earlier failures stay visible as a badge and in the details; receipt is never readiness.
+export function reportIndicator(
+    upload: Pick<UploadState, 'status' | 'reportId'>,
+    reports: ReportProgress[],
+) {
+    const report = upload.reportId
+        ? reports.find((item) => item.id === upload.reportId)
+        : reports.reduce<ReportProgress | undefined>(
+              (latest, item) =>
+                  !latest || item.id > latest.id ? item : latest,
+              undefined,
+          );
+    const state =
+        upload.status === 'uploading' || upload.status === 'confirming'
+            ? upload.status
+            : upload.status === 'error'
+              ? 'failed'
+              : report
+                ? processingReport(report)
+                    ? 'processing'
+                    : report.status
+                : upload.status === 'success'
+                  ? 'processing'
+                  : 'idle';
+    return {
+        state,
+        report,
+        priorFailures: reports.filter(
+            (item) => item.status === 'failed' && item.id !== report?.id,
+        ).length,
+    };
+}
 export function readReportProgress(value: unknown): ReportProgress | null {
     if (!value || typeof value !== 'object') return null;
     const item = value as ReportProgress;

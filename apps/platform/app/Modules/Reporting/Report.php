@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $vehicle_id
  * @property string $status
  * @property string $analysis_mode
+ * @property string $reporting_domain
  * @property string $review_status
  * @property string|null $failure_code
  * @property int $source_version
