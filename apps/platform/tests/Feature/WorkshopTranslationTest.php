@@ -125,7 +125,7 @@ class WorkshopTranslationTest extends TestCase
         $member = $work->addEmployee($owner, $own->id, 'Synthetic technician');
         $activation = app(EmployeeActivation::class);
         $grant = $activation->consume($activation->issue($owner, $own->id, $member->id));
-        $this->withCookie('workforce_device', $grant['token'])->postJson('/employee/reports', [
+        $this->withCookie('workforce_device', $grant['token'])->withCredentials()->postJson('/employee/reports', [
             'submission_key' => Str::uuid(), 'text' => 'Synthetic tyre report.',
             'tenant_id' => $foreign->id, 'reporting_domain' => 'general',
         ])->assertCreated();
