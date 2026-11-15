@@ -169,7 +169,7 @@ export default function Welcome() {
                         </span>
                         <h1
                             id="welcome-heading"
-                            className="text-[2.4rem] leading-[1.35] font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-[3.35rem]"
+                            className="text-[2.1rem] leading-[1.35] font-extrabold tracking-tight text-slate-900 min-[390px]:text-[2.4rem] sm:text-5xl lg:text-[3.35rem]"
                         >
                             {copy.heading}
                             <span className="mt-1 block text-orange-600">
