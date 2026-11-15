@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-15: the current automotive workshop uses a tenant reporting-domain setting snapshotted on new reports for translation disambiguation, preserving source language and historical outputs. General reporting remains supported. The employee floating circle reflects the current send rather than the worst historical result; earlier failures retain their badge/details. See ADR0013.
+
 Owner update 2026-11-15: employees have one approved credential, with manager-confirmed transfer and a database uniqueness constraint. Android invitations require an origin-specific AndroidKeyStore proof on activation and protected requests; browser/PWA invitations retain explicit browser-profile protection. Existing APKs need an identity-enabled update before Android-mode activation. Legacy cleanup preserves history and the newest valid credential. See ADR0012; physical Android acceptance and stable hosting remain required.
 
 Owner update 2026-11-15: an Android debug pilot reuses employee Inertia screens with a Capacitor native AAC recorder and in-app same-origin QR activation. No external recorder confirmation. Native files are private/bounded and removed after handoff; server reporting/AI/auth remain shared. Exact HTTPS origin only, no backup, no release build, no offline upload promise. Stable hosting and a bundled-client contract remain prerequisites for commercial Android distribution. See ADR0011 and runbooks/android-pilot.md.

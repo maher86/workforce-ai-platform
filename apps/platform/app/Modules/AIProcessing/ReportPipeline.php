@@ -34,7 +34,7 @@ class ReportPipeline
         }
         $sources = $this->sources($report);
         if (! in_array('translation', $done, true)) {
-            return ['key' => 'translation', 'kind' => 'translation', 'context' => ['data' => ['sources' => $sources]]];
+            return ['key' => 'translation', 'kind' => 'translation', 'context' => ['domain' => $report->reporting_domain, 'data' => ['sources' => $sources]]];
         }
         if ($report->analysis_mode === 'text') {
             return null;

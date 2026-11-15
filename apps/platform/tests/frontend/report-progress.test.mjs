@@ -3,7 +3,78 @@ import test from 'node:test';
 import {
     ReportProgressStore,
     readReportProgress,
+    reportIndicator,
 } from '../../resources/js/lib/report-progress.ts';
+
+await test('earlier failure or withdrawal cannot turn a new upload, processing or ready circle red', () => {
+    const old = [
+        { id: 1, source_version: 1, status: 'failed' },
+        { id: 2, source_version: 1, status: 'withdrawn' },
+    ];
+    assert.equal(
+        reportIndicator({ status: 'uploading', reportId: null }, old).state,
+        'uploading',
+    );
+    assert.equal(
+        reportIndicator({ status: 'confirming', reportId: null }, old).state,
+        'confirming',
+    );
+    const reports = [
+        ...old,
+        { id: 3, source_version: 1, status: 'processing' },
+    ];
+    assert.equal(
+        reportIndicator({ status: 'success', reportId: 3 }, reports).state,
+        'processing',
+    );
+    reports[2].status = 'ready';
+    const result = reportIndicator({ status: 'success', reportId: 3 }, reports);
+    assert.equal(result.state, 'ready');
+    assert.equal(result.priorFailures, 1);
+    assert.equal(reports[0].status, 'failed'); // Diagnostics are not erased or relabelled.
+});
+
+await test('current send failure remains red; received/missing/offline state never manufactures a green check', () => {
+    const reports = [{ id: 4, source_version: 1, status: 'ready' }];
+    assert.equal(
+        reportIndicator({ status: 'error', reportId: null }, reports).state,
+        'failed',
+    );
+    assert.equal(
+        reportIndicator({ status: 'success', reportId: 5 }, reports).state,
+        'processing',
+    );
+    reports.push({ id: 5, source_version: 1, status: 'failed' });
+    assert.equal(
+        reportIndicator({ status: 'success', reportId: 5 }, reports).state,
+        'failed',
+    );
+    reports[1].status = 'withdrawn';
+    assert.equal(
+        reportIndicator({ status: 'success', reportId: 5 }, reports).state,
+        'withdrawn',
+    );
+});
+
+await test('amendment focuses its receipt even if it has a lower report id; polling order cannot steal focus', () => {
+    const reports = [
+        { id: 10, source_version: 1, status: 'failed' },
+        { id: 2, source_version: 2, status: 'ready' },
+    ];
+    assert.equal(
+        reportIndicator({ status: 'success', reportId: 2 }, reports).state,
+        'ready',
+    );
+    assert.equal(
+        reportIndicator({ status: 'idle', reportId: null }, reports).report.id,
+        10,
+    );
+    reports.reverse();
+    assert.equal(
+        reportIndicator({ status: 'idle', reportId: null }, reports).report.id,
+        10,
+    );
+});
 
 await test('receipt is not readiness; notify once only after server ready and keep other pending reports', () => {
     let notices = 0;

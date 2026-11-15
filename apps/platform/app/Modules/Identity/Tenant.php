@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @property int $id
  * @property string $name
+ * @property string $reporting_domain
  * @property int $daily_report_limit
  * @property int $storage_limit_mb
  * @property int $retention_days
