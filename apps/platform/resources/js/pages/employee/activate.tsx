@@ -46,7 +46,7 @@ export default function Activate({
                                 ? '/employee'
                                 : '/dashboard'
                         }
-                        className="flex min-h-40 w-full max-w-sm items-center justify-center gap-4 rounded-3xl bg-orange-500 p-8 text-3xl font-bold text-white"
+                        className="employee-entry-button flex min-h-40 w-full max-w-sm items-center justify-center gap-4 rounded-3xl bg-orange-500 p-8 text-3xl font-bold text-white"
                     >
                         <ArrowRight size={64} />
                     </Link>
@@ -61,11 +61,13 @@ export default function Activate({
                     <button
                         aria-label="فتح حسابي على هذا الهاتف"
                         disabled={!token || form.processing}
-                        className="flex min-h-40 min-w-60 items-center justify-center gap-4 rounded-3xl bg-orange-500 p-8 text-3xl font-bold text-white disabled:opacity-50"
+                        aria-busy={form.processing}
+                        className="employee-entry-button flex min-h-40 min-w-60 items-center justify-center gap-4 rounded-3xl bg-orange-500 p-8 text-3xl font-bold text-white disabled:opacity-50"
                     >
-                        <ArrowRight size={64} />
-                        {form.processing && (
-                            <LoaderCircle className="animate-spin" />
+                        {form.processing ? (
+                            <LoaderCircle size={64} className="animate-spin" />
+                        ) : (
+                            <ArrowRight size={64} />
                         )}
                     </button>
                 </form>

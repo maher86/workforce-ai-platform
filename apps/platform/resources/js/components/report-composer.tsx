@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import VoicePlayback from '@/components/voice-playback';
 import MicrophoneAccessHelp from '@/components/microphone-access-help';
 import {
@@ -52,7 +53,12 @@ type EditableReport = {
 export default function ReportComposer({
     edit,
     onSaved,
-}: { edit?: EditableReport; onSaved?: () => void } = {}) {
+    settings,
+}: {
+    edit?: EditableReport;
+    onSaved?: () => void;
+    settings?: { open: boolean; onClose: () => void; content: ReactNode };
+} = {}) {
     const { employeeUploadScope } = usePage<{
         employeeUploadScope: string | null;
     }>().props;
@@ -75,6 +81,11 @@ export default function ReportComposer({
         progress.reports.filter(processingReport).length >= 20;
     const [error, setError] = useState('');
     const [recordingHelp, setRecordingHelp] = useState(false);
+    const optionsOpen = settings?.open ?? recordingHelp;
+    const closeOptions = () => {
+        setRecordingHelp(false);
+        settings?.onClose();
+    };
     const [online, setOnline] = useState(navigator.onLine);
     const [previews, setPreviews] = useState<string[]>([]);
     const [audioUrl, setAudioUrl] = useState('');
@@ -191,7 +202,7 @@ export default function ReportComposer({
             setAudio(stable);
             setSeconds(0);
             setError('');
-            setRecordingHelp(false);
+            closeOptions();
         } catch {
             if (mounted.current && version === selectionVersion.current) {
                 setAudio(null);
@@ -402,6 +413,36 @@ export default function ReportComposer({
 
     return (
         <section className="w-full space-y-5" aria-label="إرسال تقرير">
+            {optionsOpen && (
+                <section
+                    id={settings ? 'employee-device-settings' : undefined}
+                    aria-label="إعدادات الجهاز والتسجيل"
+                    className="space-y-4 rounded-3xl border border-orange-200 bg-white p-4 shadow-sm"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            {settings?.content}
+                        </div>
+                        <button
+                            type="button"
+                            className="workforce-icon"
+                            aria-label="إغلاق الإعدادات"
+                            onClick={closeOptions}
+                        >
+                            <X />
+                        </button>
+                    </div>
+                    <MicrophoneAccessHelp
+                        busy={recording || editingBusy}
+                        browserBusy={openingMic}
+                        onRetry={() => {
+                            void record();
+                        }}
+                        onCapture={captureOnPhone}
+                        onUpload={() => audioInput.current?.click()}
+                    />
+                </section>
+            )}
             <div className="grid grid-cols-2 gap-4">
                 <button
                     disabled={openingMic || editingBusy || readingAudio}
@@ -498,16 +539,18 @@ export default function ReportComposer({
                 >
                     <AudioLines />
                 </button>
-                <button
-                    type="button"
-                    disabled={recording || editingBusy}
-                    aria-label="خيارات التسجيل ومساعدة المدير"
-                    aria-expanded={recordingHelp}
-                    className="workforce-icon"
-                    onClick={() => setRecordingHelp(!recordingHelp)}
-                >
-                    <Settings2 />
-                </button>
+                {!settings && (
+                    <button
+                        type="button"
+                        disabled={recording || editingBusy}
+                        aria-label="خيارات التسجيل ومساعدة المدير"
+                        aria-expanded={optionsOpen}
+                        className="workforce-icon"
+                        onClick={() => setRecordingHelp(!recordingHelp)}
+                    >
+                        <Settings2 />
+                    </button>
+                )}
                 {openingMic && (
                     <button
                         type="button"
@@ -636,7 +679,7 @@ export default function ReportComposer({
                     <p>{error}</p>
                 </div>
             )}
-            {(recordingHelp || /\[MIC-[A-Z-]+\]$/.test(error)) && (
+            {!optionsOpen && /\[MIC-[A-Z-]+\]$/.test(error) && (
                 <MicrophoneAccessHelp
                     busy={recording || editingBusy}
                     browserBusy={openingMic}

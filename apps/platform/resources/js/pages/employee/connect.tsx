@@ -48,10 +48,11 @@ export default function Connect() {
                 <button
                     type="button"
                     disabled={busy}
+                    aria-busy={busy}
                     onClick={() => {
                         void scan();
                     }}
-                    className="relative rounded-[2.5rem] border-4 border-white bg-orange-500 p-12 text-white shadow-xl transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-orange-500 active:scale-95 disabled:opacity-60"
+                    className="employee-entry-button relative rounded-[2.5rem] border-4 border-white bg-orange-500 p-12 text-white shadow-xl disabled:opacity-60"
                     aria-label="اضغط لفتح الكاميرا ومسح رمز تفعيل الموظف من المدير"
                 >
                     {busy ? (

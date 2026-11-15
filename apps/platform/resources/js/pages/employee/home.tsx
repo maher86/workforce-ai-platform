@@ -17,6 +17,7 @@ import { reportProgress } from '@/hooks/use-report-upload';
 import { processingReport } from '@/lib/report-progress';
 import type { ReportProgress } from '@/lib/report-progress';
 import { usePage } from '@inertiajs/react';
+import { inAndroidApp } from '@/lib/android-device';
 
 export default function EmployeeHome({
     employeeName,
@@ -60,7 +61,11 @@ export default function EmployeeHome({
                         className="cover-icon"
                         aria-label="إعدادات الجهاز"
                         aria-expanded={settings}
-                        onClick={() => setSettings(!settings)}
+                        aria-controls="employee-device-settings"
+                        onClick={() => {
+                            setSettings(!settings);
+                            setConfirm(false);
+                        }}
                     >
                         <Settings2 size={22} />
                     </button>
@@ -85,43 +90,53 @@ export default function EmployeeHome({
                     {employeeName}
                 </h1>
             </header>
-            {settings && (
-                <div className="mx-5 flex items-center justify-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
-                    <EmployeeGuidance />
-                    <button
-                        type="button"
-                        className="workforce-icon text-red-600"
-                        aria-label="إلغاء تفعيل هذا الهاتف"
-                        onClick={() => setConfirm(!confirm)}
-                    >
-                        <LogOut size={22} />
-                    </button>
-                    {confirm && (
-                        <>
-                            <button
-                                type="button"
-                                aria-label="تأكيد إلغاء تفعيل الهاتف"
-                                className="workforce-icon bg-red-50 text-red-700"
-                                onClick={() =>
-                                    router.post('/employee/disconnect')
-                                }
-                            >
-                                <Check />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label="إلغاء"
-                                className="workforce-icon"
-                                onClick={() => setConfirm(false)}
-                            >
-                                <X />
-                            </button>
-                        </>
-                    )}
-                </div>
-            )}
             <div className="space-y-7 px-5 pb-8">
-                <ReportComposer />
+                <ReportComposer
+                    settings={{
+                        open: settings,
+                        onClose: () => {
+                            setSettings(false);
+                            setConfirm(false);
+                        },
+                        content: (
+                            <>
+                                {!inAndroidApp() && <EmployeeGuidance />}
+                                <button
+                                    type="button"
+                                    className="workforce-icon text-red-600"
+                                    aria-label="إلغاء تفعيل هذا الهاتف"
+                                    onClick={() => setConfirm(!confirm)}
+                                >
+                                    <LogOut size={22} />
+                                </button>
+                                {confirm && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            aria-label="تأكيد إلغاء تفعيل الهاتف"
+                                            className="workforce-icon bg-red-50 text-red-700"
+                                            onClick={() =>
+                                                router.post(
+                                                    '/employee/disconnect',
+                                                )
+                                            }
+                                        >
+                                            <Check />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-label="إلغاء"
+                                            className="workforce-icon"
+                                            onClick={() => setConfirm(false)}
+                                        >
+                                            <X />
+                                        </button>
+                                    </>
+                                )}
+                            </>
+                        ),
+                    }}
+                />
                 <section aria-label="سجل تقاريري" className="space-y-4">
                     <div className="flex items-center justify-between px-1 text-slate-700">
                         <Link
