@@ -216,10 +216,6 @@ export default function EmployeeReport({
                             source_version: report.source_version,
                             media,
                         }}
-                        onSaved={() => {
-                            setEditing(false);
-                            router.reload();
-                        }}
                     />
                 )}
             </section>

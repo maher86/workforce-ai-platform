@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-15: new/amended employee reports use an immediate client-side upload page and a tab-memory uploader that survives employee-page navigation. Receipt notifications distinguish server acceptance from asynchronous AI completion; opt-in generic system notifications use a notification-only service worker, never media caching or closed-app upload guarantees. Device/account changes clear pending media; retries reuse original idempotency/version keys. See ADR 0009 and docs/product/account-and-report-flow.ar.md.
+
 Owner update 2026-11-08: new reports default to original-language transcription and faithful English only, with private images retained as attachments. Persist analysis_mode; historical full analysis is preserved. Manager UI language (ar/en) is independent of source/translation language. See ADR 0008 and the capacity runbook; demo queue throughput does not establish a real 50-device SLA.
 
 Owner update 2026-11-08: report submission and visibility require no manager approval. Manager home defaults to today's employee reports with period/employee filters and submission counts; employee profiles show history and charts. Prior review records remain historical; never auto-label reports as human-approved. Optional service facts stay separate. See ADR 0007.

@@ -24,7 +24,20 @@ class EmployeeReportController extends Controller
 {
     public function membership(Request $request): Membership
     {
-        return app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
+        $member = app(EmployeeContext::class)->resolve($request->user(), (int) $request->session()->get('employee_device_id'));
+        // Reject an in-memory upload from a previous device/account, including another tab's login switch.
+        if ($request->hasHeader('X-Employee-Upload-Scope')) {
+            abort_unless(hash_equals($request->user()->id.':'.$request->session()->get('employee_device_id'), (string) $request->header('X-Employee-Upload-Scope')), 409);
+        }
+
+        return $member;
+    }
+
+    public function upload(Request $request): Response
+    {
+        $this->membership($request);
+
+        return Inertia::render('employee/upload');
     }
 
     public function store(Request $request, SubmitReport $submit): JsonResponse

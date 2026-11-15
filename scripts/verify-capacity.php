@@ -1,9 +1,5 @@
 <?php
 
-$applicationRoot = realpath(__DIR__.'/../apps/platform') ?: '/var/www/html';
-require $applicationRoot.'/vendor/autoload.php';
-$app = require $applicationRoot.'/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
 use App\Models\User;
 use App\Modules\AIProcessing\DemoReportAI;
 use App\Modules\AIProcessing\ProcessReport;
@@ -17,6 +13,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+
+$applicationRoot = realpath(__DIR__.'/../apps/platform') ?: '/var/www/html';
+require $applicationRoot.'/vendor/autoload.php';
+$app = require $applicationRoot.'/bootstrap/app.php';
+$app->make(Kernel::class)->bootstrap();
 
 if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== 'workforce_testing' || (int) config('database.redis.default.database') !== 3 || ! str_starts_with((string) config('database.redis.options.prefix'), 'capacity_') || ! (app(ReportAI::class) instanceof DemoReportAI) || filled(config('workforce.openai_key'))) {
     echo "Capacity guard failed.\n";
