@@ -102,6 +102,12 @@ jobs:
           OPENAI_API_KEY: ''
           BCRYPT_ROUNDS: '4'
         run: php ../../scripts/verify-capacity.php
+      - name: Concurrent employee device activation and transfer
+        env:
+          WORKFORCE_AI_PROVIDER: demo
+          OPENAI_API_KEY: ''
+          BCRYPT_ROUNDS: '4'
+        run: php ../../scripts/verify-device-binding.php
       - name: Dependency audits
         run: |
           composer audit --locked

@@ -50,12 +50,12 @@ class ManageWorkforce
         $employee = $this->access->employee($actor, $tenantId, $membershipId);
         DB::transaction(function () use ($actor, $employee, $disable) {
             // All issue/consume/revoke actions lock membership first, then token rows.
-            $employee = Membership::query()->lockForUpdate()->findOrFail($employee->id);
+            $employee = Membership::query()->where('tenant_id', $employee->tenant_id)->lockForUpdate()->findOrFail($employee->id);
             if ($disable) {
                 $employee->update(['active' => false]);
             }
-            EmployeeInvitation::query()->where('membership_id', $employee->id)->delete();
-            EmployeeDevice::query()->where('membership_id', $employee->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
+            EmployeeInvitation::query()->where('tenant_id', $employee->tenant_id)->where('membership_id', $employee->id)->delete();
+            EmployeeDevice::query()->where('tenant_id', $employee->tenant_id)->where('membership_id', $employee->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
             Audit::record($employee->tenant_id, $actor->id, $disable ? 'employee.disabled' : 'devices.revoked', 'membership', $employee->id);
         });
     }

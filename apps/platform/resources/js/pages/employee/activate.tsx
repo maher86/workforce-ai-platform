@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowRight, LoaderCircle, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { hasNativeIdentity, nativeIdentity } from '@/lib/android-identity';
 
 export default function Activate({
     existingAccount,
@@ -8,7 +9,34 @@ export default function Activate({
     existingAccount: 'employee' | 'manager' | null;
 }) {
     const [token] = useState(() => window.location.hash.slice(1));
-    const form = useForm<{ token: string; account?: string }>({ token });
+    const [preparing, setPreparing] = useState(false);
+    const mounted = useRef(true);
+    const form = useForm<{
+        token: string;
+        account?: string;
+        public_key?: string;
+        signature?: string;
+    }>({ token });
+    const activate = async () => {
+        if (preparing || form.processing) return;
+        setPreparing(true);
+        try {
+            const binding = hasNativeIdentity()
+                ? await nativeIdentity.activation({ token })
+                : {};
+            if (!mounted.current) return;
+            form.transform((data) => ({ ...data, ...binding }));
+            form.post('/employee/activate');
+        } catch {
+            if (!mounted.current) return;
+            form.setError(
+                'token',
+                'تعذر إثبات هذا الجهاز. حدّث تطبيق Android أو اطلب مساعدة المدير. [DEVICE-KEY]',
+            );
+        } finally {
+            if (mounted.current) setPreparing(false);
+        }
+    };
     const guidance =
         existingAccount === 'employee'
             ? 'الهاتف مرتبط بحساب موظف بالفعل. اضغط الزر الأخضر لفتح الحساب الحالي. لتفعيل موظف آخر، اطلب مساعدة المدير.'
@@ -16,7 +44,11 @@ export default function Activate({
               ? 'هذا المتصفح مسجل بحساب المدير. افتح الرمز على هاتف الموظف. إذا كان هذا هاتف الموظف، اخرج من حساب المدير ثم امسح الرمز مرة أخرى.'
               : 'اضغط الزر الأخضر لفتح حسابك. إذا لم يعمل، اطلب المساعدة من المدير.';
     useEffect(() => {
+        mounted.current = true;
         window.history.replaceState(null, '', '/employee/activate');
+        return () => {
+            mounted.current = false;
+        };
     }, []);
 
     return (
@@ -55,16 +87,16 @@ export default function Activate({
                 <form
                     onSubmit={(event) => {
                         event.preventDefault();
-                        form.post('/employee/activate');
+                        void activate();
                     }}
                 >
                     <button
                         aria-label="فتح حسابي على هذا الهاتف"
-                        disabled={!token || form.processing}
-                        aria-busy={form.processing}
+                        disabled={!token || preparing || form.processing}
+                        aria-busy={preparing || form.processing}
                         className="employee-entry-button flex min-h-40 min-w-60 items-center justify-center gap-4 rounded-3xl bg-orange-500 p-8 text-3xl font-bold text-white disabled:opacity-50"
                     >
-                        {form.processing ? (
+                        {preparing || form.processing ? (
                             <LoaderCircle size={64} className="animate-spin" />
                         ) : (
                             <ArrowRight size={64} />

@@ -9,5 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('reports:recover')->everyMinute()->withoutOverlapping();
+Schedule::command('devices:prune-proofs')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('reports:purge --apply')->dailyAt('02:00')->withoutOverlapping();
 Schedule::command('reports:prune-orphans --apply')->dailyAt('03:00')->withoutOverlapping();

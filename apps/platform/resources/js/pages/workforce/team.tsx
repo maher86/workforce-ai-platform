@@ -1,6 +1,6 @@
 import ManagerLanguageSwitch from '@/components/manager-language-switch';
 import { useUiLocale } from '@/hooks/use-ui-locale';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Copy,
     QrCode,
@@ -31,6 +31,7 @@ type Props = {
         photoUrl: string | null;
         active: boolean;
         devices: number;
+        deviceId: number | null;
     }[];
     managerName: string;
     summary: {
@@ -38,7 +39,11 @@ type Props = {
         reports: number;
         processing: number;
     } | null;
-    activation: { name: string; url: string } | null;
+    activation: {
+        name: string;
+        url: string;
+        deviceMode?: 'android' | 'browser';
+    } | null;
     canManageManagers: boolean;
     managers: { id: number; name: string; active: boolean }[];
     managerAdded: boolean;
@@ -58,7 +63,20 @@ export default function Team({
     const { t, locale, direction } = useUiLocale();
 
     const workspace = useForm({ name: '' });
-    const employee = useForm({ name: '', phone: '' });
+    const employee = useForm({ name: '', phone: '', device_mode: 'android' });
+    const { errors } = usePage<{ errors: Record<string, string> }>().props;
+    const [accessBusy, setAccessBusy] = useState(false);
+    const accessPost = (
+        url: string,
+        data: Record<string, string | number | boolean> = {},
+    ) => {
+        if (accessBusy) return;
+        router.post(url, data, {
+            preserveScroll: true,
+            onStart: () => setAccessBusy(true),
+            onFinish: () => setAccessBusy(false),
+        });
+    };
     const manager = useForm({ email: '', password: '' });
     const managerRemoval = useForm({ membership: '', password: '' });
     const [hiddenUrl, setHiddenUrl] = useState<string | null>(null);
@@ -238,10 +256,41 @@ export default function Team({
                             />
                             <InputError message={employee.errors.phone} />
                         </div>
-                        <Button disabled={employee.processing}>
+                        <div className="space-y-2">
+                            <Label htmlFor="employee-device-mode">
+                                {t('نوع التفعيل')}
+                            </Label>
+                            <select
+                                id="employee-device-mode"
+                                className="min-h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                                value={employee.data.device_mode}
+                                onChange={(event) =>
+                                    employee.setData(
+                                        'device_mode',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="android">
+                                    {t('تطبيق Android — مفتاح الجهاز')}
+                                </option>
+                                <option value="browser">
+                                    {t('المتصفح / PWA — ملف متصفح واحد')}
+                                </option>
+                            </select>
+                            <InputError message={employee.errors.device_mode} />
+                        </div>
+                        <Button disabled={employee.processing || accessBusy}>
                             <UserPlus /> {t('إضافة وإصدار QR')}{' '}
                         </Button>
                     </form>
+                    <p className="text-sm text-slate-500">
+                        {t(
+                            'موظف واحد، جهاز معتمد واحد. تغيير الهاتف يحتاج نقل الحساب من المدير.',
+                        )}
+                    </p>
+                    <InputError message={errors.device} />
+                    <InputError message={errors.expected_device_id} />
                     {visible && (
                         <section
                             aria-label={t('تفعيل هاتف الموظف')}
@@ -271,6 +320,13 @@ export default function Team({
                                     )}{' '}
                                 </p>
                             )}
+                            <p className="text-sm font-medium">
+                                {t(
+                                    activation.deviceMode === 'android'
+                                        ? 'تطبيق Android — مفتاح الجهاز'
+                                        : 'المتصفح / PWA — ملف متصفح واحد',
+                                )}
+                            </p>
                             <QRCodeSVG
                                 value={activation.url}
                                 size={256}
@@ -348,17 +404,50 @@ export default function Team({
                                     <div className="flex flex-wrap gap-2">
                                         <Button
                                             variant="outline"
+                                            disabled={accessBusy}
                                             onClick={() => {
                                                 setCopied(false);
-                                                router.post(
-                                                    `/tenants/${selectedTenant}/employees/${member.id}/invite`,
-                                                );
+                                                if (member.deviceId) {
+                                                    if (
+                                                        !window.confirm(
+                                                            t(
+                                                                'سيُلغى دخول الجهاز الحالي فورًا ويصدر رمز للجهاز الجديد. هل تريد نقل الحساب؟',
+                                                            ),
+                                                        )
+                                                    )
+                                                        return;
+                                                    accessPost(
+                                                        `/tenants/${selectedTenant}/employees/${member.id}/transfer`,
+                                                        {
+                                                            confirmed: true,
+                                                            expected_device_id:
+                                                                member.deviceId,
+                                                            device_mode:
+                                                                employee.data
+                                                                    .device_mode,
+                                                        },
+                                                    );
+                                                } else
+                                                    accessPost(
+                                                        `/tenants/${selectedTenant}/employees/${member.id}/invite`,
+                                                        {
+                                                            device_mode:
+                                                                employee.data
+                                                                    .device_mode,
+                                                        },
+                                                    );
                                             }}
                                         >
-                                            <QrCode /> {t('رمز جديد')}{' '}
+                                            <QrCode />{' '}
+                                            {t(
+                                                member.deviceId
+                                                    ? 'نقل إلى جهاز جديد'
+                                                    : 'رمز جديد',
+                                            )}{' '}
                                         </Button>
                                         <Button
                                             variant="outline"
+                                            disabled={accessBusy}
                                             onClick={() => {
                                                 if (
                                                     window.confirm(
@@ -367,7 +456,7 @@ export default function Team({
                                                         ),
                                                     )
                                                 )
-                                                    router.post(
+                                                    accessPost(
                                                         `/tenants/${selectedTenant}/employees/${member.id}/revoke`,
                                                     );
                                             }}
@@ -377,6 +466,7 @@ export default function Team({
                                         </Button>
                                         <Button
                                             variant="destructive"
+                                            disabled={accessBusy}
                                             onClick={() => {
                                                 if (
                                                     window.confirm(
@@ -385,7 +475,7 @@ export default function Team({
                                                         ),
                                                     )
                                                 )
-                                                    router.post(
+                                                    accessPost(
                                                         `/tenants/${selectedTenant}/employees/${member.id}/revoke`,
                                                         { disable: true },
                                                     );
@@ -399,9 +489,15 @@ export default function Team({
                                 {!member.active && (
                                     <Button
                                         variant="outline"
+                                        disabled={accessBusy}
                                         onClick={() =>
-                                            router.post(
+                                            accessPost(
                                                 `/tenants/${selectedTenant}/employees/${member.id}/enable`,
+                                                {
+                                                    device_mode:
+                                                        employee.data
+                                                            .device_mode,
+                                                },
                                             )
                                         }
                                     >
