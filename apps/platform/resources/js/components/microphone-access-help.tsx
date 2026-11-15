@@ -2,6 +2,7 @@ import { AudioLines, Mic, Settings2, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { readMicrophonePermission } from '@/lib/microphone-permission';
 import type { MicrophonePermission } from '@/lib/microphone-permission';
+import { inAndroidApp, nativeDevice } from '@/lib/android-device';
 
 export default function MicrophoneAccessHelp({
     onRetry,
@@ -34,6 +35,42 @@ export default function MicrophoneAccessHelp({
         };
     }, []);
 
+    if (inAndroidApp())
+        return (
+            <section
+                aria-label="مساعدة تسجيل الصوت في التطبيق"
+                className="flex items-center gap-3"
+            >
+                <button
+                    type="button"
+                    disabled={busy || browserBusy}
+                    onClick={onRetry}
+                    aria-label="إعادة محاولة التسجيل"
+                    className="workforce-action workforce-record flex-1"
+                >
+                    <Mic size={48} />
+                </button>
+                <button
+                    type="button"
+                    disabled={busy || browserBusy}
+                    aria-label="فتح إعدادات إذن الميكروفون للتطبيق"
+                    className="workforce-icon"
+                    onClick={() => {
+                        void nativeDevice
+                            .openSettings()
+                            .catch(() => setHelp(true));
+                    }}
+                >
+                    <Settings2 />
+                </button>
+                {help && (
+                    <p role="alert">
+                        تعذر فتح الإعدادات. افتح إعدادات الهاتف، التطبيقات،
+                        Workforce، أذونات الميكروفون. [APP-SETTINGS]
+                    </p>
+                )}
+            </section>
+        );
     return (
         <section
             aria-label="المساعدة في السماح بالميكروفون"

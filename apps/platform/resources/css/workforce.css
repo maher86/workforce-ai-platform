@@ -123,9 +123,63 @@
         transform 0.15s,
         box-shadow 0.15s;
 }
-.workforce-action:active,
-.workforce-icon:active {
-    transform: translateY(2px);
+:is(
+    button.workforce-action,
+    button.workforce-icon,
+    a.workforce-icon,
+    button.cover-icon,
+    button.workforce-send,
+    .employee-entry-button
+) {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: #ff790055;
+    transition:
+        transform 120ms ease,
+        filter 120ms ease,
+        box-shadow 120ms ease;
+}
+:is(
+        button.workforce-action,
+        button.workforce-icon,
+        a.workforce-icon,
+        button.cover-icon,
+        button.workforce-send,
+        .employee-entry-button
+    ):active:not(:disabled) {
+    transform: translateY(3px) scale(0.94);
+    filter: brightness(0.85);
+    box-shadow: inset 0 3px 10px #17263d40;
+}
+:is(
+    button.workforce-action,
+    button.workforce-icon,
+    button.cover-icon,
+    button.workforce-send,
+    .employee-entry-button
+):disabled {
+    cursor: default;
+}
+.employee-entry-button:focus-visible {
+    outline: 4px solid #ff8b25;
+    outline-offset: 5px;
+}
+button.cover-icon[aria-expanded='true'] {
+    background: #ff7900;
+    border-color: #ffbd7a;
+    box-shadow: 0 0 0 4px #ff790033;
+}
+@media (prefers-reduced-motion: reduce) {
+    button:is(
+        .workforce-action,
+        .workforce-icon,
+        .cover-icon,
+        .workforce-send,
+        .employee-entry-button
+    ),
+    a:is(.workforce-icon, .employee-entry-button) {
+        transition: none;
+    }
 }
 .workforce-record {
     color: #fff;

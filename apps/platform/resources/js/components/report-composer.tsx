@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import VoicePlayback from '@/components/voice-playback';
 import MicrophoneAccessHelp from '@/components/microphone-access-help';
 import {
@@ -23,6 +24,12 @@ import {
 import { uploadPending } from '@/lib/report-upload';
 import { processingReport } from '@/lib/report-progress';
 import { stableRecordedAudio } from '@/lib/audio-preview';
+import {
+    inAndroidApp,
+    nativeVoice,
+    nativeVoiceFailure,
+} from '@/lib/android-device';
+import { startNativeVoice } from '@/lib/native-voice-session';
 import {
     startVoiceRecorder,
     voiceAvailability,
@@ -46,7 +53,12 @@ type EditableReport = {
 export default function ReportComposer({
     edit,
     onSaved,
-}: { edit?: EditableReport; onSaved?: () => void } = {}) {
+    settings,
+}: {
+    edit?: EditableReport;
+    onSaved?: () => void;
+    settings?: { open: boolean; onClose: () => void; content: ReactNode };
+} = {}) {
     const { employeeUploadScope } = usePage<{
         employeeUploadScope: string | null;
     }>().props;
@@ -69,11 +81,19 @@ export default function ReportComposer({
         progress.reports.filter(processingReport).length >= 20;
     const [error, setError] = useState('');
     const [recordingHelp, setRecordingHelp] = useState(false);
+    const optionsOpen = settings?.open ?? recordingHelp;
+    const closeOptions = () => {
+        setRecordingHelp(false);
+        settings?.onClose();
+    };
     const [online, setOnline] = useState(navigator.onLine);
     const [previews, setPreviews] = useState<string[]>([]);
     const [audioUrl, setAudioUrl] = useState('');
     const key = useRef(crypto.randomUUID());
     const recorder = useRef<MediaRecorder | null>(null);
+    const nativeRecorder = useRef<Awaited<
+        ReturnType<typeof startNativeVoice>
+    > | null>(null);
     const starting = useRef(false);
     const mounted = useRef(true);
     const stream = useRef<MediaStream | null>(null);
@@ -122,8 +142,11 @@ export default function ReportComposer({
         const interval = window.setInterval(() => {
             const elapsed = Math.floor((Date.now() - began.current) / 1000);
             setSeconds(Math.min(elapsed, 180));
-            if (elapsed >= 179 && recorder.current?.state === 'recording')
-                recorder.current.stop();
+            if (elapsed >= 180) {
+                if (recorder.current?.state === 'recording')
+                    recorder.current.stop();
+                nativeRecorder.current?.stop();
+            }
         }, 250);
         const hidden = () => {
             if (document.hidden && recorder.current?.state === 'recording')
@@ -139,12 +162,14 @@ export default function ReportComposer({
         mounted.current = true;
         return () => {
             mounted.current = false;
+            selectionVersion.current++;
             microphoneRequest.current?.abort();
+            nativeRecorder.current?.cancel();
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
             stream.current?.getTracks().forEach((track) => track.stop());
         };
-    }, []);
+    }, [employeeUploadScope]);
     useEffect(() => {
         const warn = (event: BeforeUnloadEvent) => {
             if (audio || images.length || recording) event.preventDefault();
@@ -177,7 +202,7 @@ export default function ReportComposer({
             setAudio(stable);
             setSeconds(0);
             setError('');
-            setRecordingHelp(false);
+            closeOptions();
         } catch {
             if (mounted.current && version === selectionVersion.current) {
                 setAudio(null);
@@ -193,12 +218,55 @@ export default function ReportComposer({
 
     const record = async () => {
         if (recording) {
+            if (nativeRecorder.current) {
+                nativeRecorder.current.stop();
+                setRecording(false);
+                setReadingAudio(true);
+                return;
+            }
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
             return;
         }
         if (starting.current) return;
         setError('');
+        if (inAndroidApp()) {
+            starting.current = true;
+            setOpeningMic(true);
+            const access = new AbortController();
+            microphoneRequest.current = access;
+            try {
+                const session = await startNativeVoice(
+                    nativeVoice,
+                    crypto.randomUUID(),
+                    access.signal,
+                    (file) => {
+                        if (!mounted.current) return;
+                        setRecording(false);
+                        void receiveAudio(file);
+                    },
+                    (failure) => {
+                        if (!mounted.current) return;
+                        setRecording(false);
+                        setReadingAudio(false);
+                        setError(nativeVoiceFailure(failure));
+                    },
+                );
+                nativeRecorder.current = session;
+                if (session.state === 'recording' && mounted.current) {
+                    began.current = Date.now();
+                    setSeconds(0);
+                    setRecording(true);
+                }
+            } catch (failure) {
+                if (mounted.current && !access.signal.aborted)
+                    setError(nativeVoiceFailure(failure));
+            } finally {
+                starting.current = false;
+                if (mounted.current) setOpeningMic(false);
+            }
+            return;
+        }
         const unavailable = voiceAvailability(
             window.isSecureContext,
             typeof navigator.mediaDevices?.getUserMedia === 'function',
@@ -345,6 +413,36 @@ export default function ReportComposer({
 
     return (
         <section className="w-full space-y-5" aria-label="إرسال تقرير">
+            {optionsOpen && (
+                <section
+                    id={settings ? 'employee-device-settings' : undefined}
+                    aria-label="إعدادات الجهاز والتسجيل"
+                    className="space-y-4 rounded-3xl border border-orange-200 bg-white p-4 shadow-sm"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            {settings?.content}
+                        </div>
+                        <button
+                            type="button"
+                            className="workforce-icon"
+                            aria-label="إغلاق الإعدادات"
+                            onClick={closeOptions}
+                        >
+                            <X />
+                        </button>
+                    </div>
+                    <MicrophoneAccessHelp
+                        busy={recording || editingBusy}
+                        browserBusy={openingMic}
+                        onRetry={() => {
+                            void record();
+                        }}
+                        onCapture={captureOnPhone}
+                        onUpload={() => audioInput.current?.click()}
+                    />
+                </section>
+            )}
             <div className="grid grid-cols-2 gap-4">
                 <button
                     disabled={openingMic || editingBusy || readingAudio}
@@ -379,7 +477,8 @@ export default function ReportComposer({
             <input
                 ref={camera}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                // Android WebView requires image/* with capture to select the camera path.
+                accept="image/*"
                 capture="environment"
                 className="hidden"
                 onChange={(event) => {
@@ -440,16 +539,18 @@ export default function ReportComposer({
                 >
                     <AudioLines />
                 </button>
-                <button
-                    type="button"
-                    disabled={recording || editingBusy}
-                    aria-label="خيارات التسجيل ومساعدة المدير"
-                    aria-expanded={recordingHelp}
-                    className="workforce-icon"
-                    onClick={() => setRecordingHelp(!recordingHelp)}
-                >
-                    <Settings2 />
-                </button>
+                {!settings && (
+                    <button
+                        type="button"
+                        disabled={recording || editingBusy}
+                        aria-label="خيارات التسجيل ومساعدة المدير"
+                        aria-expanded={optionsOpen}
+                        className="workforce-icon"
+                        onClick={() => setRecordingHelp(!recordingHelp)}
+                    >
+                        <Settings2 />
+                    </button>
+                )}
                 {openingMic && (
                     <button
                         type="button"
@@ -578,7 +679,7 @@ export default function ReportComposer({
                     <p>{error}</p>
                 </div>
             )}
-            {(recordingHelp || /\[MIC-[A-Z-]+\]$/.test(error)) && (
+            {!optionsOpen && /\[MIC-[A-Z-]+\]$/.test(error) && (
                 <MicrophoneAccessHelp
                     busy={recording || editingBusy}
                     browserBusy={openingMic}
