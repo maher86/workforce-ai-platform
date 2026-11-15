@@ -19,6 +19,7 @@ apps/android/android/app/src/main/assets/capacitor.plugins.json
 apps/android/android/app/src/main/assets/public/
 apps/android/android/capacitor-cordova-android-plugins/
 apps/android/*.local.*
+apps/platform/public/downloads/
 *.apk
 *.aab
 *.jks
