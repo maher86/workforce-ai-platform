@@ -436,7 +436,8 @@ export default function ReportComposer({
             <input
                 ref={camera}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                // Android WebView requires image/* with capture to select the camera path.
+                accept="image/*"
                 capture="environment"
                 className="hidden"
                 onChange={(event) => {
