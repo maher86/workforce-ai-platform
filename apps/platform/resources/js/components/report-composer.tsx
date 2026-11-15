@@ -23,6 +23,7 @@ import {
 } from '@/hooks/use-report-upload';
 import { uploadPending } from '@/lib/report-upload';
 import { processingReport } from '@/lib/report-progress';
+import { stableRecordedAudio } from '@/lib/audio-preview';
 import {
     startVoiceRecorder,
     voiceAvailability,
@@ -59,9 +60,12 @@ export default function ReportComposer({
     const [images, setImages] = useState<File[]>([]);
     const [recording, setRecording] = useState(false);
     const [openingMic, setOpeningMic] = useState(false);
+    const [readingAudio, setReadingAudio] = useState(false);
+    const selectionVersion = useRef(0);
     const [seconds, setSeconds] = useState(0);
     const editingBusy = Boolean(edit) && uploadPending(upload);
     const sending =
+        readingAudio ||
         uploadPending(upload) ||
         upload.status === 'error' ||
         progress.reports.filter(processingReport).length >= 20;
@@ -162,16 +166,35 @@ export default function ReportComposer({
         nativeAudioInput.current?.click();
     };
 
-    const receiveAudio = (file: File | undefined) => {
+    const receiveAudio = async (file: File | undefined) => {
         if (!file) return;
+        const version = ++selectionVersion.current;
+        setReadingAudio(true);
         if (!file.size || file.size > 12 * 1024 * 1024) {
+            setAudio(null);
+            setReadingAudio(false);
             setError('التسجيل فارغ أو أكبر من 12MB. استخدم تسجيلًا أقصر.');
             return;
         }
-        setAudio(file);
-        setSeconds(0);
-        setError('');
-        setRecordingHelp(false);
+        try {
+            const stable = await stableRecordedAudio(file);
+            if (!mounted.current || version !== selectionVersion.current)
+                return;
+            setAudio(stable);
+            setSeconds(0);
+            setError('');
+            setRecordingHelp(false);
+        } catch {
+            if (mounted.current && version === selectionVersion.current) {
+                setAudio(null);
+                setError(
+                    'تعذّرت قراءة التسجيل من الهاتف. أعد التسجيل أو اختر تسجيلًا آخر. [VOICE-FILE]',
+                );
+            }
+        } finally {
+            if (mounted.current && version === selectionVersion.current)
+                setReadingAudio(false);
+        }
     };
 
     const record = async (forceBrowser = false) => {
@@ -221,7 +244,7 @@ export default function ReportComposer({
                         current.mimeType || chunks[0]?.type || 'audio/webm';
                     const blob = new Blob(chunks, { type: mime });
                     if (blob.size && mounted.current)
-                        setAudio(
+                        void receiveAudio(
                             new File(
                                 [blob],
                                 mime.includes('mp4')
@@ -230,6 +253,12 @@ export default function ReportComposer({
                                 { type: mime },
                             ),
                         );
+                    else if (mounted.current) {
+                        setAudio(null);
+                        setError(
+                            'لم يُحفظ صوت في هذا التسجيل. أعد التسجيل. [MIC-EMPTY]',
+                        );
+                    }
                     microphone.getTracks().forEach((track) => track.stop());
                     if (stream.current === microphone) stream.current = null;
                     if (mounted.current) setRecording(false);
@@ -328,7 +357,7 @@ export default function ReportComposer({
         <section className="w-full space-y-5" aria-label="إرسال تقرير">
             <div className="grid grid-cols-2 gap-4">
                 <button
-                    disabled={openingMic || editingBusy}
+                    disabled={openingMic || editingBusy || readingAudio}
                     aria-label={
                         recording
                             ? 'إيقاف التسجيل'
@@ -341,7 +370,7 @@ export default function ReportComposer({
                     }}
                     className={`workforce-action workforce-record relative ${recording ? 'is-recording' : ''}`}
                 >
-                    {openingMic ? (
+                    {openingMic || readingAudio ? (
                         <LoaderCircle size={56} className="animate-spin" />
                     ) : recording ? (
                         <Square size={56} />
@@ -399,8 +428,10 @@ export default function ReportComposer({
                 capture="user"
                 className="hidden"
                 onChange={(event) => {
-                    receiveAudio(event.target.files?.[0]);
-                    event.target.value = '';
+                    const input = event.currentTarget;
+                    void receiveAudio(input.files?.[0]).finally(() => {
+                        input.value = '';
+                    });
                 }}
             />
             <input
@@ -409,8 +440,10 @@ export default function ReportComposer({
                 accept="audio/*,.webm,.m4a,.mp4"
                 className="hidden"
                 onChange={(event) => {
-                    receiveAudio(event.target.files?.[0]);
-                    event.target.value = '';
+                    const input = event.currentTarget;
+                    void receiveAudio(input.files?.[0]).finally(() => {
+                        input.value = '';
+                    });
                 }}
             />
             <div className="flex justify-center gap-4">
