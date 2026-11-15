@@ -29,7 +29,7 @@ function fake() {
     };
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve));
-test('native Stop returns one attached file without chooser or automatic upload; duplicate stop/event does not duplicate it', async () => {
+await test('native Stop returns one attached file without chooser or automatic upload; duplicate stop/event does not duplicate it', async () => {
     const bridge = fake();
     const clips = [];
     const session = await startNativeVoice(
@@ -53,7 +53,7 @@ test('native Stop returns one attached file without chooser or automatic upload;
     assert.equal(bridge.calls.filter((call) => call === 'stop:one').length, 1);
     assert.ok(bridge.calls.includes('remove'));
 });
-test('native background/maximum-duration event finalizes only the matching recording', async () => {
+await test('native background/maximum-duration event finalizes only the matching recording', async () => {
     const bridge = fake();
     const clips = [];
     await startNativeVoice(
@@ -67,7 +67,7 @@ test('native background/maximum-duration event finalizes only the matching recor
     await settle();
     assert.equal(clips.length, 1);
 });
-test('cancellation during permission request disposes late grant without exposing another identity to a recording', async () => {
+await test('cancellation during permission request disposes late grant without exposing another identity to a recording', async () => {
     const bridge = fake();
     const controller = new AbortController();
     let grant;
@@ -91,7 +91,7 @@ test('cancellation during permission request disposes late grant without exposin
     await settle();
     assert.ok(!bridge.calls.includes('stop:one'));
 });
-test('native invalid audio and failures cannot produce an uploadable clip', async () => {
+await test('native invalid audio and failures cannot produce an uploadable clip', async () => {
     for (const clip of [
         { mime: 'audio/webm', base64: btoa('audio') },
         { mime: 'audio/mp4', base64: '' },
@@ -115,7 +115,7 @@ test('native invalid audio and failures cannot produce an uploadable clip', asyn
     assert.equal(failures.length, 1);
     assert.ok(bridge.calls.includes('remove'));
 });
-test('QR activation rejects external origins, passwords, wrong paths, queries and persistent credential forms', () => {
+await test('QR activation rejects external origins, passwords, wrong paths, queries and persistent credential forms', () => {
     const token = 'a'.repeat(64);
     const origin = 'https://workforce.example';
     assert.equal(
