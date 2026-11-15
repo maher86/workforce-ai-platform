@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
+import androidx.lifecycle.Lifecycle;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -27,6 +28,7 @@ public class WorkforceVoicePlugin extends Plugin {
     private String failure;
     private boolean finished;
     private PluginCall permissionCall;
+    private boolean permissionPending;
     private final Runnable limit = () -> finish(true);
 
     @Override public void load() {
@@ -50,19 +52,22 @@ public class WorkforceVoicePlugin extends Plugin {
         main.post(() -> {
             if (!trusted()) { call.reject("Untrusted recording origin", "APP-ORIGIN"); return; }
             String id = call.getString("sessionId");
-            if (id == null || !id.matches("[A-Za-z0-9-]{1,80}") || session != null) {
+            if (id == null || !id.matches("[A-Za-z0-9-]{1,80}") || session != null || permissionPending) {
                 call.reject("Recording is busy", "MIC-NATIVE-BUSY"); return;
             }
             session = id;
             if (getPermissionState("microphone") != PermissionState.GRANTED) {
                 permissionCall = call;
+                permissionPending = true;
                 requestPermissionForAlias("microphone", call, "microphoneResult");
             } else begin(call);
         });
     }
     @PermissionCallback private void microphoneResult(PluginCall call) {
         main.post(() -> {
+            permissionPending = false;
             permissionCall = null;
+            if (call == null) return;
             if (!matches(call)) { call.reject("Recording cancelled", "MIC-NATIVE-CANCELLED"); return; }
             if (!trusted() || getPermissionState("microphone") != PermissionState.GRANTED) {
                 clear(); call.reject("Microphone permission denied", "MIC-NATIVE-DENIED"); return;
@@ -71,6 +76,9 @@ public class WorkforceVoicePlugin extends Plugin {
         });
     }
     @SuppressWarnings("deprecation") private void begin(PluginCall call) {
+        if (!trusted() || !matches(call) || !getActivity().getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+            clear(); call.reject("Recording cancelled while app inactive", "MIC-NATIVE-CANCELLED"); return;
+        }
         try {
             clip = File.createTempFile("voice-", ".m4a", directory());
             recorder = Build.VERSION.SDK_INT >= 31 ? new MediaRecorder(getContext()) : new MediaRecorder();
