@@ -1,0 +1,13 @@
+# ADR 0010: Native audio capture for Android employee recording
+
+Status: accepted owner request, 2026-11-15; physical-device acceptance pending.
+
+Repeated MIC-ACCESS errors after manager-assisted permission attempts are a blocking employee usability issue. On Android browsers exposing the HTML capture hint, the main microphone button now synchronously opens a separate input type=file accept=audio/* capture=user during the user's click. Returned audio enters the same private recording preview and report submission path, with optional images and existing media/tenant rules. This asks the OS/browser to supply a new recording; it does not grant web getUserMedia permission, bypass OS/global microphone denial, silently install a recorder or guarantee a particular native application. Some devices present an app chooser or file picker. The ordinary audio-file input remains separate and has no capture hint. Other platforms retain browser recording.
+
+Managers can explicitly choose browser recording from the icon-only recording settings. All microphone errors expose a large native-capture alternative, not another repeated web-permission request. No spoken commands, automatic recording, app-settings intents, browser security bypass or data clearing. Native cancellation preserves an existing draft.
+
+Browser recording remains tied to a direct user gesture. Bound unanswered getUserMedia requests to15 seconds and allow cancellation/fallback. The underlying browser permission prompt cannot be programmatically cancelled, so any stream returned after timeout, cancellation or unmount is immediately stopped without starting a recorder. A successful current stream retains existing format fallback,180-second limit and stop-on-background behavior.
+
+Accept native3GP/AMR/AAC MIME families only through existing content sniffing, audio-only stream checks and bounded FFmpeg decode/normalization to mono AAC/m4a. Reject video-bearing3GP and malformed media; preserve12MB/180-second limits, metadata stripping, private storage and cleanup. CI uses synthetic generated3GP/AAC and video-rejection fixtures, never employee recordings or provider calls. AMR device output and actual OEM chooser/permissions need physical Android acceptance. A fixed HTTPS origin is still required for durable PWA/device access; temporary-tunnel rotation is a separate connectivity issue.
+
+References: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/capture and https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia .

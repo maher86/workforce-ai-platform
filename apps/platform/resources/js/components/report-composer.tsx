@@ -9,6 +9,9 @@ import {
     AudioLines,
     LoaderCircle,
     WifiOff,
+    Settings2,
+    Smartphone,
+    X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import VoicePlayback from '@/components/voice-playback';
@@ -24,6 +27,8 @@ import {
     startVoiceRecorder,
     voiceAvailability,
     voiceFailure,
+    preferNativeAudioCapture,
+    openMicrophone,
 } from '@/lib/voice-recorder';
 
 export type WorkItem = {
@@ -61,6 +66,7 @@ export default function ReportComposer({
         upload.status === 'error' ||
         progress.reports.filter(processingReport).length >= 20;
     const [error, setError] = useState('');
+    const [recordingHelp, setRecordingHelp] = useState(false);
     const [online, setOnline] = useState(navigator.onLine);
     const [previews, setPreviews] = useState<string[]>([]);
     const [audioUrl, setAudioUrl] = useState('');
@@ -73,6 +79,12 @@ export default function ReportComposer({
     const camera = useRef<HTMLInputElement>(null);
     const gallery = useRef<HTMLInputElement>(null);
     const audioInput = useRef<HTMLInputElement>(null);
+    const nativeAudioInput = useRef<HTMLInputElement>(null);
+    const microphoneRequest = useRef<AbortController | null>(null);
+    const nativePreferred = preferNativeAudioCapture(
+        navigator.userAgent,
+        'capture' in document.createElement('input'),
+    );
 
     useEffect(() => {
         if (
@@ -129,6 +141,7 @@ export default function ReportComposer({
         mounted.current = true;
         return () => {
             mounted.current = false;
+            microphoneRequest.current?.abort();
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
             stream.current?.getTracks().forEach((track) => track.stop());
@@ -142,7 +155,26 @@ export default function ReportComposer({
         return () => window.removeEventListener('beforeunload', warn);
     }, [audio, images.length, recording]);
 
-    const record = async () => {
+    const captureOnPhone = () => {
+        microphoneRequest.current?.abort();
+        setOpeningMic(false);
+        setError('');
+        nativeAudioInput.current?.click();
+    };
+
+    const receiveAudio = (file: File | undefined) => {
+        if (!file) return;
+        if (!file.size || file.size > 12 * 1024 * 1024) {
+            setError('التسجيل فارغ أو أكبر من 12MB. استخدم تسجيلًا أقصر.');
+            return;
+        }
+        setAudio(file);
+        setSeconds(0);
+        setError('');
+        setRecordingHelp(false);
+    };
+
+    const record = async (forceBrowser = false) => {
         if (recording) {
             if (recorder.current?.state === 'recording')
                 recorder.current.stop();
@@ -155,17 +187,24 @@ export default function ReportComposer({
             typeof navigator.mediaDevices?.getUserMedia === 'function',
             typeof MediaRecorder !== 'undefined',
         );
+        if (nativePreferred && !forceBrowser && window.isSecureContext) {
+            captureOnPhone();
+            return;
+        }
         if (unavailable) {
             setError(`${unavailable.message} [${unavailable.code}]`);
             return;
         }
         starting.current = true;
         setOpeningMic(true);
+        const access = new AbortController();
+        microphoneRequest.current = access;
         let phase: 'access' | 'recording' = 'access';
         try {
-            const microphone = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-            });
+            const microphone = await openMicrophone(
+                () => navigator.mediaDevices.getUserMedia({ audio: true }),
+                access.signal,
+            );
             if (!mounted.current) {
                 microphone.getTracks().forEach((track) => track.stop());
                 return;
@@ -217,6 +256,7 @@ export default function ReportComposer({
             stream.current?.getTracks().forEach((track) => track.stop());
             stream.current = null;
             recorder.current = null;
+            if (access.signal.aborted) return;
             if (mounted.current) {
                 setRecording(false);
                 const failure = voiceFailure(error, phase);
@@ -289,11 +329,17 @@ export default function ReportComposer({
             <div className="grid grid-cols-2 gap-4">
                 <button
                     disabled={openingMic || editingBusy}
-                    aria-label={recording ? 'إيقاف التسجيل' : 'تسجيل صوت'}
+                    aria-label={
+                        recording
+                            ? 'إيقاف التسجيل'
+                            : nativePreferred
+                              ? 'تسجيل الصوت بمسجل الهاتف'
+                              : 'تسجيل صوت'
+                    }
                     onClick={() => {
                         void record();
                     }}
-                    className={`workforce-action workforce-record ${recording ? 'is-recording' : ''}`}
+                    className={`workforce-action workforce-record relative ${recording ? 'is-recording' : ''}`}
                 >
                     {openingMic ? (
                         <LoaderCircle size={56} className="animate-spin" />
@@ -306,6 +352,13 @@ export default function ReportComposer({
                         <span className="text-sm tabular-nums" dir="ltr">
                             {seconds} / 180
                         </span>
+                    )}
+                    {!recording && nativePreferred && (
+                        <Smartphone
+                            size={19}
+                            className="absolute bottom-3 left-3 opacity-80"
+                            aria-hidden="true"
+                        />
                     )}
                 </button>
                 <button
@@ -340,20 +393,23 @@ export default function ReportComposer({
                 }}
             />
             <input
+                ref={nativeAudioInput}
+                type="file"
+                accept="audio/*"
+                capture="user"
+                className="hidden"
+                onChange={(event) => {
+                    receiveAudio(event.target.files?.[0]);
+                    event.target.value = '';
+                }}
+            />
+            <input
                 ref={audioInput}
                 type="file"
                 accept="audio/*,.webm,.m4a,.mp4"
                 className="hidden"
                 onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                        if (file.size > 12 * 1024 * 1024)
-                            setError('الملف أكبر من 12MB.');
-                        else {
-                            setAudio(file);
-                            setError('');
-                        }
-                    }
+                    receiveAudio(event.target.files?.[0]);
                     event.target.value = '';
                 }}
             />
@@ -374,6 +430,26 @@ export default function ReportComposer({
                 >
                     <AudioLines />
                 </button>
+                <button
+                    type="button"
+                    disabled={recording || editingBusy}
+                    aria-label="خيارات التسجيل ومساعدة المدير"
+                    aria-expanded={recordingHelp}
+                    className="workforce-icon"
+                    onClick={() => setRecordingHelp(!recordingHelp)}
+                >
+                    <Settings2 />
+                </button>
+                {openingMic && (
+                    <button
+                        type="button"
+                        aria-label="إلغاء انتظار الميكروفون"
+                        className="workforce-icon text-red-600"
+                        onClick={() => microphoneRequest.current?.abort()}
+                    >
+                        <X />
+                    </button>
+                )}
             </div>
             {!audioUrl &&
                 edit &&
@@ -490,16 +566,18 @@ export default function ReportComposer({
                     className="space-y-3 rounded-xl bg-red-100 p-4 text-red-900"
                 >
                     <p>{error}</p>
-                    {error.endsWith('[MIC-ACCESS]') && (
-                        <MicrophoneAccessHelp
-                            busy={recording || openingMic}
-                            onRetry={() => {
-                                void record();
-                            }}
-                            onUpload={() => audioInput.current?.click()}
-                        />
-                    )}
                 </div>
+            )}
+            {(recordingHelp || /\[MIC-[A-Z-]+\]$/.test(error)) && (
+                <MicrophoneAccessHelp
+                    busy={recording || editingBusy}
+                    browserBusy={openingMic}
+                    onRetry={() => {
+                        void record(true);
+                    }}
+                    onCapture={captureOnPhone}
+                    onUpload={() => audioInput.current?.click()}
+                />
             )}
             <button
                 disabled={

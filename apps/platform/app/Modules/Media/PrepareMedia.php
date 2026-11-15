@@ -33,7 +33,7 @@ class PrepareMedia
                 $arguments = ['-frames:v', '1', '-vf', 'scale='.$width.':'.$height, '-q:v', '3', '-threads', '1'];
                 $outputMime = 'image/jpeg';
             } else {
-                $this->require($input->kind === 'audio' && in_array($mime, ['audio/mpeg', 'audio/mp4', 'video/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/webm', 'video/webm', 'audio/ogg', 'application/ogg'], true));
+                $this->require($input->kind === 'audio' && in_array($mime, ['audio/mpeg', 'audio/mp4', 'video/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/webm', 'video/webm', 'audio/ogg', 'application/ogg', 'audio/3gpp', 'video/3gpp', 'audio/3gpp2', 'video/3gpp2', 'audio/amr', 'audio/amr-wb', 'audio/aac', 'audio/x-aac', 'audio/x-hx-aac-adts'], true));
                 $probe = new Process(['ffprobe', '-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', $input->sourcePath]);
                 $probe->setTimeout(10)->mustRun();
                 $metadata = json_decode($probe->getOutput(), true, 64, JSON_THROW_ON_ERROR);
