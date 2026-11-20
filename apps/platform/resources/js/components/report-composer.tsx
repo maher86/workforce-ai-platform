@@ -702,13 +702,10 @@ export default function ReportComposer({
                     send();
                 }}
                 aria-label="إرسال التقرير"
+                aria-busy={uploadPending(upload)}
                 className="workforce-send"
             >
-                {sending ? (
-                    <LoaderCircle size={42} className="animate-spin" />
-                ) : (
-                    <Send size={42} strokeWidth={1.6} />
-                )}
+                <Send size={42} strokeWidth={1.6} />
             </button>
             {images.length > 0 &&
                 !audio &&

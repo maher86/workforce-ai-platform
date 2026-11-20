@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReportUploadStore } from '../../resources/js/lib/report-upload.ts';
+import {
+    readUploadReceipt,
+    receiptLookupUrl,
+} from '../../resources/js/lib/upload-receipt.ts';
+import {
+    ReportProgressStore,
+    reportIndicator,
+} from '../../resources/js/lib/report-progress.ts';
 
 class Request {
     upload = {};
@@ -35,6 +43,215 @@ class Request {
         this.onload();
     }
 }
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+const receiptKey = '11111111-1111-4111-8111-111111111111';
+
+await test('typed native JSON, nested serialization and BOM receipts keep strict metadata validation', () => {
+    const receipt = { id: 9, source_version: 1, status: 'submitted' };
+    for (const mode of ['typed-json', 'nested-json', 'bom']) {
+        const { store, requests, body } = fixture();
+        store.start('10:20', '/employee/reports', body);
+        const xhr = requests[0];
+        xhr.status = 201;
+        if (mode === 'typed-json') {
+            xhr.responseType = 'json';
+            xhr.response = receipt;
+            Object.defineProperty(xhr, 'responseText', {
+                get() {
+                    throw new Error('InvalidStateError');
+                },
+            });
+        } else
+            xhr.responseText =
+                mode === 'nested-json'
+                    ? JSON.stringify(JSON.stringify(receipt))
+                    : '\uFEFF' + JSON.stringify(receipt);
+        xhr.onload();
+        assert.equal(store.getSnapshot().status, 'success', mode);
+    }
+    for (const value of [
+        [],
+        { ...receipt, id: '9' },
+        { ...receipt, status: 'invented' },
+        { ...receipt, source_version: 0 },
+        '{',
+    ])
+        assert.equal(readUploadReceipt(value), null);
+});
+
+await test('late upload/error/timeout/abort callbacks cannot undo authoritative receipt', () => {
+    const { store, requests, body } = fixture();
+    store.start('10:20', '/employee/reports', body);
+    const xhr = requests[0];
+    xhr.respond(201, { id: 9 });
+    xhr.upload.onload();
+    xhr.onerror();
+    xhr.ontimeout();
+    xhr.onabort();
+    xhr.upload.onprogress({ lengthComputable: true, loaded: 1, total: 10 });
+    assert.equal(store.getSnapshot().status, 'success');
+    assert.equal(store.getSnapshot().progress, 100);
+});
+
+await test('ambiguous upload recovers saved receipt without uploading bytes again; processing stays processing', async () => {
+    const requests = [];
+    let lookups = 0;
+    const progress = new ReportProgressStore();
+    progress.setScope('scope');
+    const store = new ReportUploadStore({
+        xhr: () => {
+            const xhr = new Request();
+            requests.push(xhr);
+            return xhr;
+        },
+        csrf: () => 'synthetic',
+        confirm: async (job) => {
+            lookups++;
+            assert.equal(job.body.get('submission_key'), receiptKey);
+            return { id: 19, source_version: 1, status: 'processing' };
+        },
+        received: (receipt) => progress.track('scope', receipt),
+    });
+    store.setScope('scope');
+    const body = new FormData();
+    body.set('submission_key', receiptKey);
+    store.start('scope', '/employee/reports', body);
+    requests[0].status = 201;
+    requests[0].responseText = '{';
+    requests[0].onload();
+    assert.equal(store.getSnapshot().status, 'confirming');
+    await settle();
+    assert.equal(requests.length, 1);
+    assert.equal(lookups, 1);
+    assert.equal(store.getSnapshot().status, 'success');
+    assert.equal(
+        reportIndicator(store.getSnapshot(), progress.getSnapshot().reports)
+            .state,
+        'processing',
+    );
+    progress.update('scope', [{ id: 19, source_version: 1, status: 'ready' }]);
+    assert.equal(
+        reportIndicator(store.getSnapshot(), progress.getSnapshot().reports)
+            .state,
+        'ready',
+    );
+});
+
+await test('failed confirmation retains original payload and retry key; no manufactured receipt', async () => {
+    const requests = [];
+    let notices = 0;
+    const store = new ReportUploadStore({
+        xhr: () => {
+            const xhr = new Request();
+            requests.push(xhr);
+            return xhr;
+        },
+        csrf: () => 'synthetic',
+        confirm: async () => {
+            throw new Error('not found');
+        },
+        received: () => notices++,
+    });
+    store.setScope('scope');
+    const body = new FormData();
+    body.set('submission_key', receiptKey);
+    store.start('scope', '/employee/reports', body);
+    requests[0].onerror();
+    await settle();
+    assert.equal(store.getSnapshot().status, 'error');
+    assert.equal(notices, 0);
+    store.retry();
+    assert.equal(requests[1].body, body);
+    assert.equal(requests[1].body.get('submission_key'), receiptKey);
+});
+
+await test('account switch aborts confirmation and ignores a late ready response', async () => {
+    let complete;
+    let signal;
+    let notices = 0;
+    const xhr = new Request();
+    const store = new ReportUploadStore({
+        xhr: () => xhr,
+        csrf: () => 'synthetic',
+        confirm: (_, value) => {
+            signal = value;
+            return new Promise((resolve) => {
+                complete = resolve;
+            });
+        },
+        received: () => notices++,
+    });
+    store.setScope('first');
+    const body = new FormData();
+    body.set('submission_key', receiptKey);
+    store.start('first', '/employee/reports', body);
+    xhr.onerror();
+    await settle();
+    store.setScope('second');
+    assert.equal(signal.aborted, true);
+    complete({ id: 9, source_version: 1, status: 'ready' });
+    await settle();
+    assert.equal(store.getSnapshot().scope, 'second');
+    assert.equal(store.getSnapshot().status, 'idle');
+    assert.equal(notices, 0);
+});
+
+await test('confirmation timeout stays retryable and ignores completion after its deadline', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    let complete;
+    const xhr = new Request();
+    const store = new ReportUploadStore({
+        xhr: () => xhr,
+        csrf: () => 'synthetic',
+        confirm: () =>
+            new Promise((resolve) => {
+                complete = resolve;
+            }),
+    });
+    store.setScope('scope');
+    const body = new FormData();
+    body.set('submission_key', receiptKey);
+    store.start('scope', '/employee/reports', body);
+    xhr.onerror();
+    await settle();
+    t.mock.timers.tick(10000);
+    assert.equal(store.getSnapshot().status, 'error');
+    complete({ id: 9, source_version: 1, status: 'ready' });
+    await settle();
+    assert.equal(store.getSnapshot().status, 'error');
+    store.retry();
+    assert.equal(xhr.body, body);
+});
+
+await test('receipt lookups contain only validated keys/version and never media or foreign targets', () => {
+    const body = new FormData();
+    body.set('submission_key', receiptKey);
+    body.set('audio', new Blob(['synthetic']), 'voice.m4a');
+    const url = receiptLookupUrl({
+        scope: 'scope',
+        url: '/employee/reports',
+        body,
+    });
+    assert.equal(url, `/employee/upload-receipt?key=${receiptKey}`);
+    assert.equal(
+        receiptLookupUrl({
+            scope: 'scope',
+            url: 'https://foreign.example/employee/reports',
+            body,
+        }),
+        null,
+    );
+    body.set('change_key', receiptKey);
+    body.set('source_version', '2');
+    assert.equal(
+        receiptLookupUrl({
+            scope: 'scope',
+            url: '/employee/reports/9/amend',
+            body,
+        }),
+        `/employee/upload-receipt?key=${receiptKey}&report_id=9&source_version=2`,
+    );
+});
 function fixture() {
     const requests = [];
     let notices = 0;

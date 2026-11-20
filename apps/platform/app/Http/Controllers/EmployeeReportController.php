@@ -6,6 +6,7 @@ use App\Modules\Identity\EmployeeContext;
 use App\Modules\Identity\Membership;
 use App\Modules\Media\MediaInput;
 use App\Modules\Reporting\ChangeEmployeeReport;
+use App\Modules\Reporting\FindUploadReceipt;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportAccess;
 use App\Modules\Reporting\ReportActivity;
@@ -17,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -90,6 +92,20 @@ class EmployeeReportController extends Controller
         $report = Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->findOrFail($report->id);
 
         return response()->json(['id' => $report->id, 'status' => $report->status, 'source_version' => $report->source_version], 201);
+    }
+
+    public function receipt(Request $request, FindUploadReceipt $receipts): JsonResponse
+    {
+        $member = $this->membership($request);
+        $data = $request->validate([
+            'key' => 'required|uuid', 'report_id' => 'sometimes|required|integer|min:1',
+            'source_version' => ['required_with:report_id', Rule::prohibitedIf(! $request->has('report_id')), 'integer', 'min:1', 'max:20'],
+        ]);
+        $report = $receipts->execute($request->user(), $member->tenant_id, $data['key'],
+            isset($data['report_id']) ? (int) $data['report_id'] : null,
+            isset($data['source_version']) ? (int) $data['source_version'] : null);
+
+        return response()->json($report->only(['id', 'status', 'source_version']))->withHeaders(['Cache-Control' => 'no-store, private']);
     }
 
     public function show(Request $request, int $report, ReportAccess $access): Response

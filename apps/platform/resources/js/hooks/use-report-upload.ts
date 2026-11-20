@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { ReportUploadStore } from '@/lib/report-upload';
 import { notifyReportReceived } from '@/lib/report-notifications';
 import { ReportProgressStore } from '@/lib/report-progress';
+import { findUploadReceipt } from '@/lib/upload-receipt';
 
 export const reportProgress = new ReportProgressStore(() => {
     void notifyReportReceived().catch(() => {});
@@ -15,6 +16,7 @@ export const useReportProgress = () =>
 
 export const reportUpload = new ReportUploadStore({
     xhr: () => new XMLHttpRequest(),
+    confirm: findUploadReceipt,
     csrf: () =>
         decodeURIComponent(
             document.cookie

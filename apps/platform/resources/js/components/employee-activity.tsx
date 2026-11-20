@@ -13,7 +13,9 @@ import {
     RefreshCw,
     TriangleAlert,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReportProgress } from '@/hooks/use-report-upload';
+import { processingReport } from '@/lib/report-progress';
 import type { DayPages } from '@/components/report-day-accordion';
 import VoicePlayback from '@/components/voice-playback';
 type ReportItem = {
@@ -26,10 +28,14 @@ function Day({
     day,
     total,
     endpoint,
+    scope,
+    refreshKey,
 }: {
     day: string;
     total: number;
     endpoint: string;
+    scope: string | null;
+    refreshKey: string;
 }) {
     const [reports, setReports] = useState<ReportItem[]>([]);
     const [loaded, setLoaded] = useState(false);
@@ -37,49 +43,84 @@ function Day({
     const [next, setNext] = useState<number | null>(null);
     const [error, setError] = useState('');
     const lock = useRef(false);
-    const load = async (page = 1) => {
-        if (lock.current) return;
-        lock.current = true;
-        setBusy(true);
+    const details = useRef<HTMLDetailsElement>(null);
+    const request = useRef<AbortController | null>(null);
+    const identity = useRef('');
+    const load = useCallback(
+        async (page = 1) => {
+            if (lock.current || !scope) return;
+            lock.current = true;
+            const controller = new AbortController();
+            request.current = controller;
+            setBusy(true);
+            setError('');
+            try {
+                const response = await fetch(
+                    `${endpoint}${endpoint.includes('?') ? '&' : '?'}day=${encodeURIComponent(day)}&reports_page=${page}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Employee-Upload-Scope': scope,
+                        },
+                        signal: controller.signal,
+                    },
+                );
+                if (
+                    !response.ok ||
+                    !response.headers
+                        .get('Content-Type')
+                        ?.includes('application/json')
+                )
+                    throw new Error();
+                const result = (await response.json()) as {
+                    data: ReportItem[];
+                    current_page: number;
+                    last_page: number;
+                };
+                if (controller.signal.aborted || request.current !== controller)
+                    return;
+                setReports((old) =>
+                    page === 1 ? result.data : [...old, ...result.data],
+                );
+                setNext(
+                    result.current_page < result.last_page
+                        ? result.current_page + 1
+                        : null,
+                );
+                setLoaded(true);
+            } catch {
+                if (controller.signal.aborted || request.current !== controller)
+                    return;
+                setError('تعذّر تحميل التقارير. تحقق من الاتصال وأعد المحاولة.');
+            } finally {
+                if (
+                    !controller.signal.aborted &&
+                    request.current === controller
+                ) {
+                    lock.current = false;
+                    setBusy(false);
+                }
+            }
+        },
+        [day, endpoint, scope],
+    );
+    useEffect(() => {
+        request.current?.abort();
+        lock.current = false;
+        setBusy(false);
+        setLoaded(false);
+        setNext(null);
         setError('');
-        try {
-            const response = await fetch(
-                `${endpoint}${endpoint.includes('?') ? '&' : '?'}day=${encodeURIComponent(day)}&reports_page=${page}`,
-                {
-                    credentials: 'same-origin',
-                    headers: { Accept: 'application/json' },
-                },
-            );
-            if (
-                !response.ok ||
-                !response.headers
-                    .get('Content-Type')
-                    ?.includes('application/json')
-            )
-                throw new Error();
-            const result = (await response.json()) as {
-                data: ReportItem[];
-                current_page: number;
-                last_page: number;
-            };
-            setReports((old) =>
-                page === 1 ? result.data : [...old, ...result.data],
-            );
-            setNext(
-                result.current_page < result.last_page
-                    ? result.current_page + 1
-                    : null,
-            );
-            setLoaded(true);
-        } catch {
-            setError('تعذّر تحميل التقارير. تحقق من الاتصال وأعد المحاولة.');
-        } finally {
-            lock.current = false;
-            setBusy(false);
-        }
-    };
+        const currentIdentity = `${scope}:${endpoint}:${day}`;
+        if (identity.current !== currentIdentity) setReports([]);
+        identity.current = currentIdentity;
+        if (details.current?.open) void load();
+        return () => request.current?.abort();
+    }, [day, endpoint, scope, total, refreshKey, load]);
     return (
         <details
+            ref={details}
             className="employee-day group"
             onToggle={(event) => {
                 if (event.currentTarget.open && !loaded) void load();
@@ -223,6 +264,15 @@ export default function EmployeeActivity({
     days: DayPages;
     endpoint?: string;
 }) {
+    const progress = useReportProgress();
+    const refreshKey = progress.reports
+        .filter((report) => !processingReport(report))
+        .map(
+            (report) =>
+                `${report.id}:${report.source_version}:${report.status}`,
+        )
+        .sort()
+        .join(',');
     return (
         <div className="space-y-3">
             {days.data.length === 0 && (
@@ -234,7 +284,13 @@ export default function EmployeeActivity({
                 </div>
             )}
             {days.data.map((day) => (
-                <Day key={endpoint + day.day} {...day} endpoint={endpoint} />
+                <Day
+                    key={endpoint + day.day}
+                    {...day}
+                    endpoint={endpoint}
+                    scope={progress.scope}
+                    refreshKey={refreshKey}
+                />
             ))}
             <nav
                 aria-label="صفحات أيام التقارير"
