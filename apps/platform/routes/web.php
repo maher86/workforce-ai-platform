@@ -55,6 +55,7 @@ Route::post('employee/disconnect', [EmployeeAccessController::class, 'disconnect
 Route::post('employee/profile', [EmployeeProfileController::class, 'update'])->middleware(['auth', 'throttle:10,1']);
 Route::get('employee/profile/photo', [EmployeeProfileController::class, 'photo'])->middleware('auth');
 Route::post('employee/reports', [EmployeeReportController::class, 'store'])->middleware(['auth', 'throttle:10,1']);
+Route::get('employee/upload-receipt', [EmployeeReportController::class, 'receipt'])->middleware(['auth', 'throttle:30,1']);
 Route::get('employee/report-days', [EmployeeReportController::class, 'day'])->middleware('auth');
 Route::get('employee/history', [EmployeeReportController::class, 'history'])->middleware('auth');
 Route::get('employee/upload', [EmployeeReportController::class, 'upload'])->middleware('auth');

@@ -8,6 +8,7 @@ use App\Modules\Identity\EmployeeActivation;
 use App\Modules\Identity\EmployeeDevice;
 use App\Modules\Identity\EmployeeInvitation;
 use App\Modules\Identity\ManageWorkforce;
+use App\Modules\Reporting\Report;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -216,5 +217,16 @@ class SingleEmployeeDeviceTest extends TestCase
         [, $foreign] = $this->team();
         $target = '/tenants/'.$foreign->id.'/team';
         $this->withHeaders($this->headers($key, 'GET', $target))->get($target)->assertRedirect('/employee');
+    }
+
+    public function test_upload_receipt_requires_the_native_key_and_exact_query_signature(): void
+    {
+        [, $tenant, $member, $grant, $key] = $this->android();
+        $report = Report::query()->create(['tenant_id' => $tenant->id, 'membership_id' => $member->id,
+            'submission_key' => Str::uuid(), 'content_hash' => str_repeat('a', 64)])->fresh();
+        $url = '/employee/upload-receipt?key='.$report->submission_key;
+        $this->withCookie('workforce_device', $grant['token'])->withCredentials()->getJson($url)->assertUnauthorized();
+        $this->withHeaders($this->headers($key, 'GET', $url))->getJson($url)->assertOk()->assertJsonPath('id', $report->id);
+        $this->withHeaders($this->headers($key, 'GET', '/employee/upload-receipt'))->getJson($url)->assertUnauthorized();
     }
 }

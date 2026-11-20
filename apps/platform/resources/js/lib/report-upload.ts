@@ -1,3 +1,6 @@
+import { readUploadReceipt, receiptMatches } from './upload-receipt.ts';
+import type { ReceiptJob, UploadReceipt } from './upload-receipt';
+
 export type UploadState = {
     scope: string | null;
     status: 'idle' | 'uploading' | 'confirming' | 'success' | 'error';
@@ -9,10 +12,11 @@ export type UploadState = {
 export const uploadPending = (state: UploadState) =>
     state.status === 'uploading' || state.status === 'confirming';
 
-type UploadJob = { scope: string; url: string; body: FormData };
+type UploadJob = ReceiptJob;
 type Options = {
     xhr: () => XMLHttpRequest;
     csrf: () => string;
+    confirm?: (job: ReceiptJob, signal: AbortSignal) => Promise<unknown>;
     received?: (report: {
         id: number;
         source_version: number;
@@ -32,6 +36,7 @@ export class ReportUploadStore {
     private listeners = new Set<() => void>();
     private job: UploadJob | null = null;
     private request: XMLHttpRequest | null = null;
+    private confirmation: AbortController | null = null;
     private generation = 0;
     private options: Options;
 
@@ -54,6 +59,8 @@ export class ReportUploadStore {
         if (scope === this.state.scope) return;
         // Invalidate callbacks before aborting so old identities cannot update a new screen.
         this.generation++;
+        this.confirmation?.abort();
+        this.confirmation = null;
         this.request?.abort();
         this.request = null;
         this.job = null;
@@ -102,8 +109,12 @@ export class ReportUploadStore {
         const job = this.job;
         if (!job) return;
         const generation = ++this.generation;
+        let settled = false;
+        let confirming = false;
         const current = () =>
-            generation === this.generation && job.scope === this.state.scope;
+            !settled &&
+            generation === this.generation &&
+            job.scope === this.state.scope;
         this.publish({
             status: 'uploading',
             progress: 0,
@@ -112,14 +123,72 @@ export class ReportUploadStore {
         });
         const fail = (error: string) => {
             if (!current()) return;
+            settled = true;
             this.request = null;
             this.publish({ status: 'error', error });
+        };
+        const accept = (receipt: UploadReceipt) => {
+            if (!current()) return;
+            settled = true;
+            this.request = null;
+            this.job = null;
+            this.publish({
+                status: 'success',
+                progress: 100,
+                reportId: receipt.id,
+                error: '',
+            });
+            try {
+                this.options.received?.(receipt);
+            } catch {
+                /* A notification error cannot undo authoritative receipt. */
+            }
+        };
+        const reconcile = (message: string) => {
+            if (!current() || confirming) return;
+            if (!this.options.confirm) {
+                fail(message);
+                return;
+            }
+            confirming = true;
+            this.request = null;
+            this.publish({ status: 'confirming', error: '' });
+            const controller = new AbortController();
+            this.confirmation = controller;
+            const timer = setTimeout(() => {
+                controller.abort();
+                fail(`${message} [RECEIPT-LOOKUP]`);
+            }, 10000);
+            void Promise.resolve()
+                .then(() => {
+                    if (!current() || controller.signal.aborted)
+                        throw new Error('confirmation_cancelled');
+                    return this.options.confirm!(job, controller.signal);
+                })
+                .then((value) => {
+                    if (!current()) return;
+                    const receipt = readUploadReceipt(value);
+                    if (receipt && receiptMatches(job, receipt))
+                        accept(receipt);
+                    else fail(`${message} [RECEIPT-LOOKUP]`);
+                })
+                .catch(() => fail(`${message} [RECEIPT-LOOKUP]`))
+                .finally(() => {
+                    clearTimeout(timer);
+                    if (this.confirmation === controller)
+                        this.confirmation = null;
+                });
         };
         try {
             const xhr = this.options.xhr();
             this.request = xhr;
             xhr.upload.onprogress = (event) => {
-                if (current() && event.lengthComputable && event.total > 0)
+                if (
+                    current() &&
+                    !confirming &&
+                    event.lengthComputable &&
+                    event.total > 0
+                )
                     this.publish({
                         progress: Math.min(
                             100,
@@ -129,44 +198,51 @@ export class ReportUploadStore {
             };
             // Transferred bytes are not proof that validation/storage has succeeded.
             xhr.upload.onload = () => {
-                if (current())
+                if (current() && !confirming)
                     this.publish({ status: 'confirming', progress: 100 });
             };
             xhr.onload = () => {
-                if (!current()) return;
+                if (!current() || confirming) return;
                 const json = xhr
                     .getResponseHeader('content-type')
                     ?.includes('application/json');
-                let result: {
-                    id?: unknown;
-                    source_version?: unknown;
-                    status?: unknown;
-                    message?: unknown;
-                    errors?: Record<string, unknown>;
-                } = {};
-                try {
-                    if (json)
-                        result = JSON.parse(xhr.responseText) as typeof result;
-                } catch {
-                    fail('تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير.');
-                    return;
-                }
-                if (
-                    !result ||
-                    typeof result !== 'object' ||
-                    Array.isArray(result)
-                ) {
-                    fail('تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير.');
-                    return;
-                }
+                const successful = xhr.status >= 200 && xhr.status < 300;
                 if (!json) {
-                    fail(
-                        'انتهى الدخول أو تعذّر تأكيد الاستلام. اطلب مساعدة المدير.',
-                    );
+                    if (successful)
+                        reconcile(
+                            'تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير. [RECEIPT-CONTENT]',
+                        );
+                    else
+                        fail(
+                            `انتهى الدخول أو تعذّر تأكيد الاستلام. اطلب مساعدة المدير. [HTTP-${xhr.status}]`,
+                        );
                     return;
                 }
-                if (xhr.status < 200 || xhr.status >= 300) {
-                    const errors = Object.values(result.errors ?? {})
+                let result: unknown;
+                try {
+                    result =
+                        xhr.responseType === 'json'
+                            ? xhr.response
+                            : (JSON.parse(
+                                  xhr.responseText.replace(/^\uFEFF/, ''),
+                              ) as unknown);
+                } catch {
+                    if (successful)
+                        reconcile(
+                            'تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير. [RECEIPT-JSON]',
+                        );
+                    else
+                        fail(
+                            `تعذّر الإرسال. اطلب مساعدة المدير. [HTTP-${xhr.status}]`,
+                        );
+                    return;
+                }
+                if (!successful) {
+                    const body =
+                        result && typeof result === 'object'
+                            ? (result as { errors?: Record<string, unknown> })
+                            : {};
+                    const errors = Object.values(body.errors ?? {})
                         .flat()
                         .filter(
                             (value): value is string =>
@@ -181,49 +257,21 @@ export class ReportUploadStore {
                     );
                     return;
                 }
-                if (
-                    typeof result.id !== 'number' ||
-                    !Number.isSafeInteger(result.id) ||
-                    result.id < 1 ||
-                    typeof result.source_version !== 'number' ||
-                    !Number.isSafeInteger(result.source_version) ||
-                    result.source_version < 1 ||
-                    typeof result.status !== 'string' ||
-                    !['submitted', 'processing', 'ready', 'failed'].includes(
-                        result.status,
-                    )
-                ) {
-                    fail('تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير.');
-                    return;
-                }
-                this.request = null;
-                this.job = null;
-                this.publish({
-                    status: 'success',
-                    progress: 100,
-                    reportId: result.id,
-                    error: '',
-                });
-                try {
-                    this.options.received?.({
-                        id: result.id,
-                        source_version: result.source_version,
-                        status: result.status as
-                            | 'submitted'
-                            | 'processing'
-                            | 'ready'
-                            | 'failed',
-                    });
-                } catch {
-                    /* Notification failure must not change a saved report. */
-                }
+                const receipt = readUploadReceipt(result);
+                if (receipt && receiptMatches(job, receipt)) accept(receipt);
+                else
+                    reconcile(
+                        'تعذّر تأكيد الاستلام. أعد المحاولة بنفس التقرير. [RECEIPT-SHAPE]',
+                    );
             };
             xhr.onerror = () =>
-                fail(
+                reconcile(
                     'انقطع الاتصال. الملفات محفوظة مؤقتًا في هذه الصفحة. اضغط إعادة المحاولة عند عودة الاتصال.',
                 );
             xhr.ontimeout = () =>
-                fail('تأخر الاتصال. أعد المحاولة بنفس التقرير لتجنب التكرار.');
+                reconcile(
+                    'تأخر الاتصال. أعد المحاولة بنفس التقرير لتجنب التكرار.',
+                );
             xhr.onabort = () =>
                 fail('توقف الرفع. أعد المحاولة أو اطلب مساعدة المدير.');
             xhr.open('POST', job.url);
