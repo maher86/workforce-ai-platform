@@ -181,6 +181,36 @@ button.cover-icon[aria-expanded='true'] {
         transition: none;
     }
 }
+
+/* Scroll inside the clipped shell so native tracks cannot square its corners. */
+.manager-modal-scroll {
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #f58a34 #fff7ed;
+}
+.manager-modal-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.manager-modal-scroll::-webkit-scrollbar-track {
+    background: #fff7ed;
+    border-radius: 999px;
+}
+.manager-modal-scroll::-webkit-scrollbar-thumb {
+    background: #f58a34;
+    border: 2px solid #fff7ed;
+    border-radius: 999px;
+}
+.manager-modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: #ea6c17;
+}
+@media (prefers-reduced-motion: reduce) {
+    .manager-modal-scroll {
+        scroll-behavior: auto;
+    }
+}
 .workforce-record {
     color: #fff;
     background: linear-gradient(145deg, #ffa000, #ff7600 58%, #fa4c00);

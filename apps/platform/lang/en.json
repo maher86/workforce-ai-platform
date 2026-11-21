@@ -348,7 +348,7 @@
     "يلزم رابط HTTPS يصل إليه الهاتف. اطلب تشغيل رابط الاختبار من المدير.": "The phone needs a reachable HTTPS address. Ask the manager to start the test link.",
     "ثبّت تطبيق Android على هاتف الموظف.": "Install the Android app on the employee’s phone.",
     "افتح التطبيق واضغط QR وامسح هذا الرمز.": "Open the app, tap QR and scan this code.",
-    "اضغط السهم. بعدها يفتح حساب الموظف مباشرة على هذا الهاتف.": "Tap the arrow. The employee’s account will then open directly on this phone.",
+    "يُجهّز ملف الموظف ويفتح حسابه تلقائيًا على هذا الهاتف.": "The employee’s profile is prepared and their account opens automatically on this phone.",
     "رمز لمرة واحدة، صالح 30 دقيقة. لا تمسحه بكاميرا المتصفح.": "One-use code, valid for 30 minutes. Scan inside the app, not with the browser camera.",
     "تم": "Done",
     "شركتك جاهزة": "Your company is ready",
