@@ -11,6 +11,7 @@ import {
     ShieldCheck,
 } from 'lucide-react';
 import ManagerLanguageSwitch from '@/components/manager-language-switch';
+import PricingSection from '@/components/pricing-section';
 import { useUiLocale } from '@/hooks/use-ui-locale';
 
 const content = {
@@ -139,6 +140,12 @@ export default function Welcome() {
                         className="flex items-center gap-2 sm:gap-5"
                     >
                         <ManagerLanguageSwitch className="min-h-11 border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-orange-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500" />
+                        <a
+                            href="#pricing"
+                            className="welcome-link min-h-11 content-center rounded-xl px-1 text-sm font-semibold text-slate-700 sm:px-3"
+                        >
+                            {locale === 'ar' ? 'الخطط' : 'Plans'}
+                        </a>
                         <Link
                             href="/login"
                             aria-label={copy.login}
@@ -303,6 +310,7 @@ export default function Welcome() {
                         );
                     })}
                 </section>
+                <PricingSection />
                 <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/70 py-6 text-xs leading-6 text-slate-400">
                     <p>{copy.footer}</p>
                     <p className="flex items-center gap-2">

@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner request 2026-11-21: the public landing compares proposed Basic/Medium/Enterprise plans and platform-managed versus future company-funded OpenAI usage. This is presentation only, without approved retail tariffs, checkout, usage ledger or tenant credential integration. Current server-provider routing is unchanged. See docs/product/pricing-and-ai-funding.md before implementing monetary limits or billing.
+
 Owner clarification 2026-11-21: each company management account is anchored to one company, with no switcher or second-company enrollment. Platform administration is a distinct CLI-provisioned identity with verified email, confirmed 2FA, recent password confirmation and scoped audited metadata-only diagnostics. It does not impersonate customers. ADR0015 supersedes earlier multi-company management membership descriptions; dormant historical memberships do not bypass the account anchor.
 
 Owner update 2026-11-21: company signup creates its owner and tenant atomically; the owner is its first administrator and can provision additional administrators by email. The main web flow is Reports / Team with Android activation, not employee browser login. Vehicle entities and workflows are retired from the active application; legacy schema/evidence stay dormant without a destructive migration. Existing automotive translation context is independent and preserved; new public companies start with general context. See ADR0014, which supersedes the older vehicle and onboarding descriptions below.
