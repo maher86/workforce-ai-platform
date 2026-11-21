@@ -15,7 +15,6 @@ use Illuminate\Support\Carbon;
  * @property string|null $source_text
  * @property int|null $project_id
  * @property int|null $task_id
- * @property int|null $vehicle_id
  * @property string $status
  * @property string $analysis_mode
  * @property string $reporting_domain
@@ -32,6 +31,9 @@ class Report extends Model
     use SoftDeletes;
 
     protected $guarded = [];
+
+    // Retired historical association is retained in storage, never exposed to clients.
+    protected $hidden = ['vehicle_id'];
 
     protected function casts(): array
     {

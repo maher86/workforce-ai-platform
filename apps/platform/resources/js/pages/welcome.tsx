@@ -8,7 +8,6 @@ import {
     FileText,
     Languages,
     Mic,
-    QrCode,
     ShieldCheck,
 } from 'lucide-react';
 import ManagerLanguageSwitch from '@/components/manager-language-switch';
@@ -25,9 +24,8 @@ const content = {
         accent: 'إلى تقرير واضح.',
         description:
             'يسجّل الموظف بلغته، ويضيف صورًا عند الحاجة. وتصل للمدير تقارير منظّمة بالنص الأصلي والإنجليزية، في مكان واحد.',
-        create: 'ابدأ بحساب مدير',
-        employee: 'دخول الموظف',
-        access: 'تفعيل عبر QR، دون بريد أو كلمة مرور للموظف.',
+        create: 'أنشئ حساب شركتك',
+        access: 'أنشئ الشركة، أضف الفريق، وفعّل تطبيق الموظف عبر QR.',
         demo: 'معاينة توضيحية',
         report: 'تقرير عمل',
         audio: 'تسجيل صوتي',
@@ -64,9 +62,8 @@ const content = {
         accent: 'to a clear report.',
         description:
             'Employees speak in their own language and add photos when needed. Managers get the original text and English translation, together in one place.',
-        create: 'Create a manager account',
-        employee: 'Employee access',
-        access: 'One-time QR activation. No employee email or password.',
+        create: 'Create your company account',
+        access: 'Create your company, add your team, activate employees through the Android app.',
         demo: 'Illustrative preview',
         report: 'Work report',
         audio: 'Voice recording',
@@ -191,13 +188,6 @@ export default function Welcome() {
                                         locale === 'ar' ? '-scale-x-100' : ''
                                     }
                                 />
-                            </Link>
-                            <Link
-                                href="/employee/connect"
-                                className="welcome-button flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-700 hover:border-orange-300"
-                            >
-                                <QrCode size={20} />
-                                {copy.employee}
                             </Link>
                         </div>
                         <p className="mt-5 flex items-start gap-2 text-xs leading-6 text-slate-500 sm:text-sm">

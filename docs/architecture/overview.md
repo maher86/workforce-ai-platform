@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner update 2026-11-21: company signup creates its owner and tenant atomically; the owner is its first administrator and can provision additional administrators by email. The main web flow is Reports / Team with Android activation, not employee browser login. Vehicle entities and workflows are retired from the active application; legacy schema/evidence stay dormant without a destructive migration. Existing automotive translation context is independent and preserved; new public companies start with general context. See ADR0014, which supersedes the older vehicle and onboarding descriptions below.
+
 Owner update 2026-11-15: the current automotive workshop uses a tenant reporting-domain setting snapshotted on new reports for translation disambiguation, preserving source language and historical outputs. General reporting remains supported. The employee floating circle reflects the current send rather than the worst historical result; earlier failures retain their badge/details. See ADR0013.
 
 Owner update 2026-11-15: employees have one approved credential, with manager-confirmed transfer and a database uniqueness constraint. Android invitations require an origin-specific AndroidKeyStore proof on activation and protected requests; browser/PWA invitations retain explicit browser-profile protection. Existing APKs need an identity-enabled update before Android-mode activation. Legacy cleanup preserves history and the newest valid credential. See ADR0012; physical Android acceptance and stable hosting remain required.

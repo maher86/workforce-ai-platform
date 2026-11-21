@@ -18,10 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tenants/{tenant}/employees/{membership}/reports', [ManagerOverviewController::class, 'index'])->whereNumber(['tenant', 'membership']);
     Route::post('tenants/{tenant}/reports/{report}/service-facts', [ServiceFactsController::class, 'store'])->whereNumber(['tenant', 'report'])->middleware('throttle:30,1');
     Route::get('tenants/{tenant}/insights', [WorkInsightsController::class, 'index'])->whereNumber('tenant');
-    Route::get('tenants/{tenant}/vehicles', [WorkInsightsController::class, 'vehicles'])->whereNumber('tenant');
-    Route::get('tenants/{tenant}/vehicles/{vehicle}', [WorkInsightsController::class, 'vehicle'])->whereNumber(['tenant', 'vehicle']);
     Route::get('tenants/{tenant}/reports/by-day', [ManagerReportController::class, 'day'])->whereNumber('tenant');
-    Route::post('tenants/{tenant}/reports/{report}/vehicle', [WorkInsightsController::class, 'assign'])->whereNumber(['tenant', 'report'])->middleware('throttle:30,1');
     Route::post('tenants/{tenant}/employees/{membership}/profile', [EmployeeProfileController::class, 'managerUpdate'])->whereNumber(['tenant', 'membership'])->middleware('throttle:20,1');
     Route::get('tenants/{tenant}/employees/{membership}/photo', [EmployeeProfileController::class, 'managerPhoto'])->whereNumber(['tenant', 'membership']);
     Route::get('tenants/{tenant}/reports', [ManagerReportController::class, 'index'])->whereNumber('tenant');

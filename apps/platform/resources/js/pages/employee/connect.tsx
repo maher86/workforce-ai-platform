@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { QrCode, LoaderCircle, Camera, CircleHelp } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     activationUrl,
     inAndroidApp,
@@ -9,11 +9,15 @@ import {
 export default function Connect() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const android = inAndroidApp();
+    useEffect(() => {
+        if (!android) window.location.replace('/');
+    }, [android]);
     const scan = async () => {
         if (busy) return;
         if (!inAndroidApp()) {
             setError(
-                'المسح المباشر متاح داخل تطبيق Android المثبّت. إذا كنت داخل التطبيق وظهرت هذه الرسالة، أرسل رمز الخطأ للمدير. في المتصفح استخدم كاميرا الهاتف لمسح رمز المدير. [APP-NATIVE-BRIDGE]',
+                'تعذر فتح ماسح التطبيق. حدّث تطبيق Android أو اطلب مساعدة المدير. [APP-NATIVE-BRIDGE]',
             );
             return;
         }
@@ -37,6 +41,8 @@ export default function Connect() {
             setBusy(false);
         }
     };
+    if (!android) return null;
+
     return (
         <main
             dir="rtl"

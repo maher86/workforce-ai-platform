@@ -9,10 +9,7 @@ use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ServiceInsights;
-use App\Modules\WorkManagement\ReportVehicle;
-use App\Modules\WorkManagement\Vehicle;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -80,40 +77,5 @@ class WorkInsightsController extends Controller
             'days' => $employee !== null ? $this->activity->days($query) : null,
             'timezone' => ReportActivity::ZONE,
         ]);
-    }
-
-    public function vehicles(Request $request, int $tenant): Response
-    {
-        $this->access->manageTeam($request->user(), $tenant);
-        $request->validate(['search' => 'nullable|string|max:80']);
-        $search = trim((string) $request->query('search', ''));
-        $query = Vehicle::query()->where('tenant_id', $tenant);
-        if ($search !== '') {
-            $query->where('plate_key', 'like', '%'.ReportVehicle::key($search).'%');
-        }
-        $query->select('vehicles.id', 'vehicles.plate')->selectSub(Report::query()->selectRaw('COUNT(*)')->whereColumn('vehicle_id', 'vehicles.id')->whereColumn('tenant_id', 'vehicles.tenant_id'), 'report_count')
-            ->selectSub(Report::query()->selectRaw('COUNT(DISTINCT membership_id)')->whereColumn('vehicle_id', 'vehicles.id')->whereColumn('tenant_id', 'vehicles.tenant_id'), 'employee_count');
-
-        return Inertia::render('vehicles/index', ['tenant' => Tenant::query()->findOrFail($tenant), 'vehicles' => $query->orderByDesc('id')->paginate(24)->withQueryString(), 'search' => $search]);
-    }
-
-    public function vehicle(Request $request, int $tenant, int $vehicle): Response
-    {
-        $this->access->manageTeam($request->user(), $tenant);
-        $car = Vehicle::query()->where('tenant_id', $tenant)->findOrFail($vehicle);
-        $query = Report::query()->where('tenant_id', $tenant)->where('vehicle_id', $vehicle);
-        $counts = (clone $query)->selectRaw('membership_id, COUNT(*)::int as reports')->groupBy('membership_id')->get()->mapWithKeys(fn (Report $report) => [$report->membership_id => (int) $report->getAttribute('reports')])->all();
-        $contributors = $counts === [] ? [] : array_values($this->people($tenant, array_keys($counts)));
-
-        return Inertia::render('vehicles/show', ['tenant' => Tenant::query()->findOrFail($tenant), 'vehicle' => $car, 'contributors' => $contributors,
-            'counts' => $counts, 'total' => array_sum($counts), 'days' => $this->activity->days($query)]);
-    }
-
-    public function assign(Request $request, int $tenant, int $report, ReportVehicle $vehicles): RedirectResponse
-    {
-        $data = $request->validate(['vehicle_plate' => 'nullable|string|max:80']);
-        $vehicles->assign($request->user(), $tenant, $report, $data['vehicle_plate'] ?? null);
-
-        return back();
     }
 }

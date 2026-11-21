@@ -59,6 +59,7 @@ class WorkforceController extends Controller
             'managers' => $managers,
             'managerAdded' => $request->session()->pull('manager_added', false),
             'managerName' => $actor->name,
+            'androidDownloadUrl' => rtrim((string) (config('workforce.public_url') ?: url('/')), '/').'/downloads/',
             'summary' => $selected === null ? null : [
                 'employees' => count(array_filter($employees, fn ($member) => $member['active'])),
                 'reports' => Report::query()->where('tenant_id', $selected)->count(),
@@ -70,7 +71,7 @@ class WorkforceController extends Controller
     public function createTenant(Request $request, ManageWorkforce $workforce): RedirectResponse
     {
         $data = $request->validate(['name' => ['required', 'string', 'max:120']]);
-        $tenant = $workforce->createTenant($request->user(), $data['name']);
+        $tenant = $workforce->createTenant($request->user(), $data['name'], 'general');
 
         return redirect('/tenants/'.$tenant->id.'/team');
     }
@@ -129,8 +130,8 @@ class WorkforceController extends Controller
 
     public function addManager(Request $request, int $tenant, ManageWorkforce $workforce): RedirectResponse
     {
-        $data = $request->validate(['email' => 'required|email|max:254', 'password' => 'required|current_password']);
-        $workforce->addManager($request->user(), $tenant, $data['email']);
+        $data = $request->validate(['name' => 'nullable|string|max:120', 'email' => 'required|email|max:254', 'password' => 'required|current_password']);
+        $workforce->addManager($request->user(), $tenant, $data['email'], $data['name'] ?? null);
 
         return back()->with('manager_added', true);
     }

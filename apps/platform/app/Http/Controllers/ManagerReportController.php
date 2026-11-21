@@ -16,7 +16,6 @@ use App\Modules\Reporting\ReportServiceFact;
 use App\Modules\Reporting\ReportSourceChange;
 use App\Modules\Reporting\ReportSubmitted;
 use App\Modules\Reporting\ReviewReport;
-use App\Modules\WorkManagement\Vehicle;
 use App\Modules\WorkManagement\WorkItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,7 +41,6 @@ class ManagerReportController extends Controller
         $data = $request->validate([
             'status' => 'nullable|in:submitted,processing,ready,failed', 'review_status' => 'nullable|in:pending,approved,changes_requested',
             'employee' => 'nullable|integer', 'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d',
-            'vehicle' => 'nullable|integer',
         ]);
         if (! empty($data['from']) && ! empty($data['to']) && $data['to'] < $data['from']) {
             throw ValidationException::withMessages(['to' => 'نهاية الفترة يجب أن تكون بعد بدايتها.']);
@@ -56,10 +54,6 @@ class ManagerReportController extends Controller
         if (! empty($data['employee'])) {
             Membership::query()->where('tenant_id', $tenant)->where('role', 'employee')->findOrFail((int) $data['employee']);
             $query->where('membership_id', (int) $data['employee']);
-        }
-        if (! empty($data['vehicle'])) {
-            Vehicle::query()->where('tenant_id', $tenant)->findOrFail((int) $data['vehicle']);
-            $query->where('vehicle_id', (int) $data['vehicle']);
         }
         if (! empty($data['from'])) {
             $query->where('created_at', '>=', CarbonImmutable::parse($data['from'], ReportActivity::ZONE)->startOfDay()->utc());
@@ -95,7 +89,6 @@ class ManagerReportController extends Controller
             'aiMode' => config('workforce.ai_provider'),
             'sourceChanges' => ReportSourceChange::query()->where('tenant_id', $tenant)->where('report_id', $report)->latest('source_version')->paginate(5, ['id', 'source_version', 'kind', 'created_at'], 'sources_page')->withQueryString(),
             'canDelete' => $actor->role === 'owner' && ! $item->trashed(),
-            'vehicle' => $item->vehicle_id ? Vehicle::query()->where('tenant_id', $tenant)->findOrFail($item->vehicle_id)->only(['id', 'plate']) : null,
         ]);
     }
 

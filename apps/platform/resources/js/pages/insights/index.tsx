@@ -6,7 +6,6 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BarChart3,
     CalendarDays,
-    CarFront,
     CircleUserRound,
     FileText,
     Users,
@@ -112,12 +111,6 @@ export default function Insights({
                     >
                         {' '}
                         {t('الفريق')}{' '}
-                    </Link>
-                    <Link
-                        href={`/tenants/${tenant.id}/vehicles`}
-                        className="flex items-center gap-2 rounded-xl border border-white/30 p-3"
-                    >
-                        <CarFront /> {t('السيارات')}{' '}
                     </Link>
                 </nav>
             </header>
