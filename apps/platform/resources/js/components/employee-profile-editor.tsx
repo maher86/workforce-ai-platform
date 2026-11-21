@@ -40,22 +40,24 @@ export default function EmployeeProfileEditor({
             <DialogContent
                 dir={direction}
                 lang={locale}
-                className="max-h-[90svh] overflow-y-auto rounded-3xl"
+                className="flex max-h-[90svh] flex-col gap-0 overflow-hidden rounded-3xl bg-white p-0"
             >
-                <DialogTitle className="flex items-center gap-2">
-                    <UserRoundPen
-                        size={22}
-                        className="text-orange-500"
-                        aria-hidden="true"
-                    />
-                    {t('تحديث الملف')}
-                </DialogTitle>
-                <DialogDescription>
-                    {t('حدّث اسم الموظف ورقم هاتفه وصورته.')}{' '}
-                    <b className="text-slate-700">{employee.name}</b>
-                </DialogDescription>
+                <div className="shrink-0 space-y-2 border-b border-slate-100 px-12 py-5">
+                    <DialogTitle className="flex items-center gap-2">
+                        <UserRoundPen
+                            size={22}
+                            className="text-orange-500"
+                            aria-hidden="true"
+                        />
+                        {t('تحديث الملف')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('حدّث اسم الموظف ورقم هاتفه وصورته.')}{' '}
+                        <b className="text-slate-700">{employee.name}</b>
+                    </DialogDescription>
+                </div>
                 <form
-                    className="mt-3 space-y-3"
+                    className="manager-modal-scroll min-h-0 space-y-4 overflow-y-auto px-6 py-5"
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.post(

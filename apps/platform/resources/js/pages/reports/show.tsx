@@ -74,7 +74,7 @@ export default function ShowReport({
             className="workforce-surface manager-surface mx-auto min-h-svh w-full max-w-5xl space-y-5 p-4 sm:p-6"
         >
             <Head title={`${t('تقرير')} #${report.id}`} />
-            <nav className="flex items-center justify-between gap-3">
+            <nav className="manager-toolbar flex flex-wrap items-center justify-between gap-3">
                 <Link
                     href={`/tenants/${report.tenant_id}/reports`}
                     className="flex items-center gap-2 rounded-xl border bg-white p-3"

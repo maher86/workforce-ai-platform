@@ -11,6 +11,7 @@ import {
     LogOut,
     Search,
     Users,
+    RotateCcw,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -197,15 +198,15 @@ export default function Overview({
                 title={profile && selected ? selected.name : t('تقارير الفريق')}
             />
             <header className="manager-hero flex flex-wrap items-center justify-between gap-5">
-                <div className="flex items-center gap-4">
+                <div className="flex max-w-full min-w-0 items-center gap-4">
                     {profile ? (
                         <Avatar person={selected} large />
                     ) : (
                         <FileText size={38} className="text-orange-300" />
                     )}
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-sm text-slate-300">{tenant.name}</p>
-                        <h1 className="mt-1 text-2xl font-bold">
+                        <h1 className="mt-1 text-2xl font-bold break-words">
                             {profile && selected
                                 ? selected.name
                                 : t('تقارير الفريق')}
@@ -221,7 +222,7 @@ export default function Overview({
                     </div>
                 </div>
                 <nav
-                    className="flex flex-wrap items-center gap-2"
+                    className="manager-toolbar flex flex-wrap items-center gap-2"
                     aria-label={t('لوحة المدير')}
                 >
                     <ManagerLanguageSwitch className="border-white/30 text-white" />
@@ -369,7 +370,8 @@ export default function Overview({
                                 <input
                                     required
                                     type="date"
-                                    className="mt-1 block rounded-xl border p-3"
+                                    className="mt-1 block w-full min-w-0 rounded-xl border p-3"
+                                    max={form.data.to || undefined}
                                     value={form.data.from}
                                     onChange={(event) =>
                                         form.setData('from', event.target.value)
@@ -382,7 +384,8 @@ export default function Overview({
                                 <input
                                     required
                                     type="date"
-                                    className="mt-1 block rounded-xl border p-3"
+                                    className="mt-1 block w-full min-w-0 rounded-xl border p-3"
+                                    min={form.data.from || undefined}
                                     value={form.data.to}
                                     onChange={(event) =>
                                         form.setData('to', event.target.value)
@@ -401,10 +404,26 @@ export default function Overview({
                     <a
                         aria-label={t('تصدير تقارير الفترة')}
                         href={`${base}/export?${exportQuery}`}
-                        className="rounded-xl border p-3"
+                        className="inline-flex min-h-12 items-center gap-2 rounded-xl border px-4 py-3 text-sm"
                     >
                         <Download size={22} />
+                        {t('تصدير')}
                     </a>
+                    {(profile
+                        ? range !== 'all'
+                        : range !== 'today' || selectedEmployee !== null) && (
+                        <Link
+                            href={endpoint}
+                            className="inline-flex min-h-12 items-center gap-2 rounded-xl px-3 text-sm font-medium text-orange-700 hover:bg-orange-50"
+                        >
+                            <RotateCcw size={17} aria-hidden="true" />
+                            {t(
+                                profile
+                                    ? 'الفترة الافتراضية'
+                                    : 'اليوم · كل الموظفين',
+                            )}
+                        </Link>
+                    )}
                     {Object.keys(form.errors).length > 0 && (
                         <p role="alert" className="w-full text-sm text-red-700">
                             {' '}
@@ -422,8 +441,12 @@ export default function Overview({
                 </div>
                 {!profile && (
                     <>
-                        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3">
-                            <Search size={20} className="text-slate-400" />
+                        <label className="manager-search flex min-h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                            <Search
+                                size={20}
+                                className="text-orange-500"
+                                aria-hidden="true"
+                            />
                             <input
                                 aria-label={t('بحث عن موظف بالاسم أو الهاتف')}
                                 placeholder={t('ابحث عن موظف بالاسم أو الهاتف')}
@@ -435,7 +458,7 @@ export default function Overview({
                             />
                         </label>
                         {search.trim() && (
-                            <div className="grid max-h-72 gap-2 overflow-auto sm:grid-cols-2">
+                            <div className="manager-modal-scroll grid max-h-72 gap-2 overflow-auto sm:grid-cols-2">
                                 {matches.length ? (
                                     matches.map((person) => (
                                         <Link
@@ -481,59 +504,65 @@ export default function Overview({
                             ? t('عدد التقارير حسب الشهر')
                             : t('عدد التقارير حسب اليوم')}
                     </summary>
-                    <svg
-                        role="img"
-                        aria-label={
-                            monthly
-                                ? t('رسم عدد التقارير الشهري')
-                                : t('رسم عدد التقارير اليومي')
-                        }
-                        viewBox="0 0 760 180"
-                        className="mt-4 w-full"
-                    >
-                        <line
-                            x1="20"
-                            y1="150"
-                            x2="740"
-                            y2="150"
-                            stroke="#cbd5e1"
-                        />
-                        <text x="5" y="25" fontSize="12" fill="#64748b">
-                            {max}
-                        </text>
-                        {series.length > 1 && (
-                            <>
-                                <polygon
-                                    points={`20,150 ${points} 740,150`}
-                                    fill="#fff0de"
-                                />
-                                <polyline
-                                    points={points}
-                                    fill="none"
-                                    stroke="#f97316"
-                                    strokeWidth="3"
-                                />
-                            </>
-                        )}
-                        {series.length <= 31 &&
-                            series.map((point, index) => (
-                                <circle
-                                    key={point.day}
-                                    cx={
-                                        20 +
-                                        (720 * index) /
-                                            Math.max(1, series.length - 1)
-                                    }
-                                    cy={150 - (120 * point.total) / max}
-                                    r="4"
-                                    fill="#f97316"
-                                >
-                                    <title>
-                                        {point.day}: {point.total}
-                                    </title>
-                                </circle>
-                            ))}
-                    </svg>
+                    {summary.reports === 0 ? (
+                        <p className="py-6 text-center text-sm text-slate-500">
+                            {t('لا توجد بيانات للرسم في هذه الفترة.')}
+                        </p>
+                    ) : (
+                        <svg
+                            role="img"
+                            aria-label={
+                                monthly
+                                    ? t('رسم عدد التقارير الشهري')
+                                    : t('رسم عدد التقارير اليومي')
+                            }
+                            viewBox="0 0 760 180"
+                            className="mt-4 w-full"
+                        >
+                            <line
+                                x1="20"
+                                y1="150"
+                                x2="740"
+                                y2="150"
+                                stroke="#cbd5e1"
+                            />
+                            <text x="5" y="25" fontSize="12" fill="#64748b">
+                                {max}
+                            </text>
+                            {series.length > 1 && (
+                                <>
+                                    <polygon
+                                        points={`20,150 ${points} 740,150`}
+                                        fill="#fff0de"
+                                    />
+                                    <polyline
+                                        points={points}
+                                        fill="none"
+                                        stroke="#f97316"
+                                        strokeWidth="3"
+                                    />
+                                </>
+                            )}
+                            {series.length <= 31 &&
+                                series.map((point, index) => (
+                                    <circle
+                                        key={point.day}
+                                        cx={
+                                            20 +
+                                            (720 * index) /
+                                                Math.max(1, series.length - 1)
+                                        }
+                                        cy={150 - (120 * point.total) / max}
+                                        r="4"
+                                        fill="#f97316"
+                                    >
+                                        <title>
+                                            {point.day}: {point.total}
+                                        </title>
+                                    </circle>
+                                ))}
+                        </svg>
+                    )}
                     <p className="text-xs text-slate-500">
                         {' '}
                         {t(
@@ -576,10 +605,34 @@ export default function Overview({
                     )}
                 </div>
                 {reports.data.length === 0 && (
-                    <p className="rounded-3xl border border-dashed bg-white/60 p-10 text-center text-slate-500">
-                        {' '}
-                        {t('لا توجد تقارير في هذه الفترة.')}{' '}
-                    </p>
+                    <div
+                        className="flex flex-col items-center gap-3 rounded-3xl border border-dashed bg-white/70 p-8 text-center text-slate-500"
+                        role="status"
+                    >
+                        <FileText
+                            size={38}
+                            className="text-orange-400"
+                            aria-hidden="true"
+                        />
+                        <h3 className="font-semibold text-slate-700">
+                            {t('لا توجد تقارير في هذه الفترة.')}
+                        </h3>
+                        <p className="max-w-sm text-sm leading-6">
+                            {t(
+                                people.length === 0
+                                    ? 'أضف أول موظف وفعّل تطبيقه لتبدأ التقارير بالظهور هنا.'
+                                    : 'جرّب فترة أخرى أو انتظر وصول تقرير الموظف. لا تحتاج التقارير إلى موافقة.',
+                            )}
+                        </p>
+                        {people.length > 0 && (
+                            <Link
+                                href={`${endpoint}?range=all${!profile && selectedEmployee !== null ? `&employee=${selectedEmployee}` : ''}`}
+                                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-4 text-sm font-semibold text-orange-700"
+                            >
+                                {t('عرض كل الفترات')}
+                            </Link>
+                        )}
+                    </div>
                 )}
                 {[...groups].map(([day, items], index) => (
                     <details
@@ -625,7 +678,9 @@ export default function Overview({
                                                     item.source_text ||
                                                     t(labels[item.status])}
                                             </p>
-                                            <span className="mt-1 block text-xs text-slate-400">
+                                            <span
+                                                className={`mt-1 block text-xs ${item.status === 'failed' ? 'text-red-700' : item.status === 'ready' ? 'text-emerald-700' : 'text-orange-700'}`}
+                                            >
                                                 #{item.id} ·{' '}
                                                 {t(labels[item.status])}
                                             </span>
@@ -666,6 +721,9 @@ export default function Overview({
                                 <Link
                                     key={index}
                                     href={link.url}
+                                    aria-current={
+                                        link.active ? 'page' : undefined
+                                    }
                                     className={`rounded-xl border px-4 py-2 ${link.active ? 'bg-slate-800 text-white' : 'bg-white'}`}
                                 >
                                     {index === 0

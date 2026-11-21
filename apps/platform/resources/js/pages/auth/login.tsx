@@ -38,15 +38,22 @@ export default function Login({ status, canResetPassword }: Props) {
                                 </Label>
                                 <Input
                                     id="email"
+                                    dir="ltr"
+                                    aria-invalid={!!errors.email}
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                     type="email"
                                     name="email"
                                     required
                                     autoFocus
-                                    tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError
+                                    id="email-error"
+                                    message={errors.email}
+                                />
                             </div>
 
                             <div className="grid gap-2">
@@ -57,8 +64,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
+                                            className="ms-auto text-sm"
                                         >
                                             {' '}
                                             {t('Forgot your password?')}{' '}
@@ -67,21 +73,25 @@ export default function Login({ status, canResetPassword }: Props) {
                                 </div>
                                 <PasswordInput
                                     id="password"
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
                                     name="password"
                                     required
-                                    tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder={t('Password')}
                                 />
-                                <InputError message={errors.password} />
+                                <InputError
+                                    id="password-error"
+                                    message={errors.password}
+                                />
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
+                            <div className="flex min-h-11 items-center gap-3">
+                                <Checkbox id="remember" name="remember" />
                                 <Label htmlFor="remember">
                                     {t('Remember me')}
                                 </Label>
@@ -90,7 +100,6 @@ export default function Login({ status, canResetPassword }: Props) {
                             <Button
                                 type="submit"
                                 className="mt-4 w-full"
-                                tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
@@ -101,7 +110,7 @@ export default function Login({ status, canResetPassword }: Props) {
                         <div className="text-center text-sm text-muted-foreground">
                             {' '}
                             {t("Don't have an account?")}{' '}
-                            <TextLink href={register()} tabIndex={5}>
+                            <TextLink href={register()}>
                                 {' '}
                                 {t('Sign up')}{' '}
                             </TextLink>

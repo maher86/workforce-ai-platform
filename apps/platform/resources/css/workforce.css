@@ -304,6 +304,7 @@ button.cover-icon[aria-expanded='true'] {
 .manager-hero p {
     color: #c7d3e7;
 }
+.manager-toolbar > :is(a, button),
 .team-toolbar > :is(a, button) {
     display: inline-flex;
     align-items: center;
@@ -317,8 +318,62 @@ button.cover-icon[aria-expanded='true'] {
     line-height: 1.25;
     white-space: nowrap;
 }
+.manager-toolbar > button[aria-label],
 .team-toolbar > button[aria-label] {
     min-width: 48px;
+}
+.auth-surface {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #17283e;
+    --muted-foreground: #52647a;
+    --input: #d8e0eb;
+    --primary: #17283e;
+    --primary-foreground: #ffffff;
+    --accent: #fff7ed;
+    --accent-foreground: #17283e;
+}
+.auth-surface input:not([type='checkbox']):not([type='hidden']),
+.auth-surface button:not([role='checkbox']) {
+    min-height: 44px;
+}
+.manager-surface
+    :is(
+        input:not([type='checkbox']):not([type='hidden']):not([type='range']),
+        select
+    ),
+.manager-modal-scroll input:not([type='checkbox']):not([type='hidden']),
+.manager-surface button[data-slot='button'] {
+    min-height: 44px;
+}
+.auth-surface :is(input, button, a):focus-visible {
+    outline: 2px solid #f58a34;
+    outline-offset: 3px;
+}
+.manager-search:focus-within {
+    outline: 2px solid #f58a34;
+    outline-offset: 3px;
+}
+.employee-surface button[aria-label] {
+    min-width: 44px;
+    min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .employee-surface :is(.animate-spin, .animate-pulse),
+    [data-slot='dialog-content'],
+    [data-slot='dialog-overlay'] {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+.manager-surface summary,
+.employee-surface summary {
+    min-height: 44px;
+    align-content: center;
+}
+.manager-surface summary:focus-visible {
+    outline: 3px solid #ff8b25;
+    outline-offset: 3px;
 }
 .manager-surface > form,
 .manager-surface article,
