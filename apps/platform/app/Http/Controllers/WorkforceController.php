@@ -19,14 +19,16 @@ use Inertia\Response;
 
 class WorkforceController extends Controller
 {
-    public function index(Request $request, TenantAccess $access, ?int $tenant = null): Response
+    public function index(Request $request, TenantAccess $access, ?int $tenant = null): Response|RedirectResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        $memberships = Membership::query()->where('user_id', $actor->id)->where('active', true)->get();
-        $managementMemberships = $memberships->filter(fn (Membership $member) => in_array($member->role, ['owner', 'manager'], true));
-        $workspaces = Tenant::query()->whereIn('id', $managementMemberships->pluck('tenant_id'))->get(['id', 'name']);
-        $selected = $tenant ?? $memberships->first(fn (Membership $member) => in_array($member->role, ['owner', 'manager'], true))?->tenant_id;
+        if ($actor->platform_admin) {
+            return redirect('/platform');
+        }
+        $company = $access->managementTenant($actor);
+        $workspaces = Tenant::query()->where('id', $company)->get(['id', 'name']);
+        $selected = $tenant ?? $company;
         if ($tenant === null && $selected !== null) {
             return app(ManagerOverviewController::class)->index($request, $selected);
         }

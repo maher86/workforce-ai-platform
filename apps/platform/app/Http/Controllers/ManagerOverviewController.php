@@ -72,7 +72,7 @@ class ManagerOverviewController extends Controller
 
         return Inertia::render('reports/index', [
             'tenant' => Tenant::query()->findOrFail($tenant)->only(['id', 'name']),
-            'workspaces' => Tenant::query()->whereIn('id', Membership::query()->where('user_id', $request->user()->id)->where('active', true)->whereIn('role', ['owner', 'manager'])->select('tenant_id'))->get(['id', 'name']),
+            'workspaces' => Tenant::query()->where('id', $tenant)->get(['id', 'name']),
             'people' => $people, 'selectedEmployee' => $employee, 'profile' => $membership !== null,
             'period' => $period, 'range' => $range, 'summary' => $summary->only(['reports', 'contributors', 'processing', 'failed']),
             'reports' => $reports, 'series' => $series, 'monthly' => $monthly, 'aiMode' => config('workforce.ai_provider'),

@@ -19,6 +19,7 @@ void createInertiaApp({
                 return EmployeeLayout;
             case name === 'welcome':
             case name.startsWith('workforce/'):
+            case name.startsWith('platform/'):
             case name.startsWith('reports/'):
             case name.startsWith('insights/'):
             case name.startsWith('manager/'):

@@ -353,5 +353,21 @@
     "تم": "Done",
     "شركتك جاهزة": "Your company is ready",
     "أضف أول موظف وفعّل تطبيقه لتبدأ التقارير بالظهور هنا.": "Add your first employee and activate their app to start receiving reports here.",
-    "إضافة أول موظف": "Add first employee"
+    "إضافة أول موظف": "Add first employee",
+    "إدارة المنصة": "Platform administration",
+    "حساب دعم مستقل. لا يتم تسجيل الدخول باسم العميل.": "Separate support identity. Customer accounts are never impersonated.",
+    "البحث عن شركة": "Search companies",
+    "تشخيص تقني": "Technical diagnostics",
+    "سبب جلسة الدعم": "Support session reason",
+    "رقم تذكرة أو وصف تقني، دون بيانات موظفين": "Ticket reference or technical description, without employee data",
+    "قراءة مؤشرات تقنية فقط لمدة 15 دقيقة، مع سجل تدقيق.": "Read operational metadata for 15 minutes, with an audit trail.",
+    "بدء التشخيص": "Start diagnostics",
+    "جلسة دعم تقنية للقراءة فقط": "Read-only technical support session",
+    "العودة للشركات": "Back to companies",
+    "تنتهي الجلسة": "Session expires",
+    "لا تظهر تسجيلات الموظفين أو نصوصهم أو صورهم في هذه اللوحة.": "Employee recordings, text and photos are not shown in this console.",
+    "أحدث الأخطاء التقنية": "Recent technical failures",
+    "لا توجد أخطاء": "No failures",
+    "هذا الحساب مرتبط بشركة واحدة بالفعل.": "This account already belongs to one company.",
+    "هذا الحساب مرتبط بشركة أخرى أو بإدارة المنصة. استخدم حسابًا منفصلًا.": "This account belongs to another company or platform administration. Use a separate account."
 }

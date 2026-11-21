@@ -15,6 +15,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 /**
  * @property int $id
  * @property bool $employee_only
+ * @property bool $platform_admin
+ * @property int|null $company_id
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -42,6 +44,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'employee_only' => 'boolean',
+            'platform_admin' => 'boolean',
+            'company_id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',

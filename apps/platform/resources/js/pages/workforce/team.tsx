@@ -153,24 +153,6 @@ export default function Team({
                     </button>
                 </nav>
             </header>
-            {workspaces.length > 1 && (
-                <label className="flex items-center gap-3">
-                    {t('الشركة')}
-                    <select
-                        value={selectedTenant ?? ''}
-                        className="rounded-xl border bg-white p-3"
-                        onChange={(event) =>
-                            router.get(`/tenants/${event.target.value}/team`)
-                        }
-                    >
-                        {workspaces.map((item) => (
-                            <option key={item.id} value={item.id}>
-                                {item.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-            )}
             {!selectedTenant && (
                 <section className="mx-auto max-w-xl space-y-5 rounded-3xl border bg-white p-7">
                     <h2 className="text-xl font-bold">

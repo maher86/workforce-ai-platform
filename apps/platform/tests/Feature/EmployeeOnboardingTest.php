@@ -86,7 +86,7 @@ class EmployeeOnboardingTest extends TestCase
         $this->assertSame('lax', $cookie->getSameSite());
     }
 
-    public function test_roles_are_membership_specific_and_inactive_memberships_are_denied(): void
+    public function test_roles_and_legacy_memberships_cannot_bypass_company_binding(): void
     {
         [$owner, $tenant] = $this->workforce();
         [, $foreign] = $this->workforce();
@@ -94,7 +94,7 @@ class EmployeeOnboardingTest extends TestCase
         $this->actingAs($owner)->get('/tenants/'.$tenant->id.'/team')->assertOk();
         $this->get('/tenants/'.$foreign->id.'/team')->assertForbidden();
         $member->update(['role' => 'manager']);
-        $this->get('/tenants/'.$foreign->id.'/team')->assertOk();
+        $this->get('/tenants/'.$foreign->id.'/team')->assertNotFound();
         $member->update(['active' => false]);
         $this->get('/tenants/'.$foreign->id.'/team')->assertNotFound();
     }

@@ -21,8 +21,13 @@ class ManageWorkforce
         abort_unless($reportingDomain === null || in_array($reportingDomain, ['general', 'automotive'], true), 422);
 
         return DB::transaction(function () use ($actor, $name, $reportingDomain) {
+            $account = User::query()->lockForUpdate()->findOrFail($actor->id);
+            if ($account->platform_admin || $account->company_id !== null || Membership::query()->where('user_id', $actor->id)->whereIn('role', ['owner', 'manager'])->exists()) {
+                throw ValidationException::withMessages(['name' => 'هذا الحساب مرتبط بشركة واحدة بالفعل.']);
+            }
             $tenant = Tenant::query()->create(['name' => $name, 'reporting_domain' => $reportingDomain ?? config('workforce.reporting_domain')]);
             Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $actor->id, 'role' => 'owner']);
+            $actor->forceFill(['company_id' => $tenant->id])->save();
             Audit::record($tenant->id, $actor->id, 'tenant.created', 'tenant', $tenant->id);
 
             return $tenant;
@@ -81,14 +86,18 @@ class ManageWorkforce
         $email = Str::lower(trim($email));
         $user = DB::transaction(function () use ($actor, $tenantId, $email, $name) {
             Tenant::query()->lockForUpdate()->findOrFail($tenantId);
-            $user = User::query()->where('email', $email)->first();
+            $user = User::query()->where('email', $email)->lockForUpdate()->first();
             abort_if($user?->employee_only, 404);
+            if ($user && ($user->platform_admin || ($user->company_id !== null && $user->company_id !== $tenantId) || Membership::query()->where('user_id', $user->id)->whereIn('role', ['owner', 'manager'])->where('tenant_id', '!=', $tenantId)->exists())) {
+                throw ValidationException::withMessages(['email' => 'هذا الحساب مرتبط بشركة أخرى أو بإدارة المنصة. استخدم حسابًا منفصلًا.']);
+            }
             if ($user === null) {
                 $user = User::query()->create(['name' => trim($name ?? '') ?: $email, 'email' => $email, 'password' => Str::random(64)]);
             }
             $member = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $user->id)->first();
             abort_if($member?->role === 'owner', 409);
             $member = Membership::query()->updateOrCreate(['tenant_id' => $tenantId, 'user_id' => $user->id], ['role' => 'manager', 'active' => true]);
+            $user->forceFill(['company_id' => $tenantId])->save();
             Audit::record($tenantId, $actor->id, 'manager.added', 'membership', $member->id);
 
             return $user;

@@ -81,20 +81,20 @@ class CompanyOnboardingTest extends TestCase
         $this->actingAs($admin->fresh())->get('/tenants/'.$tenant->id.'/team')->assertOk()->assertInertia(fn (Assert $page) => $page->where('canManageManagers', false)->has('managers', 0));
     }
 
-    public function test_roles_are_per_company_and_foreign_team_reports_qr_and_role_mutations_are_denied(): void
+    public function test_legacy_extra_membership_does_not_bypass_the_bound_company(): void
     {
         $access = app(ManageWorkforce::class);
         $actor = User::factory()->create();
         $own = $access->createTenant($actor, 'Own synthetic company');
         $otherOwner = User::factory()->create();
         $other = $access->createTenant($otherOwner, 'Other synthetic company');
-        $access->addManager($otherOwner, $other->id, $actor->email);
+        Membership::query()->create(['tenant_id' => $other->id, 'user_id' => $actor->id, 'role' => 'manager']);
         $ownPerson = $access->addEmployee($actor, $own->id, 'Own employee');
         $otherPerson = $access->addEmployee($otherOwner, $other->id, 'Other employee');
         $report = app(SubmitReport::class)->execute(User::query()->findOrFail($otherPerson->user_id), $other->id, (string) Str::uuid(), 'Synthetic work note.', []);
         $this->actingAs($actor)->get('/tenants/'.$own->id.'/team')->assertInertia(fn (Assert $page) => $page->where('canManageManagers', true)->has('employees', 1)->where('employees.0.id', $ownPerson->id));
-        $this->get('/tenants/'.$other->id.'/team')->assertInertia(fn (Assert $page) => $page->where('canManageManagers', false)->has('employees', 1));
-        $this->post('/tenants/'.$other->id.'/managers', ['email' => 'unauthorized@example.test', 'password' => 'password'])->assertForbidden();
+        $this->get('/tenants/'.$other->id.'/team')->assertNotFound();
+        $this->post('/tenants/'.$other->id.'/managers', ['email' => 'unauthorized@example.test', 'password' => 'password'])->assertNotFound();
         $foreignManager = Membership::query()->where('tenant_id', $other->id)->where('user_id', $actor->id)->sole();
         $this->post('/tenants/'.$own->id.'/managers/'.$foreignManager->id.'/disable', ['password' => 'password'])->assertNotFound();
         $this->assertTrue($foreignManager->fresh()->active);
