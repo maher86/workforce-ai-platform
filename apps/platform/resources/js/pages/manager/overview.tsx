@@ -95,7 +95,6 @@ function Avatar({
 }
 export default function Overview({
     tenant,
-    workspaces,
     people,
     selectedEmployee,
     profile,
@@ -270,25 +269,6 @@ export default function Overview({
                         {t('إضافة أول موظف')}
                     </Link>
                 </section>
-            )}
-            {workspaces.length > 1 && (
-                <label className="block text-sm">
-                    {' '}
-                    {t('المؤسسة')}{' '}
-                    <select
-                        className="mx-3 rounded-xl border bg-white p-2"
-                        value={tenant.id}
-                        onChange={(event) =>
-                            router.get(`/tenants/${event.target.value}/reports`)
-                        }
-                    >
-                        {workspaces.map((workspace) => (
-                            <option key={workspace.id} value={workspace.id}>
-                                {workspace.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
             )}
             {aiMode !== 'openai' && (
                 <p className="rounded-2xl bg-amber-50 p-3 text-amber-900">
