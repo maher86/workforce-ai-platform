@@ -304,6 +304,22 @@ button.cover-icon[aria-expanded='true'] {
 .manager-hero p {
     color: #c7d3e7;
 }
+.team-toolbar > :is(a, button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 48px;
+    padding-block: 0;
+    gap: 8px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+.team-toolbar > button[aria-label] {
+    min-width: 48px;
+}
 .manager-surface > form,
 .manager-surface article,
 .manager-surface > details {
