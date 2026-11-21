@@ -134,7 +134,7 @@ export default function Team({
                     </div>
                 </div>
                 <nav
-                    className="flex flex-wrap items-center gap-2"
+                    className="team-toolbar flex flex-wrap items-center gap-2"
                     aria-label={t('لوحة المدير')}
                 >
                     {selectedTenant && (
@@ -208,7 +208,7 @@ export default function Team({
                                 )}
                             </p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="team-toolbar flex flex-wrap items-center gap-2">
                             <a
                                 href={androidDownloadUrl}
                                 target="_blank"
