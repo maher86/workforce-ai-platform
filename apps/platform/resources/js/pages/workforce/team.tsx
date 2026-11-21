@@ -718,9 +718,9 @@ export default function Team({
                         dir={direction}
                         lang={locale}
                         aria-describedby="activation-description"
-                        className="max-h-[90svh] overflow-y-auto rounded-3xl bg-white text-center sm:max-w-md"
+                        className="flex max-h-[90svh] flex-col gap-0 overflow-hidden rounded-3xl bg-white p-0 text-center sm:max-w-md"
                     >
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="shrink-0 border-b border-slate-100 px-12 py-5 text-start">
                             <DialogTitle
                                 id="activation-title"
                                 className="text-xl font-bold"
@@ -728,59 +728,67 @@ export default function Team({
                                 {t('تفعيل الهاتف')} · {activation.name}
                             </DialogTitle>
                         </div>
-                        {!activation.url.startsWith('https://') ? (
-                            <p
-                                role="alert"
-                                className="rounded-xl bg-amber-50 p-4 text-amber-900"
+                        <div className="manager-modal-scroll min-h-0 space-y-5 overflow-y-auto px-6 py-5">
+                            {!activation.url.startsWith('https://') ? (
+                                <p
+                                    role="alert"
+                                    className="rounded-xl bg-amber-50 p-4 text-amber-900"
+                                >
+                                    {t(
+                                        'يلزم رابط HTTPS يصل إليه الهاتف. اطلب تشغيل رابط الاختبار من المدير.',
+                                    )}
+                                </p>
+                            ) : (
+                                <QRCodeSVG
+                                    value={activation.url}
+                                    size={240}
+                                    marginSize={4}
+                                    className="mx-auto max-w-full"
+                                />
+                            )}
+                            <ol className="space-y-3 text-start text-sm text-slate-600">
+                                <li>
+                                    <a
+                                        href={androidDownloadUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="font-semibold text-orange-700"
+                                    >
+                                        1.{' '}
+                                        {t(
+                                            'ثبّت تطبيق Android على هاتف الموظف.',
+                                        )}
+                                    </a>
+                                </li>
+                                <li>
+                                    2.{' '}
+                                    {t(
+                                        'افتح التطبيق واضغط QR وامسح هذا الرمز.',
+                                    )}
+                                </li>
+                                <li>
+                                    3.{' '}
+                                    {t(
+                                        'يُجهّز ملف الموظف ويفتح حسابه تلقائيًا على هذا الهاتف.',
+                                    )}
+                                </li>
+                            </ol>
+                            <DialogDescription
+                                id="activation-description"
+                                className="text-xs text-slate-500"
                             >
                                 {t(
-                                    'يلزم رابط HTTPS يصل إليه الهاتف. اطلب تشغيل رابط الاختبار من المدير.',
+                                    'رمز لمرة واحدة، صالح 30 دقيقة. لا تمسحه بكاميرا المتصفح.',
                                 )}
-                            </p>
-                        ) : (
-                            <QRCodeSVG
-                                value={activation.url}
-                                size={240}
-                                marginSize={4}
-                                className="mx-auto max-w-full"
-                            />
-                        )}
-                        <ol className="space-y-3 text-start text-sm text-slate-600">
-                            <li>
-                                <a
-                                    href={androidDownloadUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="font-semibold text-orange-700"
-                                >
-                                    1. {t('ثبّت تطبيق Android على هاتف الموظف.')}
-                                </a>
-                            </li>
-                            <li>
-                                2. {t('افتح التطبيق واضغط QR وامسح هذا الرمز.')}
-                            </li>
-                            <li>
-                                3.{' '}
-                                {t(
-                                    'اضغط السهم. بعدها يفتح حساب الموظف مباشرة على هذا الهاتف.',
-                                )}
-                            </li>
-                        </ol>
-                        <DialogDescription
-                            id="activation-description"
-                            className="text-xs text-slate-500"
-                        >
-                            {t(
-                                'رمز لمرة واحدة، صالح 30 دقيقة. لا تمسحه بكاميرا المتصفح.',
-                            )}
-                        </DialogDescription>
-                        <Button
-                            type="button"
-                            className="w-full"
-                            onClick={() => setHiddenUrl(activation.url)}
-                        >
-                            {t('تم')}
-                        </Button>
+                            </DialogDescription>
+                            <Button
+                                type="button"
+                                className="w-full"
+                                onClick={() => setHiddenUrl(activation.url)}
+                            >
+                                {t('تم')}
+                            </Button>
+                        </div>
                     </DialogContent>
                 </Dialog>
             )}
