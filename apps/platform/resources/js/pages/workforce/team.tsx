@@ -7,6 +7,8 @@ import {
     Smartphone,
     Users,
     ShieldCheck,
+    Search,
+    Unplug,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
@@ -68,6 +70,7 @@ export default function Team({
     const [search, setSearch] = useState('');
     const [hiddenUrl, setHiddenUrl] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [leaving, setLeaving] = useState<Employee | null>(null);
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const visible = activation && activation.url !== hiddenUrl;
     const access = (
@@ -79,6 +82,7 @@ export default function Team({
             preserveScroll: true,
             onStart: () => setBusy(true),
             onFinish: () => setBusy(false),
+            onSuccess: () => setLeaving(null),
         });
     };
     const activate = (person: Employee) => {
@@ -299,12 +303,36 @@ export default function Team({
                             {Object.values(errors).join(' ')}
                         </p>
                     )}
-                    <Input
-                        aria-label={t('البحث بالاسم أو الهاتف')}
-                        placeholder={t('البحث بالاسم أو الهاتف')}
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                    />
+                    <div
+                        role="search"
+                        aria-label={t('البحث عن موظف')}
+                        className="space-y-2"
+                    >
+                        <Label
+                            htmlFor="employee-search"
+                            className="text-sm font-semibold text-slate-700"
+                        >
+                            {t('البحث عن موظف')}
+                        </Label>
+                        <div className="relative">
+                            <Search
+                                size={21}
+                                aria-hidden="true"
+                                className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-orange-500"
+                            />
+                            <Input
+                                id="employee-search"
+                                type="search"
+                                className="h-14 rounded-2xl border-slate-200 bg-white ps-12 text-base shadow-sm focus-visible:border-orange-400 focus-visible:ring-orange-100"
+                                aria-label={t('البحث بالاسم أو الهاتف')}
+                                placeholder={t('البحث بالاسم أو الهاتف')}
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                            />
+                        </div>
+                    </div>
                     <section
                         className="grid gap-4 md:grid-cols-2"
                         aria-label={t('الموظفون')}
@@ -397,60 +425,26 @@ export default function Team({
                                         {t('التقارير')}
                                     </Link>
                                 </div>
-                                <details className="border-t pt-3">
-                                    <summary className="cursor-pointer text-sm text-slate-500">
-                                        {t('تعديل الملف والوصول')}
-                                    </summary>
-                                    <div className="mt-4 space-y-4">
-                                        <EmployeeProfileEditor
-                                            tenant={selectedTenant}
-                                            employee={person}
-                                        />
-                                        {person.active && (
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    disabled={busy}
-                                                    onClick={() => {
-                                                        if (
-                                                            window.confirm(
-                                                                t(
-                                                                    'إلغاء دخول جميع أجهزة هذا الموظف؟ سيحتاج إلى رمز جديد.',
-                                                                ),
-                                                            )
-                                                        )
-                                                            access(
-                                                                `/tenants/${selectedTenant}/employees/${person.id}/revoke`,
-                                                            );
-                                                    }}
-                                                >
-                                                    {t('إلغاء ربط الهاتف')}
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    disabled={busy}
-                                                    onClick={() => {
-                                                        if (
-                                                            window.confirm(
-                                                                t(
-                                                                    'إيقاف وصول الموظف وإلغاء أجهزته وروابطه؟',
-                                                                ),
-                                                            )
-                                                        )
-                                                            access(
-                                                                `/tenants/${selectedTenant}/employees/${person.id}/revoke`,
-                                                                {
-                                                                    disable: true,
-                                                                },
-                                                            );
-                                                    }}
-                                                >
-                                                    {t('إيقاف الوصول')}
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </details>
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                                    <EmployeeProfileEditor
+                                        tenant={selectedTenant}
+                                        employee={person}
+                                    />
+                                    {person.active && (
+                                        <button
+                                            type="button"
+                                            disabled={busy}
+                                            onClick={() => setLeaving(person)}
+                                            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-red-700 underline-offset-4 hover:bg-red-50 hover:underline focus-visible:outline-2 focus-visible:outline-red-400 disabled:opacity-50"
+                                        >
+                                            <Unplug
+                                                size={16}
+                                                aria-hidden="true"
+                                            />
+                                            {t('إنهاء الوصول وفصل الهاتف')}
+                                        </button>
+                                    )}
+                                </div>
                             </article>
                         ))}
                     </section>
@@ -659,6 +653,60 @@ export default function Team({
                     )}
                 </>
             )}
+            <Dialog
+                open={leaving !== null}
+                onOpenChange={(open) => {
+                    if (!open && !busy) setLeaving(null);
+                }}
+            >
+                <DialogContent
+                    dir={direction}
+                    lang={locale}
+                    className="rounded-3xl bg-white sm:max-w-md"
+                >
+                    <span className="grid size-12 place-items-center rounded-2xl bg-red-50 text-red-600">
+                        <Unplug size={24} aria-hidden="true" />
+                    </span>
+                    <DialogTitle>{t('إنهاء وصول الموظف؟')}</DialogTitle>
+                    <DialogDescription className="leading-7">
+                        {leaving?.name}
+                        <br />
+                        {t(
+                            'سيُفصل هاتفه ويتوقف وصوله للتطبيق. تبقى تقاريره وبياناته السابقة محفوظة، ويمكن إعادة تفعيله لاحقًا.',
+                        )}
+                    </DialogDescription>
+                    {Object.keys(errors).length > 0 && (
+                        <p role="alert" className="text-sm text-red-700">
+                            {Object.values(errors).join(' ')}
+                        </p>
+                    )}
+                    <div className="flex flex-wrap gap-3">
+                        <Button
+                            variant="destructive"
+                            disabled={busy}
+                            className="gap-2 rounded-xl"
+                            onClick={() => {
+                                if (leaving)
+                                    access(
+                                        `/tenants/${selectedTenant}/employees/${leaving.id}/revoke`,
+                                        { disable: true },
+                                    );
+                            }}
+                        >
+                            <Unplug size={17} aria-hidden="true" />
+                            {t('إنهاء الوصول وفصل الهاتف')}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            disabled={busy}
+                            className="rounded-xl"
+                            onClick={() => setLeaving(null)}
+                        >
+                            {t('إلغاء')}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
             {visible && (
                 <Dialog
                     open

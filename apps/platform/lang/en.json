@@ -369,5 +369,11 @@
     "أحدث الأخطاء التقنية": "Recent technical failures",
     "لا توجد أخطاء": "No failures",
     "هذا الحساب مرتبط بشركة واحدة بالفعل.": "This account already belongs to one company.",
-    "هذا الحساب مرتبط بشركة أخرى أو بإدارة المنصة. استخدم حسابًا منفصلًا.": "This account belongs to another company or platform administration. Use a separate account."
+    "هذا الحساب مرتبط بشركة أخرى أو بإدارة المنصة. استخدم حسابًا منفصلًا.": "This account belongs to another company or platform administration. Use a separate account.",
+    "تحديث الملف": "Update profile",
+    "حدّث اسم الموظف ورقم هاتفه وصورته.": "Update the employee’s name, phone number and photo.",
+    "البحث عن موظف": "Find an employee",
+    "إنهاء الوصول وفصل الهاتف": "End access and unlink phone",
+    "إنهاء وصول الموظف؟": "End employee access?",
+    "سيُفصل هاتفه ويتوقف وصوله للتطبيق. تبقى تقاريره وبياناته السابقة محفوظة، ويمكن إعادة تفعيله لاحقًا.": "Their phone will be unlinked and app access will stop. Previous reports and profile history remain saved. You can reactivate them later."
 }
