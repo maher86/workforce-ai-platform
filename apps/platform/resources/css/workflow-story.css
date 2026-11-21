@@ -1,0 +1,455 @@
+.workflow-story {
+    --story-accent: #ed812e;
+    --story-ink: #17283e;
+    --story-sub: #637184;
+    --story-line: #e9e2d8;
+    --story-soft: #f6efe4;
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 540px;
+    margin-inline: auto;
+    padding: 22px 20px 18px;
+    border: 1px solid var(--story-line);
+    border-radius: 28px;
+    background: #fffcf7;
+    color: var(--story-ink);
+    box-shadow: 0 24px 65px -35px #263b5430;
+}
+.workflow-story .story-brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.workflow-story .story-brand > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.workflow-story .story-brand svg {
+    color: var(--story-accent);
+}
+.workflow-story .story-brand b {
+    font-size: 13px;
+    letter-spacing: 0.025em;
+}
+.workflow-story .story-demo {
+    font-size: 11px;
+    color: var(--story-sub);
+}
+.workflow-story .story-stage {
+    position: relative;
+    min-height: 325px;
+    padding: 30px 10px 24px;
+    display: grid;
+    place-items: center;
+}
+.workflow-story .story-halo {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    max-width: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ed812e19, transparent 68%);
+    pointer-events: none;
+}
+.workflow-story .story-sheet {
+    position: relative;
+    width: 100%;
+    min-height: 270px;
+    border: 1px solid var(--story-line);
+    border-radius: 20px;
+    background: #fffefa;
+    box-shadow: 0 22px 40px -15px #263b5430;
+    transform: rotate(-2deg);
+    transition: transform 850ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.workflow-story .story-sheet-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    padding: 13px;
+    border-bottom: 1px solid var(--story-line);
+    font-size: 12px;
+}
+.workflow-story .story-symbol {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--story-soft);
+    color: var(--story-accent);
+}
+.workflow-story .story-state {
+    margin-inline-start: auto;
+    font-size: 11px;
+    color: var(--story-sub);
+}
+.workflow-story .story-scene {
+    position: absolute;
+    top: 65px;
+    inset-inline: 18px;
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+    transition:
+        opacity 600ms,
+        transform 850ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+}
+.workflow-story .story-scene[data-active='true'] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.workflow-story .story-record {
+    text-align: center;
+}
+.workflow-story .story-mic {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin: 8px auto 13px;
+    border-radius: 20px;
+    color: var(--story-ink);
+    background: var(--story-accent);
+    box-shadow: 0 8px 25px #ed812e30;
+}
+.workflow-story .story-wave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 28px;
+}
+.workflow-story .story-wave span {
+    display: block;
+    width: 3px;
+    border-radius: 4px;
+    background: var(--story-accent);
+}
+.workflow-story[data-playing='true'][data-phase='0'] .story-wave span {
+    animation: story-wave 800ms ease-in-out infinite alternate;
+}
+.workflow-story .story-time {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--story-sub);
+}
+.workflow-story .story-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 11px;
+    font-size: 11px;
+    color: var(--story-sub);
+}
+.workflow-story .story-transfer {
+    padding-top: 19px;
+    text-align: center;
+}
+.workflow-story .story-transfer-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 17px;
+}
+.workflow-story .story-transfer-icons span {
+    display: grid;
+    place-items: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 15px;
+    color: var(--story-accent);
+    background: var(--story-soft);
+}
+.workflow-story .story-transfer-icons b {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--story-accent);
+}
+.workflow-story[data-playing='true'][data-phase='1'] .story-transfer-icons b {
+    animation: story-transfer 750ms ease-in-out 3 alternate;
+}
+.workflow-story .story-transfer-icons b:nth-of-type(2) {
+    animation-delay: 180ms;
+}
+.workflow-story .story-transfer-icons b:nth-of-type(3) {
+    animation-delay: 360ms;
+}
+.workflow-story .story-scene h3 {
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 600;
+    margin: 0 0 10px;
+}
+.workflow-story .story-transfer p {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--story-sub);
+    margin: 0;
+}
+.workflow-story .story-text {
+    padding-top: 7px;
+}
+.workflow-story .story-field-label {
+    font-size: 11px;
+    color: var(--story-sub);
+}
+.workflow-story .story-text p {
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 5px 0 0;
+}
+.workflow-story .story-divider {
+    height: 1px;
+    margin: 12px 0 8px;
+    background: var(--story-line);
+}
+.workflow-story .story-arrival {
+    padding-top: 7px;
+    text-align: center;
+}
+.workflow-story .story-arrival-check {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 9px;
+    border-radius: 50%;
+    color: #a9510e;
+    background: #fff0dc;
+}
+.workflow-story .story-arrival-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 13px;
+    background: var(--story-soft);
+    text-align: start;
+    font-size: 12px;
+}
+.workflow-story .story-arrival-row > svg {
+    color: var(--story-sub);
+    flex-shrink: 0;
+}
+.workflow-story .story-arrival-row > svg:last-child {
+    margin-inline-start: auto;
+    width: 17px;
+}
+.workflow-story .story-arrival-row small {
+    display: block;
+    font-size: 11px;
+    margin-top: 3px;
+    color: var(--story-sub);
+}
+.workflow-story .story-arrival > p {
+    font-size: 11px;
+    margin: 10px 0 0;
+    line-height: 1.6;
+    color: var(--story-sub);
+}
+.workflow-story .story-float {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 11px;
+    border: 1px solid var(--story-line);
+    border-radius: 12px;
+    background: #fffefa;
+    box-shadow: 0 8px 20px #263b5415;
+    font-size: 11px;
+    transition:
+        opacity 800ms,
+        transform 800ms;
+    pointer-events: none;
+}
+.workflow-story .story-float svg {
+    color: var(--story-accent);
+}
+.workflow-story .story-employee {
+    inset-inline-start: -3px;
+    top: 13px;
+    transform: rotate(4deg);
+}
+.workflow-story .story-manager {
+    inset-inline-end: -3px;
+    bottom: 12px;
+    opacity: 0.35;
+    transform: rotate(-4deg) translateY(7px);
+}
+.workflow-story[data-phase='2'] .story-sheet {
+    transform: rotate(0deg) translateY(-3px);
+}
+.workflow-story[data-phase='3'] .story-sheet {
+    transform: rotate(1deg) translateY(-5px);
+}
+.workflow-story[data-phase='3'] .story-manager {
+    opacity: 1;
+    transform: rotate(-2deg) translateY(0);
+}
+.workflow-story[data-phase='3'] .story-employee {
+    opacity: 0;
+    transform: rotate(0deg) translateY(-4px);
+}
+.workflow-story .story-caption {
+    min-height: 45px;
+    margin: 3px 0 13px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.8;
+}
+.workflow-story .story-chapters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    border-top: 1px solid var(--story-line);
+    padding-top: 12px;
+}
+.workflow-story .story-chapters button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 49px;
+    border: 0;
+    border-radius: 9px;
+    padding: 7px 3px;
+    color: var(--story-sub);
+    background: transparent;
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: pointer;
+    position: relative;
+}
+.workflow-story .story-chapters button[aria-pressed='true'] {
+    background: var(--story-soft);
+    color: var(--story-ink);
+}
+.workflow-story .story-chapters button[aria-pressed='true']::before {
+    content: '';
+    position: absolute;
+    top: -13px;
+    inset-inline: 20%;
+    height: 2px;
+    background: var(--story-accent);
+}
+.workflow-story button:focus-visible {
+    outline: 2px solid var(--story-accent);
+    outline-offset: 3px;
+}
+.workflow-story .story-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 15px;
+}
+.workflow-story .story-controls > span {
+    font-size: 11px;
+    color: var(--story-sub);
+    line-height: 1.8;
+    max-width: 215px;
+}
+.workflow-story .story-controls > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 20px;
+    background: var(--story-ink);
+    color: #fffcf7;
+    font-size: 12px;
+    cursor: pointer;
+}
+.workflow-story[dir='ltr'] .story-sheet {
+    transform: rotate(2deg);
+}
+.workflow-story[dir='ltr'][data-phase='2'] .story-sheet {
+    transform: rotate(0deg) translateY(-3px);
+}
+.workflow-story[dir='ltr'][data-phase='3'] .story-sheet {
+    transform: rotate(-1deg) translateY(-5px);
+}
+.workflow-story[dir='ltr'] .story-transfer-icons {
+    --story-travel: 1;
+}
+.workflow-story[dir='rtl'] .story-transfer-icons {
+    --story-travel: -1;
+}
+@keyframes story-wave {
+    from {
+        transform: scaleY(0.4);
+    }
+    to {
+        transform: scaleY(1);
+    }
+}
+@keyframes story-transfer {
+    from {
+        opacity: 0.3;
+        transform: translateX(calc(var(--story-travel) * -3px));
+    }
+    to {
+        opacity: 1;
+        transform: translateX(calc(var(--story-travel) * 3px));
+    }
+}
+@media (max-width: 390px) {
+    .workflow-story {
+        padding: 18px 14px 16px;
+        border-radius: 23px;
+    }
+    .workflow-story .story-stage {
+        padding-inline: 0;
+    }
+    .workflow-story .story-sheet {
+        min-height: 290px;
+    }
+    .workflow-story .story-sheet-top {
+        padding: 10px;
+        font-size: 11px;
+        gap: 5px;
+    }
+    .workflow-story .story-state {
+        font-size: 11px;
+    }
+    .workflow-story .story-scene {
+        inset-inline: 12px;
+        top: 70px;
+    }
+    .workflow-story .story-controls > span {
+        max-width: 150px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .workflow-story *,
+    .workflow-story *::before {
+        transition: none !important;
+        animation: none !important;
+    }
+    .workflow-story .story-sheet {
+        transform: none !important;
+    }
+}
+@media (pointer: coarse) {
+    .workflow-story .story-controls > button,
+    .workflow-story .story-chapters button {
+        min-height: 44px;
+    }
+}
