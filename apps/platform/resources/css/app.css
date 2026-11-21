@@ -4,6 +4,7 @@
 @import './workforce.css';
 @import './welcome.css';
 @import './workflow-story.css';
+@import './employee-activation.css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';

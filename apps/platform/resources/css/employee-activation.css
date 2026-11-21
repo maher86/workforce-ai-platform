@@ -1,0 +1,61 @@
+.employee-activation .activation-preparing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+    padding: 32px 12px;
+}
+.employee-activation .activation-wave-orbit {
+    display: grid;
+    place-items: center;
+    width: 210px;
+    height: 210px;
+    border: 1px solid #ffffff;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at 35% 25%,
+        #ffffff,
+        #fff7ee 65%,
+        #ffe7d0
+    );
+    box-shadow:
+        0 20px 65px -22px #ed812e40,
+        inset 0 0 0 12px #ffffff80;
+}
+.employee-activation .activation-wave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 90px;
+}
+.employee-activation .activation-wave span {
+    width: 7px;
+    border-radius: 10px;
+    background: linear-gradient(#ff9b3d, #f26c11);
+    transform-origin: center;
+    animation: activation-wave-pulse 1.1s ease-in-out infinite;
+}
+.employee-activation .activation-preparing h1 {
+    margin: 0;
+    color: #243650;
+    font-size: clamp(20px, 5vw, 25px);
+    font-weight: 600;
+    line-height: 1.6;
+}
+@keyframes activation-wave-pulse {
+    0%,
+    100% {
+        transform: scaleY(0.45);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .employee-activation .activation-wave span {
+        animation: none;
+    }
+}
