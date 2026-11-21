@@ -20,7 +20,6 @@ void createInertiaApp({
             case name === 'welcome':
             case name.startsWith('workforce/'):
             case name.startsWith('reports/'):
-            case name.startsWith('vehicles/'):
             case name.startsWith('insights/'):
             case name.startsWith('manager/'):
                 return null;

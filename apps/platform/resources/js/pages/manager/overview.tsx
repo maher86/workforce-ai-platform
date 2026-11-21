@@ -11,7 +11,6 @@ import {
     LogOut,
     Search,
     Users,
-    CarFront,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -54,7 +53,6 @@ type Props = {
     series: { day: string; total: number }[];
     monthly: boolean;
     aiMode: string;
-    vehicle: { id: number; plate: string } | null;
 };
 const labels: Record<string, string> = {
     submitted: 'تم الاستلام',
@@ -108,7 +106,6 @@ export default function Overview({
     series,
     monthly,
     aiMode,
-    vehicle,
 }: Props) {
     const { t, locale, direction } = useUiLocale();
 
@@ -128,7 +125,6 @@ export default function Overview({
         employee: selectedEmployee ? String(selectedEmployee) : '',
         from: period.from,
         to: period.to,
-        vehicle: vehicle ? String(vehicle.id) : '',
     });
     const [search, setSearch] = useState('');
     const matches = people.filter((person) =>
@@ -142,7 +138,6 @@ export default function Overview({
             {
                 range: nextRange,
                 employee,
-                ...(vehicle ? { vehicle: String(vehicle.id) } : {}),
                 ...(nextRange === 'custom'
                     ? { from: form.data.from, to: form.data.to }
                     : {}),
@@ -192,7 +187,6 @@ export default function Overview({
     const exportQuery = new URLSearchParams({
         ...period,
         ...(selectedEmployee ? { employee: String(selectedEmployee) } : {}),
-        ...(vehicle ? { vehicle: String(vehicle.id) } : {}),
     });
     return (
         <main
@@ -248,13 +242,6 @@ export default function Overview({
                     >
                         <Users size={20} /> {t('الفريق')}{' '}
                     </Link>
-                    <Link
-                        href={`/tenants/${tenant.id}/vehicles`}
-                        aria-label={t('السيارات')}
-                        className="rounded-xl border border-white/30 p-3"
-                    >
-                        <CarFront size={21} />
-                    </Link>
                     <button
                         aria-label={t('تسجيل الخروج')}
                         className="rounded-xl border border-white/30 p-3"
@@ -264,17 +251,25 @@ export default function Overview({
                     </button>
                 </nav>
             </header>
-            {vehicle && (
-                <p className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-3">
-                    <CarFront size={20} />
-                    <Link href={`/tenants/${tenant.id}/vehicles/${vehicle.id}`}>
-                        {vehicle.plate}
+            {people.length === 0 && (
+                <section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-orange-100 bg-white p-6">
+                    <div>
+                        <h2 className="text-xl font-bold">
+                            {t('شركتك جاهزة')}
+                        </h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                            {t(
+                                'أضف أول موظف وفعّل تطبيقه لتبدأ التقارير بالظهور هنا.',
+                            )}
+                        </p>
+                    </div>
+                    <Link
+                        href={`/tenants/${tenant.id}/team#add-employee`}
+                        className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white"
+                    >
+                        {t('إضافة أول موظف')}
                     </Link>
-                    <Link href={base} className="text-sm text-slate-500">
-                        {' '}
-                        {t('كل السيارات')}{' '}
-                    </Link>
-                </p>
+                </section>
             )}
             {workspaces.length > 1 && (
                 <label className="block text-sm">

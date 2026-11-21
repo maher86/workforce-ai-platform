@@ -11,7 +11,6 @@ type Item = {
     id: number;
     tenant_id: number;
     membership_id: number;
-    vehicle_plate: string | null;
     created_at: string;
     status: string;
     review_status: string;
@@ -141,9 +140,6 @@ function Day({
                                         timeZone: 'Asia/Dubai',
                                         timeStyle: 'short',
                                     }).format(new Date(report.created_at))}
-                                    {report.vehicle_plate
-                                        ? ` · 🚘 ${report.vehicle_plate}`
-                                        : ''}
                                 </span>
                             </span>
                         </span>

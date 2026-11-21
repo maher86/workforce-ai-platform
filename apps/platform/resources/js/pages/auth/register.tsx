@@ -19,7 +19,7 @@ export default function Register({ passwordRules }: Props) {
 
     return (
         <>
-            <Head title={t('Register')} />
+            <Head title={t('إنشاء حساب الشركة')} />
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
@@ -30,13 +30,27 @@ export default function Register({ passwordRules }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">{t('Name')}</Label>
+                                <Label htmlFor="company_name">
+                                    {t('اسم الشركة')}
+                                </Label>
+                                <Input
+                                    autoFocus
+                                    id="company_name"
+                                    name="company_name"
+                                    required
+                                    maxLength={120}
+                                    autoComplete="organization"
+                                />
+                                <InputError message={errors.company_name} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">
+                                    {t('اسم مالك الشركة')}
+                                </Label>
                                 <Input
                                     id="name"
                                     type="text"
                                     required
-                                    autoFocus
-                                    tabIndex={1}
                                     autoComplete="name"
                                     name="name"
                                     placeholder={t('Full name')}
@@ -55,7 +69,6 @@ export default function Register({ passwordRules }: Props) {
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={2}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
@@ -70,7 +83,6 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder={t('Password')}
@@ -87,7 +99,6 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder={t('Confirm password')}
@@ -101,21 +112,17 @@ export default function Register({ passwordRules }: Props) {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={5}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}{' '}
-                                {t('Create account')}{' '}
+                                {t('إنشاء الشركة والحساب')}{' '}
                             </Button>
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
                             {' '}
                             {t('Already have an account?')}{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                {' '}
-                                {t('Log in')}{' '}
-                            </TextLink>
+                            <TextLink href={login()}> {t('Log in')} </TextLink>
                         </div>
                     </>
                 )}
@@ -125,6 +132,7 @@ export default function Register({ passwordRules }: Props) {
 }
 
 Register.layout = {
-    title: 'Create an account',
-    description: 'Enter your details below to create your account',
+    title: 'إنشاء حساب الشركة',
+    description:
+        'أنشئ شركتك وحساب المالك في خطوة واحدة. أضف الموظفين بعد تأكيد بريدك.',
 };

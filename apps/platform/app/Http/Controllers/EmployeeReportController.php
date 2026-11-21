@@ -75,7 +75,6 @@ class EmployeeReportController extends Controller
             'submission_key' => ['required', 'uuid'], 'text' => ['nullable', 'string', 'max:10000'],
             'audio' => ['nullable', 'file', 'max:12288'], 'images' => ['nullable', 'array', 'max:3'],
             'images.*' => ['file', 'max:12288'], 'project_id' => ['nullable', 'integer'], 'task_id' => ['nullable', 'integer'],
-            'vehicle_plate' => ['nullable', 'string', 'max:80'],
         ]);
         $inputs = [];
         $audio = $request->file('audio');
@@ -86,7 +85,7 @@ class EmployeeReportController extends Controller
             $inputs[] = new MediaInput($image->getPathname(), 'image');
         }
         $report = $submit->execute($request->user(), $member->tenant_id, $data['submission_key'], $data['text'] ?? null, $inputs,
-            isset($data['project_id']) ? (int) $data['project_id'] : null, isset($data['task_id']) ? (int) $data['task_id'] : null, $data['vehicle_plate'] ?? null);
+            isset($data['project_id']) ? (int) $data['project_id'] : null, isset($data['task_id']) ? (int) $data['task_id'] : null);
 
         // Read database defaults and current processing state after the transaction commits.
         $report = Report::query()->where('tenant_id', $member->tenant_id)->where('membership_id', $member->id)->findOrFail($report->id);

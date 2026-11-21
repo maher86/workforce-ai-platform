@@ -2,7 +2,6 @@
 
 namespace App\Modules\Reporting;
 
-use App\Modules\WorkManagement\Vehicle;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -32,8 +31,7 @@ class ReportActivity
         $start = CarbonImmutable::parse($day, self::ZONE)->startOfDay()->utc();
 
         return (clone $query)->where('reports.created_at', '>=', $start)->where('reports.created_at', '<', $start->addDay())
-            ->select(['reports.id', 'reports.tenant_id', 'reports.membership_id', 'reports.vehicle_id', 'reports.status', 'reports.review_status', 'reports.created_at'])
-            ->selectSub(Vehicle::query()->select('plate')->whereColumn('id', 'reports.vehicle_id')->whereColumn('tenant_id', 'reports.tenant_id')->limit(1), 'vehicle_plate')
+            ->select(['reports.id', 'reports.tenant_id', 'reports.membership_id', 'reports.status', 'reports.review_status', 'reports.created_at'])
             ->orderByDesc('reports.created_at')->orderByDesc('reports.id')->paginate(50, ['*'], 'reports_page');
     }
 

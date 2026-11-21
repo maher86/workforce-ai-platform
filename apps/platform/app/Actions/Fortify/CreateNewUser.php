@@ -5,6 +5,8 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Modules\Identity\ManageWorkforce;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -21,13 +23,19 @@ class CreateNewUser implements CreatesNewUsers
     {
         Validator::make($input, [
             ...$this->profileRules(),
+            'company_name' => ['required', 'string', 'max:120'],
             'password' => $this->passwordRules(),
         ])->validate();
 
-        return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-        ]);
+        return DB::transaction(function () use ($input) {
+            $user = User::create([
+                'name' => $input['name'],
+                'email' => $input['email'],
+                'password' => $input['password'],
+            ]);
+            app(ManageWorkforce::class)->createTenant($user, trim($input['company_name']), 'general');
+
+            return $user;
+        });
     }
 }

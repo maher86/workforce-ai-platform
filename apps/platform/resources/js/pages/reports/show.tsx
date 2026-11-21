@@ -1,6 +1,6 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { ArrowRight, CarFront, Clock3, Settings2, Trash2 } from 'lucide-react';
+import { ArrowRight, Clock3, Settings2, Trash2 } from 'lucide-react';
 import ManagerLanguageSwitch from '@/components/manager-language-switch';
 import ReportTexts from '@/components/report-texts';
 import type { TextOutput } from '@/components/report-texts';
@@ -40,7 +40,6 @@ type Props = {
     }[];
     aiMode: string;
     canDelete: boolean;
-    vehicle: { id: number; plate: string } | null;
 };
 export default function ShowReport({
     report,
@@ -56,11 +55,9 @@ export default function ShowReport({
     revisions,
     aiMode,
     canDelete,
-    vehicle,
 }: Props) {
     const { t, locale, direction } = useUiLocale();
     const base = `/tenants/${report.tenant_id}/reports/${report.id}`;
-    const car = useForm({ vehicle_plate: vehicle?.plate ?? '' });
     const pending = ['submitted', 'processing'].includes(report.status);
     useEffect(() => {
         if (!pending) return;
@@ -124,15 +121,6 @@ export default function ShowReport({
                         <span>· #{report.id}</span>
                     </p>
                 </div>
-                {vehicle && (
-                    <Link
-                        className="rounded-xl border border-white/30 px-4 py-2"
-                        href={`/tenants/${report.tenant_id}/vehicles/${vehicle.id}`}
-                    >
-                        <CarFront className="inline" size={19} />{' '}
-                        {vehicle.plate}
-                    </Link>
-                )}
             </header>
             {report.deleted_at && (
                 <p
@@ -208,43 +196,6 @@ export default function ShowReport({
                     {t('خيارات إضافية')}
                 </summary>
                 <div className="mt-5 space-y-5">
-                    {!report.deleted_at && (
-                        <form
-                            className="flex flex-wrap items-end gap-3"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                car.post(`${base}/vehicle`, {
-                                    preserveScroll: true,
-                                });
-                            }}
-                        >
-                            <label className="flex-1 text-sm">
-                                {t('لوحة السيارة')}
-                                <input
-                                    maxLength={80}
-                                    className="mt-1 w-full rounded-xl border p-3"
-                                    value={car.data.vehicle_plate}
-                                    onChange={(event) =>
-                                        car.setData(
-                                            'vehicle_plate',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </label>
-                            <button
-                                disabled={car.processing}
-                                className="rounded-xl border px-4 py-3"
-                            >
-                                {t('حفظ')}
-                            </button>
-                            {car.errors.vehicle_plate && (
-                                <p role="alert">
-                                    {t(car.errors.vehicle_plate)}
-                                </p>
-                            )}
-                        </form>
-                    )}
                     {!report.deleted_at && (
                         <details className="rounded-xl border p-3">
                             <summary className="cursor-pointer">
