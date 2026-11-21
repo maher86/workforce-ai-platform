@@ -2,16 +2,14 @@ import { Head, Link } from '@inertiajs/react';
 import {
     ArrowUpRight,
     AudioLines,
-    Camera,
-    Check,
     ClipboardList,
-    FileText,
     Languages,
     Mic,
     ShieldCheck,
 } from 'lucide-react';
 import ManagerLanguageSwitch from '@/components/manager-language-switch';
 import PricingSection from '@/components/pricing-section';
+import WorkflowStory from '@/components/workflow-story';
 import { useUiLocale } from '@/hooks/use-ui-locale';
 
 const content = {
@@ -27,12 +25,6 @@ const content = {
             'يسجّل الموظف بلغته، ويضيف صورًا عند الحاجة. وتصل للمدير تقارير منظّمة بالنص الأصلي والإنجليزية، في مكان واحد.',
         create: 'أنشئ حساب شركتك',
         access: 'أنشئ الشركة، أضف الفريق، وفعّل تطبيق الموظف عبر QR.',
-        demo: 'معاينة توضيحية',
-        report: 'تقرير عمل',
-        audio: 'تسجيل صوتي',
-        source: 'النص الأصلي',
-        english: 'الترجمة الإنجليزية',
-        attachments: 'صور اختيارية مع التسجيل',
         private: 'مساحة خاصة بمؤسستك',
         features: [
             [
@@ -50,8 +42,6 @@ const content = {
         ],
         footer: 'تقارير يومية أبسط. رؤية أوضح للفريق.',
         preview: 'نسخة قيد التطوير',
-        illustration:
-            'مثال توضيحي لتقرير يحتوي على تسجيل ونص أصلي وترجمة إنجليزية',
     },
     en: {
         pageTitle: 'Team reporting, simplified',
@@ -65,12 +55,6 @@ const content = {
             'Employees speak in their own language and add photos when needed. Managers get the original text and English translation, together in one place.',
         create: 'Create your company account',
         access: 'Create your company, add your team, activate employees through the Android app.',
-        demo: 'Illustrative preview',
-        report: 'Work report',
-        audio: 'Voice recording',
-        source: 'Original text',
-        english: 'English translation',
-        attachments: 'Optional photos with audio',
         private: 'Your own company workspace',
         features: [
             [
@@ -88,14 +72,8 @@ const content = {
         ],
         footer: 'Simpler daily reports. A clearer view of your team.',
         preview: 'In development',
-        illustration:
-            'Illustrative report with voice recording, original text and English translation',
     },
 };
-const waveform = [
-    12, 22, 16, 30, 42, 25, 17, 34, 48, 27, 38, 19, 31, 45, 23, 15, 35, 27, 42,
-    21, 33, 16, 25, 12,
-];
 const featureIcons = [Mic, Languages, ClipboardList];
 
 export default function Welcome() {
@@ -206,80 +184,8 @@ export default function Welcome() {
                         </p>
                     </div>
 
-                    <div
-                        className="welcome-preview relative mx-auto w-full max-w-lg min-w-0 p-3 sm:p-6"
-                        aria-label={copy.illustration}
-                    >
-                        <div className="relative rounded-[2rem] border border-white bg-white/90 p-5 shadow-[0_24px_70px_-28px_#34476445] sm:p-7">
-                            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    <span className="grid size-10 place-items-center rounded-xl bg-slate-100 text-slate-700">
-                                        <FileText size={21} />
-                                    </span>
-                                    <span className="text-sm font-bold">
-                                        {copy.report}
-                                    </span>
-                                </div>
-                                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-500 sm:text-xs">
-                                    {copy.demo}
-                                </span>
-                            </div>
-                            <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
-                                <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-orange-800">
-                                    <Mic size={16} />
-                                    {copy.audio}
-                                </div>
-                                <div
-                                    className="flex h-12 items-center justify-between gap-1.5"
-                                    dir="ltr"
-                                    aria-hidden="true"
-                                >
-                                    {waveform.map((height, index) => (
-                                        <span
-                                            key={index}
-                                            className="w-1.5 rounded-full bg-orange-400"
-                                            style={{ height }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <section className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                                    <h2 className="mb-2 text-[11px] font-semibold text-slate-400">
-                                        {copy.source}
-                                    </h2>
-                                    <p
-                                        lang="ar"
-                                        dir="rtl"
-                                        className="text-sm leading-7 text-slate-700"
-                                    >
-                                        فحصت الفرامل، والتبديل لم يبدأ بعد.
-                                    </p>
-                                </section>
-                                <section className="rounded-2xl border border-slate-100 p-4">
-                                    <h2 className="mb-2 text-[11px] font-semibold text-slate-400">
-                                        {copy.english}
-                                    </h2>
-                                    <p
-                                        lang="en"
-                                        dir="ltr"
-                                        className="text-sm leading-6 text-slate-700"
-                                    >
-                                        I inspected the brakes. Replacement has
-                                        not started yet.
-                                    </p>
-                                </section>
-                            </div>
-                            <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-[11px] text-slate-500">
-                                <Camera size={16} className="text-slate-400" />
-                                {copy.attachments}
-                                <Check
-                                    size={15}
-                                    className="ms-auto text-orange-500"
-                                    aria-hidden="true"
-                                />
-                            </div>
-                        </div>
+                    <div className="welcome-preview relative mx-auto w-full max-w-lg min-w-0 p-3 sm:p-6">
+                        <WorkflowStory />
                     </div>
                 </section>
 
