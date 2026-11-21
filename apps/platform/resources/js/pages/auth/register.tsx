@@ -36,12 +36,21 @@ export default function Register({ passwordRules }: Props) {
                                 <Input
                                     autoFocus
                                     id="company_name"
+                                    aria-invalid={!!errors.company_name}
+                                    aria-describedby={
+                                        errors.company_name
+                                            ? 'company-error'
+                                            : undefined
+                                    }
                                     name="company_name"
                                     required
                                     maxLength={120}
                                     autoComplete="organization"
                                 />
-                                <InputError message={errors.company_name} />
+                                <InputError
+                                    id="company-error"
+                                    message={errors.company_name}
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="name">
@@ -49,6 +58,10 @@ export default function Register({ passwordRules }: Props) {
                                 </Label>
                                 <Input
                                     id="name"
+                                    aria-invalid={!!errors.name}
+                                    aria-describedby={
+                                        errors.name ? 'name-error' : undefined
+                                    }
                                     type="text"
                                     required
                                     autoComplete="name"
@@ -56,6 +69,7 @@ export default function Register({ passwordRules }: Props) {
                                     placeholder={t('Full name')}
                                 />
                                 <InputError
+                                    id="name-error"
                                     message={errors.name}
                                     className="mt-2"
                                 />
@@ -67,13 +81,21 @@ export default function Register({ passwordRules }: Props) {
                                 </Label>
                                 <Input
                                     id="email"
+                                    dir="ltr"
+                                    aria-invalid={!!errors.email}
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                     type="email"
                                     required
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError
+                                    id="email-error"
+                                    message={errors.email}
+                                />
                             </div>
 
                             <div className="grid gap-2">
@@ -82,13 +104,22 @@ export default function Register({ passwordRules }: Props) {
                                 </Label>
                                 <PasswordInput
                                     id="password"
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
                                     required
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder={t('Password')}
                                     passwordrules={passwordRules}
                                 />
-                                <InputError message={errors.password} />
+                                <InputError
+                                    id="password-error"
+                                    message={errors.password}
+                                />
                             </div>
 
                             <div className="grid gap-2">
@@ -98,6 +129,14 @@ export default function Register({ passwordRules }: Props) {
                                 </Label>
                                 <PasswordInput
                                     id="password_confirmation"
+                                    aria-invalid={
+                                        !!errors.password_confirmation
+                                    }
+                                    aria-describedby={
+                                        errors.password_confirmation
+                                            ? 'password-confirmation-error'
+                                            : undefined
+                                    }
                                     required
                                     autoComplete="new-password"
                                     name="password_confirmation"
@@ -106,6 +145,7 @@ export default function Register({ passwordRules }: Props) {
                                 />
                                 <InputError
                                     message={errors.password_confirmation}
+                                    id="password-confirmation-error"
                                 />
                             </div>
 

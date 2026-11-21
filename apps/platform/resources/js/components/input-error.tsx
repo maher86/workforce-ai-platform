@@ -10,6 +10,7 @@ export default function InputError({
     const { t } = useUiLocale();
     return message ? (
         <p
+            role="alert"
             {...props}
             className={cn('text-sm text-red-600 dark:text-red-400', className)}
         >

@@ -15,9 +15,9 @@ export default function AuthSimpleLayout({
         <div
             dir={direction}
             lang={locale}
-            className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+            className="auth-surface flex min-h-svh flex-col items-center justify-center gap-6 bg-[#f7f8fc] p-4 text-slate-900 sm:p-6 md:p-10"
         >
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-md rounded-3xl border border-white bg-white p-6 shadow-[0_18px_60px_-30px_#24365055] sm:p-8">
                 <div className="mb-5 flex justify-end">
                     <ManagerLanguageSwitch />
                 </div>
@@ -25,12 +25,15 @@ export default function AuthSimpleLayout({
                     <div className="flex flex-col items-center gap-4">
                         <Link
                             href={home()}
-                            className="flex flex-col items-center gap-2 font-medium"
+                            className="flex items-center gap-2 font-bold text-slate-800"
+                            aria-label="Workforce"
                         >
                             <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-md">
-                                <AppLogoIcon className="size-9 fill-current text-[var(--foreground)] dark:text-white" />
+                                <AppLogoIcon className="size-9 fill-current text-orange-500" />
                             </div>
-                            <span className="sr-only">{t(title ?? '')}</span>
+                            <span dir="ltr" className="text-xl">
+                                Workforce
+                            </span>
                         </Link>
 
                         <div className="space-y-2 text-center">
