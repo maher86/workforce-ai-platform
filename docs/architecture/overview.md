@@ -2,6 +2,8 @@
 
 Status: approved direction; implementation progresses through the task backlog.
 
+Owner-approved 2026-11-22: manager report participation adds tenant-scoped full-period submission ranking, a current eligible-employee zero-report badge, and local line/donut/column views. Daily/weekly/monthly reuse existing period filters; one-day charts have a separate hourly Dubai series. These are reporting counts, not attendance/productivity/completion. See ADR0016 for tie handling, current-roster eligibility, historical inactive reports, grouped pie shares and verification limits.
+
 Owner request 2026-11-21: the public landing compares proposed Basic/Medium/Enterprise plans and platform-managed versus future company-funded OpenAI usage. This is presentation only, without approved retail tariffs, checkout, usage ledger or tenant credential integration. Current server-provider routing is unchanged. See docs/product/pricing-and-ai-funding.md before implementing monetary limits or billing.
 
 Owner clarification 2026-11-21: each company management account is anchored to one company, with no switcher or second-company enrollment. Platform administration is a distinct CLI-provisioned identity with verified email, confirmed 2FA, recent password confirmation and scoped audited metadata-only diagnostics. It does not impersonate customers. ADR0015 supersedes earlier multi-company management membership descriptions; dormant historical memberships do not bypass the account anchor.

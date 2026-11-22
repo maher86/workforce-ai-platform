@@ -1,0 +1,17 @@
+# ADR 0016: Report participation ranking and chart views
+
+Status: owner-approved design, 2026-11-22.
+
+The all-employee manager dashboard shows a submission-count leaderboard and an expandable badge of employees with no reports in the selected period. Daily, weekly and monthly quick actions reuse the dashboard query: today, trailing seven Dubai calendar days, and current Dubai calendar month. Custom, yesterday, 30-day and all-history ranges remain supported. Pagination never changes full-period counts. The comparison is hidden when focusing on an employee/profile, where the chart and existing report list remain available.
+
+`ReportParticipation` is an HTTP-independent reporting read service. It explicitly authorizes the actor as company owner/manager, scopes employee membership and report queries to that tenant, and aggregates counts in one grouped query. It returns membership IDs and counts, not media or evidence. No mutable tenant context, cache, provider request or background job is introduced. Filtered/profile pages do not request company-wide comparison data.
+
+Counts include submitted, processing, ready and failed active reports independently of human review. Withdrawn reports are excluded by the report soft-delete scope. No source/output/review evidence is rewritten. Ranking is not productivity, attendance, verified completion or payroll. Equal counts share competition rank; membership ID provides deterministic display order, not a tie-break score. Zero-count employees have no rank.
+
+Eligibility means **currently active** employee membership with a known creation timestamp before the exclusive end of the chosen Dubai period. Employees created later, inactive employees and unknown creation times are not flagged as silent. This is a current roster comparison, not reconstruction of historical employment or an absence assertion. Historical reports of employees now inactive still contribute to dashboard/chart totals; the chart explains that scope. No reminders/messages are sent.
+
+The existing daily/monthly series remains unchanged. A separate hourly series is returned for a single Dubai day, with zero-filled hourly buckets; multi-day views use existing calendar-day/month buckets. Full-period totals do not depend on current report-page rows.
+
+Chart selection is local tab memory scoped by company and selected employee, containing only line/donut/column preference. No credentials or evidence enter browser storage. Line and columns represent counts over time. Donut represents employee shares on the company overview and date/hour shares when viewing an employee. More than eight nonzero categories are shown as seven largest shares plus an explicitly labelled aggregated remainder, with exact full counts available in a disclosure. No category is silently dropped; zero periods render a no-data state without percentages. All views retain textual labels, exact values, ar/en interface and fixed English/source evidence.
+
+Verification includes cross-tenant and employee-role denial, Dubai day/week/month boundaries, review-independent counts, tie ranks, inactive/later-membership eligibility, withdrawal exclusion, pagination, zero periods, a bounded-query 50-employee service read, slice-grouping invariants and synthetic browser review. Query-count/CI checks are not an Android or real-provider latency SLA. No migration, device credential change, approval gate, deployment or automatic employee access change is required.

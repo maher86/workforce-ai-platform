@@ -14,6 +14,9 @@ import {
     RotateCcw,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ReportLeaderboard from '@/components/report-leaderboard';
+import type { Participation } from '@/components/report-leaderboard';
+import ReportActivityChart from '@/components/report-activity-chart';
 
 type Person = {
     id: number;
@@ -54,6 +57,9 @@ type Props = {
     series: { day: string; total: number }[];
     monthly: boolean;
     aiMode: string;
+    participation: Participation;
+    chartSeries: { day: string; total: number }[];
+    chartGrain: 'hour' | 'day' | 'month';
 };
 const labels: Record<string, string> = {
     submitted: 'تم الاستلام',
@@ -106,6 +112,9 @@ export default function Overview({
     series,
     monthly,
     aiMode,
+    participation,
+    chartSeries,
+    chartGrain,
 }: Props) {
     const { t, locale, direction } = useUiLocale();
 
@@ -159,6 +168,9 @@ export default function Overview({
                             'series',
                             'period',
                             'monthly',
+                            'participation',
+                            'chartSeries',
+                            'chartGrain',
                         ],
                         onStart: () => {
                             refreshing.current = true;
@@ -177,13 +189,22 @@ export default function Overview({
         const day = date.format(new Date(item.created_at));
         groups.set(day, [...(groups.get(day) ?? []), item]);
     }
-    const max = Math.max(1, ...series.map((item) => item.total));
-    const points = series
-        .map(
-            (item, index) =>
-                `${20 + (720 * index) / Math.max(1, series.length - 1)},${150 - (120 * item.total) / max}`,
-        )
-        .join(' ');
+    const companyOverview = !profile && selectedEmployee === null;
+    const showLeaderboard = companyOverview && people.length > 0;
+    const timeline = chartSeries ?? series;
+    const distribution = companyOverview
+        ? participation.distribution.map((row) => ({
+              key: `person:${row.membership_id}`,
+              label:
+                  people.find((person) => person.id === row.membership_id)
+                      ?.name ?? t('الموظف'),
+              total: row.reports,
+          }))
+        : timeline.map((row) => ({
+              key: row.day,
+              label: row.day,
+              total: row.total,
+          }));
     const exportQuery = new URLSearchParams({
         ...period,
         ...(selectedEmployee ? { employee: String(selectedEmployee) } : {}),
@@ -494,100 +515,31 @@ export default function Overview({
                     </>
                 )}
             </section>
-            {(profile || selectedEmployee !== null || range !== 'today') && (
-                <details
-                    open={profile || selectedEmployee !== null}
-                    className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm"
-                >
-                    <summary className="cursor-pointer font-bold">
-                        {monthly
-                            ? t('عدد التقارير حسب الشهر')
-                            : t('عدد التقارير حسب اليوم')}
-                    </summary>
-                    {summary.reports === 0 ? (
-                        <p className="py-6 text-center text-sm text-slate-500">
-                            {t('لا توجد بيانات للرسم في هذه الفترة.')}
-                        </p>
-                    ) : (
-                        <svg
-                            role="img"
-                            aria-label={
-                                monthly
-                                    ? t('رسم عدد التقارير الشهري')
-                                    : t('رسم عدد التقارير اليومي')
-                            }
-                            viewBox="0 0 760 180"
-                            className="mt-4 w-full"
-                        >
-                            <line
-                                x1="20"
-                                y1="150"
-                                x2="740"
-                                y2="150"
-                                stroke="#cbd5e1"
-                            />
-                            <text x="5" y="25" fontSize="12" fill="#64748b">
-                                {max}
-                            </text>
-                            {series.length > 1 && (
-                                <>
-                                    <polygon
-                                        points={`20,150 ${points} 740,150`}
-                                        fill="#fff0de"
-                                    />
-                                    <polyline
-                                        points={points}
-                                        fill="none"
-                                        stroke="#f97316"
-                                        strokeWidth="3"
-                                    />
-                                </>
-                            )}
-                            {series.length <= 31 &&
-                                series.map((point, index) => (
-                                    <circle
-                                        key={point.day}
-                                        cx={
-                                            20 +
-                                            (720 * index) /
-                                                Math.max(1, series.length - 1)
-                                        }
-                                        cy={150 - (120 * point.total) / max}
-                                        r="4"
-                                        fill="#f97316"
-                                    >
-                                        <title>
-                                            {point.day}: {point.total}
-                                        </title>
-                                    </circle>
-                                ))}
-                        </svg>
-                    )}
-                    <p className="text-xs text-slate-500">
-                        {' '}
-                        {t(
-                            'عدد التقارير لا يثبت الإنتاجية أو إنجاز الأعمال.',
-                        )}{' '}
-                    </p>
-                    <details className="mt-3 text-sm">
-                        <summary className="cursor-pointer text-slate-500">
-                            {' '}
-                            {t('الأعداد حسب التاريخ')}{' '}
-                        </summary>
-                        <dl className="mt-2 grid max-h-48 grid-cols-2 gap-2 overflow-auto sm:grid-cols-4">
-                            {series.map((point) => (
-                                <div
-                                    key={point.day}
-                                    className="rounded-lg bg-slate-50 p-2"
-                                >
-                                    <dt>{point.day}</dt>
-                                    <dd className="font-bold">{point.total}</dd>
-                                </div>
-                            ))}
-                        </dl>
-                    </details>
-                </details>
-            )}
+            <div
+                className={
+                    showLeaderboard
+                        ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.3fr)]'
+                        : ''
+                }
+            >
+                {showLeaderboard && (
+                    <ReportLeaderboard
+                        tenant={tenant.id}
+                        people={people}
+                        data={participation}
+                        range={range}
+                        period={period}
+                    />
+                )}
+                <ReportActivityChart
+                    scope={`tenant:${tenant.id}:employee:${selectedEmployee ?? 'all'}`}
+                    series={timeline}
+                    distribution={distribution}
+                    employeeShare={companyOverview}
+                    grain={chartGrain ?? (monthly ? 'month' : 'day')}
+                    total={summary.reports}
+                />
+            </div>
             <section aria-label={t('التقارير')} className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                     <h2 className="text-lg font-bold">
