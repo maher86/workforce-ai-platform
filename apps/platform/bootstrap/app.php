@@ -38,6 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Credentials must not be retained as old form input after validation failures.
+        $exceptions->dontFlash(['token', 'public_key', 'signature', 'code', 'recovery_code']);
         $exceptions->respond(fn (Response $response) => SecurityHeaders::apply($response));
         $exceptions->report(function (QueryException $exception): bool {
             // SQL bindings can contain employee text. Keep them out of exception logs.

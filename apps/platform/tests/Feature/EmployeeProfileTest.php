@@ -80,7 +80,7 @@ class EmployeeProfileTest extends TestCase
         Report::query()->create(['tenant_id' => $foreign->id, 'membership_id' => Membership::query()->where('tenant_id', $foreign->id)->where('role', 'employee')->sole()->id, 'submission_key' => Str::uuid(), 'content_hash' => str_repeat('a', 64)]);
         $this->actingAs($owner)->post('/tenants/'.$tenant->id.'/employees', ['name' => 'New synthetic person', 'phone' => '+15550001111'])->assertRedirect();
         $this->get('/tenants/'.$tenant->id.'/team')->assertOk()->assertInertia(fn (Assert $page) => $page->component('workforce/team')
-            ->where('managerName', $owner->name)->where('summary.employees', 2)->where('summary.reports', 0)->where('employees.1.phone', '+15550001111'));
+            ->where('managerName', $owner->name)->where('summary.employees', 2)->missing('summary.reports')->where('employees.1.phone', '+15550001111'));
         $this->get('/tenants/'.$foreign->id.'/team')->assertNotFound();
         $this->post('/tenants/'.$tenant->id.'/employees', ['name' => 'Invalid phone', 'phone' => 'not-a-phone'])->assertSessionHasErrors('phone');
     }

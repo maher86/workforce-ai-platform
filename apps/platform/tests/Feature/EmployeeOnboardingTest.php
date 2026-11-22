@@ -22,6 +22,18 @@ class EmployeeOnboardingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_invalid_activation_does_not_copy_device_credentials_into_flash_input(): void
+    {
+        $this->from('/employee/activate')->post('/employee/activate', [
+            'token' => str_repeat('a', 64),
+            'public_key' => 'synthetic-public-key',
+            'signature' => 'synthetic-proof',
+        ])->assertRedirect('/employee/activate')->assertSessionHasErrors('token')
+            ->assertSessionMissing('_old_input.token')
+            ->assertSessionMissing('_old_input.public_key')
+            ->assertSessionMissing('_old_input.signature');
+    }
+
     /** @return array{User, Tenant, Membership} */
     private function workforce(): array
     {
