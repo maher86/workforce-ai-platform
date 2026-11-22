@@ -36,7 +36,7 @@ class UiLocaleTest extends TestCase
         }
         $this->actingAs($owner)->withSession(['ui_locale' => 'en']);
         DB::enableQueryLog();
-        $this->get('/tenants/'.$tenant->id.'/team')->assertOk()->assertInertia(fn (Assert $page) => $page->has('employees', 50)->where('uiLocale', 'en'));
+        $this->get('/tenants/'.$tenant->id.'/team')->assertOk()->assertInertia(fn (Assert $page) => $page->has('employees', 24)->where('employeePages.total', 50)->where('summary.employees', 50)->where('uiLocale', 'en'));
         $this->assertLessThan(20, count(DB::getQueryLog()), 'Team must not issue one query per employee.');
         DB::flushQueryLog();
         $this->get('/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->has('people', 50)->where('summary.reports', 0));

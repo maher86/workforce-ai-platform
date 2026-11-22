@@ -10,7 +10,6 @@ use App\Modules\Identity\Membership;
 use App\Modules\Identity\Tenant;
 use App\Modules\Identity\TenantAccess;
 use App\Modules\Identity\UpdateEmployeeProfile;
-use App\Modules\Reporting\Report;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -33,21 +32,34 @@ class WorkforceController extends Controller
             return app(ManagerOverviewController::class)->index($request, $selected);
         }
         $employees = [];
+        $employeePages = null;
+        $activeEmployees = 0;
+        $filters = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $search = trim($filters['search'] ?? '');
         $canManageManagers = false;
         if ($selected !== null) {
             $canManageManagers = $access->manageTeam($actor, $selected)->role === 'owner';
-            $employees = Membership::query()->where('tenant_id', $selected)->where('role', 'employee')->select('memberships.*')
+            $roster = Membership::query()->where('tenant_id', $selected)->where('role', 'employee');
+            $activeEmployees = (clone $roster)->where('active', true)->count();
+            // Parameter binding prevents SQL injection; escape LIKE wildcards for literal search.
+            $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($search)).'%';
+            $page = $roster->select('memberships.*')
+                ->when($search !== '', fn ($query) => $query->where(function ($query) use ($pattern): void {
+                    $query->whereRaw('LOWER(COALESCE(display_name, (SELECT name FROM users WHERE users.id = memberships.user_id))) LIKE ?', [$pattern])
+                        ->orWhereRaw('phone LIKE ?', [$pattern]);
+                }))
                 ->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')
                 ->selectSub(EmployeeDevice::query()->selectRaw('COUNT(*)')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now()), 'device_count')
-                ->selectSub(EmployeeDevice::query()->select('id')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now())->limit(1), 'approved_device_id')->orderBy('id')->get()
-                ->map(fn (Membership $member) => [
-                    'id' => $member->id, 'name' => $member->display_name ?? $member->getAttribute('account_name'),
-                    'phone' => $member->phone,
-                    'photoUrl' => $member->profile_photo_path ? '/tenants/'.$selected.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
-                    'active' => $member->active,
-                    'devices' => (int) $member->getAttribute('device_count'),
-                    'deviceId' => $member->getAttribute('approved_device_id'),
-                ])->all();
+                ->selectSub(EmployeeDevice::query()->select('id')->whereColumn('tenant_id', 'memberships.tenant_id')->whereColumn('membership_id', 'memberships.id')->whereNull('revoked_at')->where('expires_at', '>', now())->limit(1), 'approved_device_id')->orderBy('id')->paginate(24)->appends(['search' => $search]);
+            $employees = $page->getCollection()->map(fn (Membership $member) => [
+                'id' => $member->id, 'name' => $member->display_name ?? $member->getAttribute('account_name'),
+                'phone' => $member->phone,
+                'photoUrl' => $member->profile_photo_path ? '/tenants/'.$selected.'/employees/'.$member->id.'/photo?v='.substr(hash('sha256', $member->profile_photo_path), 0, 16) : null,
+                'active' => $member->active,
+                'devices' => (int) $member->getAttribute('device_count'),
+                'deviceId' => $member->getAttribute('approved_device_id'),
+            ])->all();
+            $employeePages = ['total' => $page->total(), 'from' => $page->firstItem(), 'to' => $page->lastItem(), 'previous' => $page->previousPageUrl(), 'next' => $page->nextPageUrl()];
         }
 
         $managers = $canManageManagers ? Membership::query()->where('tenant_id', $selected)->where('role', 'manager')->select('memberships.*')->selectSub(User::query()->select('name')->whereColumn('id', 'memberships.user_id')->limit(1), 'account_name')->get()->map(fn (Membership $member) => [
@@ -56,6 +68,7 @@ class WorkforceController extends Controller
 
         return Inertia::render('workforce/team', [
             'workspaces' => $workspaces, 'selectedTenant' => $selected, 'employees' => $employees,
+            'employeePages' => $employeePages, 'search' => $search,
             'activation' => $request->session()->pull('activation'),
             'canManageManagers' => $canManageManagers,
             'managers' => $managers,
@@ -63,9 +76,7 @@ class WorkforceController extends Controller
             'managerName' => $actor->name,
             'androidDownloadUrl' => rtrim((string) (config('workforce.public_url') ?: url('/')), '/').'/downloads/',
             'summary' => $selected === null ? null : [
-                'employees' => count(array_filter($employees, fn ($member) => $member['active'])),
-                'reports' => Report::query()->where('tenant_id', $selected)->count(),
-                'processing' => Report::query()->where('tenant_id', $selected)->whereIn('status', ['submitted', 'processing'])->count(),
+                'employees' => $activeEmployees,
             ],
         ]);
     }
