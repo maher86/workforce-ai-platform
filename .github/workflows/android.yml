@@ -1,5 +1,6 @@
 name: Android pilot
 on:
+  workflow_dispatch:
   pull_request:
     branches: [dev, main, 'codex/**']
     paths: ['apps/android/**', 'apps/platform/resources/js/lib/*native*', 'apps/platform/resources/js/lib/*identity*', 'apps/platform/resources/js/lib/device-transport.ts', '.github/workflows/android.yml']
@@ -36,7 +37,9 @@ jobs:
       - name: Generate exact-origin pilot assets
         run: npm run sync
       - name: Prepare stable private pilot signing
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        # A maintainer must review the selected ref before manually signing it.
+        # Pull requests (including same-repository PRs) only build with a disposable debug key.
+        if: github.event_name == 'workflow_dispatch'
         env:
           KEYSTORE_B64: ${{ secrets.WORKFORCE_ANDROID_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.WORKFORCE_ANDROID_STORE_PASSWORD }}
@@ -60,9 +63,8 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: github.event.pull_request.head.repo.full_name == github.repository
         with:
-          name: workforce-android-debug
+          name: ${{ github.event_name == 'workflow_dispatch' && 'workforce-android-debug' || 'workforce-android-unsigned-for-pilot' }}
           retention-days: 3
           if-no-files-found: error
           path: |

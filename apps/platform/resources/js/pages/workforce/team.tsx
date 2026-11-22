@@ -39,6 +39,15 @@ type Props = {
     workspaces: { id: number; name: string }[];
     selectedTenant: number | null;
     employees: Employee[];
+    employeePages: {
+        total: number;
+        from: number | null;
+        to: number | null;
+        previous: string | null;
+        next: string | null;
+    } | null;
+    search: string;
+    summary: { employees: number } | null;
     activation: {
         name: string;
         url: string;
@@ -54,6 +63,9 @@ export default function Team({
     workspaces,
     selectedTenant,
     employees,
+    employeePages,
+    search: initialSearch,
+    summary,
     activation,
     canManageManagers,
     managers,
@@ -66,8 +78,10 @@ export default function Team({
     const employee = useForm({ name: '', phone: '', device_mode: 'android' });
     const manager = useForm({ name: '', email: '', password: '' });
     const removal = useForm({ membership: '', password: '' });
-    const [showAdd, setShowAdd] = useState(employees.length === 0);
-    const [search, setSearch] = useState('');
+    const [showAdd, setShowAdd] = useState(
+        (employeePages?.total ?? employees.length) === 0 && !initialSearch,
+    );
+    const [search, setSearch] = useState(initialSearch);
     const [hiddenUrl, setHiddenUrl] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [leaving, setLeaving] = useState<Employee | null>(null);
@@ -103,11 +117,6 @@ export default function Team({
             });
         } else access(`${base}/invite`, { device_mode: 'android' });
     };
-    const matches = employees.filter((person) =>
-        `${person.name} ${person.phone ?? ''}`
-            .toLocaleLowerCase()
-            .includes(search.trim().toLocaleLowerCase()),
-    );
     return (
         <main
             dir={direction}
@@ -196,10 +205,7 @@ export default function Team({
                             <h2 className="text-xl font-bold">
                                 {t('الموظفون')}{' '}
                                 <span className="text-slate-400">
-                                    {
-                                        employees.filter((item) => item.active)
-                                            .length
-                                    }
+                                    {summary?.employees ?? 0}
                                 </span>
                             </h2>
                             <p className="mt-1 text-sm text-slate-500">
@@ -303,10 +309,18 @@ export default function Team({
                             {Object.values(errors).join(' ')}
                         </p>
                     )}
-                    <div
+                    <form
                         role="search"
                         aria-label={t('البحث عن موظف')}
                         className="space-y-2"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            router.get(
+                                `/tenants/${selectedTenant}/team`,
+                                { search: search.trim() },
+                                { preserveScroll: true },
+                            );
+                        }}
                     >
                         <Label
                             htmlFor="employee-search"
@@ -314,30 +328,40 @@ export default function Team({
                         >
                             {t('البحث عن موظف')}
                         </Label>
-                        <div className="relative">
-                            <Search
-                                size={21}
-                                aria-hidden="true"
-                                className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-orange-500"
-                            />
-                            <Input
-                                id="employee-search"
-                                type="search"
-                                className="h-14 rounded-2xl border-slate-200 bg-white ps-12 text-base shadow-sm focus-visible:border-orange-400 focus-visible:ring-orange-100"
-                                aria-label={t('البحث بالاسم أو الهاتف')}
-                                placeholder={t('البحث بالاسم أو الهاتف')}
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                            />
+                        <div className="flex items-center gap-2">
+                            <div className="relative min-w-0 flex-1">
+                                <Search
+                                    size={21}
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-orange-500"
+                                />
+                                <Input
+                                    id="employee-search"
+                                    type="search"
+                                    className="h-14 rounded-2xl border-slate-200 bg-white ps-12 text-base shadow-sm focus-visible:border-orange-400 focus-visible:ring-orange-100"
+                                    aria-label={t('البحث بالاسم أو الهاتف')}
+                                    placeholder={t('البحث بالاسم أو الهاتف')}
+                                    value={search}
+                                    maxLength={120}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                className="h-14 shrink-0 rounded-2xl"
+                                aria-label={t('البحث عن موظف')}
+                            >
+                                <Search aria-hidden="true" size={21} />
+                            </Button>
                         </div>
-                    </div>
+                    </form>
                     <section
                         className="grid gap-4 md:grid-cols-2"
                         aria-label={t('الموظفون')}
                     >
-                        {matches.map((person) => (
+                        {employees.map((person) => (
                             <article
                                 key={person.id}
                                 className="space-y-4 rounded-3xl border border-white bg-white/85 p-5 shadow-sm"
@@ -448,14 +472,50 @@ export default function Team({
                             </article>
                         ))}
                     </section>
-                    {matches.length === 0 && (
+                    {employees.length === 0 && (
                         <p className="p-6 text-center text-slate-500">
                             {t(
-                                employees.length
+                                initialSearch || (employeePages?.total ?? 0) > 0
                                     ? 'لا توجد نتائج'
                                     : 'أضف أول موظف للبدء.',
                             )}
                         </p>
+                    )}
+                    {employeePages && (
+                        <nav
+                            aria-label={t('الموظفون')}
+                            className="flex flex-wrap items-center justify-center gap-3"
+                        >
+                            {employeePages.previous && (
+                                <Link
+                                    href={employeePages.previous}
+                                    className="inline-flex min-h-11 items-center rounded-xl border bg-white px-4"
+                                >
+                                    {t('السابق')}
+                                </Link>
+                            )}
+                            <span className="text-sm text-slate-500">
+                                {employeePages.from ?? 0}–
+                                {employeePages.to ?? 0} {t('من')}{' '}
+                                {employeePages.total}
+                            </span>
+                            {employeePages.next && (
+                                <Link
+                                    href={employeePages.next}
+                                    className="inline-flex min-h-11 items-center rounded-xl border bg-white px-4"
+                                >
+                                    {t('التالي')}
+                                </Link>
+                            )}
+                            {initialSearch && (
+                                <Link
+                                    href={`/tenants/${selectedTenant}/team`}
+                                    className="inline-flex min-h-11 items-center rounded-xl border bg-white px-4"
+                                >
+                                    {t('مسح الفلاتر')}
+                                </Link>
+                            )}
+                        </nav>
                     )}
                     {canManageManagers && (
                         <details className="rounded-3xl border bg-white/80 p-5">

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EmployeeDeviceAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUiLocale;
 use App\Http\Middleware\WorkforceStartSession;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -14,6 +15,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(SecurityHeaders::class);
         // Restore/revalidate the device after session startup, before route auth/guest guards.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, EmployeeDeviceAccess::class);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
@@ -35,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->respond(fn (Response $response) => SecurityHeaders::apply($response));
         $exceptions->report(function (QueryException $exception): bool {
             // SQL bindings can contain employee text. Keep them out of exception logs.
             Log::error('database_operation_failed', ['sqlstate' => (string) $exception->getCode()]);
