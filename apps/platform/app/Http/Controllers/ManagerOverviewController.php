@@ -9,6 +9,7 @@ use App\Modules\Identity\TenantAccess;
 use App\Modules\Reporting\Report;
 use App\Modules\Reporting\ReportActivity;
 use App\Modules\Reporting\ReportOutput;
+use App\Modules\Reporting\ReportParticipation;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -66,6 +67,21 @@ class ManagerOverviewController extends Controller
             $key = $monthly ? $day->format('Y-m') : $day->toDateString();
             $series[] = ['day' => $key, 'total' => $counts->get($key, 0)];
         }
+        $chartGrain = $from === $to ? 'hour' : ($monthly ? 'month' : 'day');
+        $chartSeries = $series;
+        if ($chartGrain === 'hour') {
+            $hour = "to_char(reports.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dubai', 'HH24')";
+            $hours = (clone $query)->selectRaw($hour.' AS bucket, COUNT(*)::int AS total')->groupByRaw($hour)->get()
+                ->mapWithKeys(fn (Report $row) => [(string) $row->getAttribute('bucket') => (int) $row->getAttribute('total')]);
+            $chartSeries = [];
+            for ($h = 0; $h < 24; $h++) {
+                $key = sprintf('%02d', $h);
+                $chartSeries[] = ['day' => $key.':00', 'total' => $hours->get($key, 0)];
+            }
+        }
+        $participation = $employee === null && $membership === null
+            ? app(ReportParticipation::class)->summarize($request->user(), $tenant, $period)
+            : ['ranked' => [], 'silent' => [], 'eligible' => 0, 'distribution' => []];
         $reports = (clone $query)->select(['reports.id', 'reports.membership_id', 'reports.status', 'reports.created_at'])->selectRaw('LEFT(reports.source_text, 240) as source_text')
             ->selectSub(ReportOutput::query()->selectRaw("LEFT(payload->>'english', 320)")->whereColumn('tenant_id', 'reports.tenant_id')->whereColumn('report_id', 'reports.id')->where('stage', 'translation')->limit(1), 'summary')
             ->orderByDesc('created_at')->orderByDesc('id')->paginate(25)->withQueryString();
@@ -76,6 +92,7 @@ class ManagerOverviewController extends Controller
             'people' => $people, 'selectedEmployee' => $employee, 'profile' => $membership !== null,
             'period' => $period, 'range' => $range, 'summary' => $summary->only(['reports', 'contributors', 'processing', 'failed']),
             'reports' => $reports, 'series' => $series, 'monthly' => $monthly, 'aiMode' => config('workforce.ai_provider'),
+            'participation' => $participation, 'chartSeries' => $chartSeries, 'chartGrain' => $chartGrain,
         ]);
     }
 }
